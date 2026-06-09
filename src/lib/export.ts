@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 // =============================================
 // EXCEL EXPORT (using SheetJS/xlsx)
@@ -42,9 +44,6 @@ export async function exportToPDF(
   options?: { subtitle?: string }
 ) {
   try {
-    const { default: jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
     
     // Title
@@ -66,7 +65,7 @@ export async function exportToPDF(
     // Table
     const startY = options?.subtitle ? 38 : 32
     
-    ;(doc as any).autoTable({
+    autoTable(doc, {
       head: [headers],
       body: data,
       startY,
@@ -91,7 +90,7 @@ export async function exportToPDF(
     doc.save(`${filename}.pdf`)
   } catch (error) {
     console.error('PDF export error:', error)
-    throw new Error('Failed to export PDF')
+    throw new Error(error instanceof Error ? error.message : 'Failed to export PDF')
   }
 }
 
@@ -112,10 +111,10 @@ export async function getOutstandingExportData() {
 
   const rows: any[][] = []
   purchases?.forEach((p: any) => {
-    rows.push([p.supplier?.name || 'N/A', p.purchase_number, formatCurrency(Number(p.balance_due)), '-', 'Payable'])
+    rows.push([p.supplier?.name || 'N/A', p.purchase_number, '-', formatCurrency(Number(p.balance_due)), 'Payable'])
   })
   sales?.forEach((s: any) => {
-    rows.push([s.client?.name || 'N/A', s.sale_number, '-', formatCurrency(Number(s.balance_due)), 'Receivable'])
+    rows.push([s.client?.name || 'N/A', s.sale_number, formatCurrency(Number(s.balance_due)), '-', 'Receivable'])
   })
 
   return rows
@@ -138,6 +137,33 @@ export async function getDailyExportData(date: string) {
   })
   purchases?.forEach((p: any) => {
     rows.push([formatDate(date), p.purchase_number, p.supplier?.name || 'N/A', 'Purchase', formatCurrency(Number(p.total_amount)), formatCurrency(Number(p.amount_paid))])
+  })
+
+  return rows
+}
+
+export async function getMonthlyExportData(year: number, month: number) {
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
+
+  const { data: sales } = await supabase
+    .from('sales')
+    .select('sale_number, invoice_date, client:parties!client_id(name), total_amount, amount_received, payment_status')
+    .gte('invoice_date', startDate)
+    .lte('invoice_date', endDate)
+
+  const { data: purchases } = await supabase
+    .from('purchases')
+    .select('purchase_number, invoice_date, supplier:parties!supplier_id(name), total_amount, amount_paid, payment_status')
+    .gte('invoice_date', startDate)
+    .lte('invoice_date', endDate)
+
+  const rows: any[][] = []
+  sales?.forEach((s: any) => {
+    rows.push([formatDate(s.invoice_date), s.sale_number, s.client?.name || 'N/A', 'Sale', formatCurrency(Number(s.total_amount)), formatCurrency(Number(s.amount_received)), s.payment_status])
+  })
+  purchases?.forEach((p: any) => {
+    rows.push([formatDate(p.invoice_date), p.purchase_number, p.supplier?.name || 'N/A', 'Purchase', formatCurrency(Number(p.total_amount)), formatCurrency(Number(p.amount_paid)), p.payment_status])
   })
 
   return rows

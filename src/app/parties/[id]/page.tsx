@@ -7,8 +7,10 @@ import type { Party } from '@/types/database'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
 import { getPartyLedger } from '@/lib/api/ledger'
-import { ArrowLeft, Phone, Mail, MapPin, Building2, FileText } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { deleteParty } from '@/lib/api/parties'
+import { toast } from 'sonner'
 
 export default function PartyDetailPage() {
   const params = useParams()
@@ -73,9 +75,19 @@ export default function PartyDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900">{party.name}</h1>
           <p className="text-gray-500 text-sm capitalize">{party.party_type}</p>
         </div>
-        <div className="flex gap-3">
-          <Link href={`/parties/${party.id}/edit`} className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">
-            Edit
+        <div className="flex items-center gap-3">
+          <button onClick={() => {
+            if (confirm(`Are you sure you want to delete ${party.name}?`)) {
+              deleteParty(party.id).then(() => {
+                toast.success('Party deleted')
+                router.push('/parties')
+              }).catch((e: any) => toast.error(e.message))
+            }
+          }} className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+            <Trash2 className="w-4 h-4" /> Delete
+          </button>
+          <Link href={`/parties/${party.id}/edit`} className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">
+            <Edit3 className="w-4 h-4" /> Edit
           </Link>
         </div>
       </div>

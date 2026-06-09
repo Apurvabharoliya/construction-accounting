@@ -96,6 +96,33 @@ export async function updateSubsidyStatus(
   return data
 }
 
+export async function deleteBeneficiary(id: string) {
+  // Get the beneficiary to find the party_id
+  const { data: beneficiary } = await supabase
+    .from('beneficiaries')
+    .select('party_id')
+    .eq('id', id)
+    .single()
+
+  // Delete the beneficiary record
+  const { error } = await supabase
+    .from('beneficiaries')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+
+  // Delete the associated party record
+  if (beneficiary?.party_id) {
+    await supabase
+      .from('parties')
+      .delete()
+      .eq('id', beneficiary.party_id)
+  }
+
+  return { success: true }
+}
+
 export async function getBeneficiaryTransactions(partyId: string) {
   const { data, error } = await supabase
     .from('transactions')

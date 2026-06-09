@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Eye, Edit3, Trash2, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
+import { deleteSale } from '@/lib/api/sales'
+import { toast } from 'sonner'
+import { useAiDescriptions } from '@/lib/hooks/useAiDescriptions'
 
 export default function SalesPage() {
   const [sales, setSales] = useState<any[]>([])
@@ -40,6 +43,23 @@ export default function SalesPage() {
       setLoading(false)
     }
   }
+
+  async function handleDelete(id: string, invoice: string) {
+    if (!confirm(`Are you sure you want to delete sale ${invoice}?`)) return
+    try {
+      await deleteSale(id)
+      toast.success('Sale deleted')
+      fetchSales()
+    } catch (error: any) {
+      toast.error(error.message)
+    }
+  }
+
+  const { descriptions: aiDescs, loading: aiLoading } = useAiDescriptions({
+    records: sales,
+    type: 'sale',
+    enabled: sales.length > 0
+  })
 
   return (
     <div className="space-y-6">
@@ -87,9 +107,9 @@ export default function SalesPage() {
                   <th className="p-4 text-sm font-medium text-gray-500">Invoice #</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Client</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Amount</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Received</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Balance</th>
+                  <th className="p-4 text-sm font-medium text-gray-500">Description</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Status</th>
+                  <th className="p-4 text-sm font-medium text-gray-500">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -99,8 +119,15 @@ export default function SalesPage() {
                     <td className="p-4 text-sm font-medium">{s.sale_number}</td>
                     <td className="p-4 text-sm">{s.client?.name || 'N/A'}</td>
                     <td className="p-4 text-sm font-medium">{formatCurrency(Number(s.total_amount))}</td>
-                    <td className="p-4 text-sm">{formatCurrency(Number(s.amount_received))}</td>
-                    <td className="p-4 text-sm font-medium text-orange-600">{formatCurrency(Number(s.balance_due))}</td>
+                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate">
+                      {aiLoading && !aiDescs[s.id] ? (
+                        <span className="flex items-center gap-1 text-gray-400"><Sparkles className="w-3 h-3 animate-pulse" /> Generating...</span>
+                      ) : aiDescs[s.id] ? (
+                        <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-blue-500 shrink-0" />{aiDescs[s.id]}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                         s.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
@@ -108,6 +135,19 @@ export default function SalesPage() {
                       }`}>
                         {s.payment_status.charAt(0).toUpperCase() + s.payment_status.slice(1)}
                       </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Link href={`/sales/${s.id}`} className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium">
+                          <Eye className="w-4 h-4" /> View
+                        </Link>
+                        <Link href={`/sales/${s.id}/edit`} className="flex items-center gap-1 text-gray-600 hover:text-gray-700 text-sm">
+                          <Edit3 className="w-4 h-4" /> Edit
+                        </Link>
+                        <button onClick={() => handleDelete(s.id, s.sale_number)} className="flex items-center gap-1 text-red-600 hover:text-red-700 text-sm">
+                          <Trash2 className="w-4 h-4" /> Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

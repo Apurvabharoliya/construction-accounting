@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Party } from '@/types/database'
-import { Search, Plus, Phone, Mail, MapPin } from 'lucide-react'
+import { Search, Plus, Phone, Mail, MapPin, Eye, Edit3, Trash2, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
+import { deleteParty } from '@/lib/api/parties'
+import { toast } from 'sonner'
+import { useAiDescriptions } from '@/lib/hooks/useAiDescriptions'
 
 const partyTypeColors: Record<string, string> = {
   supplier: 'bg-blue-100 text-blue-800',
@@ -46,6 +49,23 @@ export default function PartiesPage() {
       setLoading(false)
     }
   }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Are you sure you want to delete ${name}?`)) return
+    try {
+      await deleteParty(id)
+      toast.success('Party deleted')
+      fetchParties()
+    } catch (error: any) {
+      toast.error(error.message)
+    }
+  }
+
+  const { descriptions: aiDescs, loading: aiLoading } = useAiDescriptions({
+    records: parties,
+    type: 'party',
+    enabled: parties.length > 0
+  })
 
   return (
     <div className="space-y-6">
@@ -113,7 +133,7 @@ export default function PartiesPage() {
                   <th className="p-4 text-sm font-medium text-gray-500">Name</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Type</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Contact</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">GSTIN</th>
+                  <th className="p-4 text-sm font-medium text-gray-500">Description</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Balance</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Actions</th>
                 </tr>
@@ -124,12 +144,6 @@ export default function PartiesPage() {
                     <td className="p-4">
                       <div>
                         <p className="font-medium text-gray-900">{party.name}</p>
-                        {party.city && (
-                          <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" />
-                            {party.city}{party.state ? `, ${party.state}` : ''}
-                          </p>
-                        )}
                       </div>
                     </td>
                     <td className="p-4">
@@ -144,14 +158,16 @@ export default function PartiesPage() {
                           {party.phone}
                         </p>
                       )}
-                      {party.email && (
-                        <p className="text-sm flex items-center gap-1 mt-0.5">
-                          <Mail className="w-3 h-3 text-gray-400" />
-                          {party.email}
-                        </p>
+                    </td>
+                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate">
+                      {aiLoading && !aiDescs[party.id] ? (
+                        <span className="flex items-center gap-1 text-gray-400"><Sparkles className="w-3 h-3 animate-pulse" /> Generating...</span>
+                      ) : aiDescs[party.id] ? (
+                        <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-blue-500 shrink-0" />{aiDescs[party.id]}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="p-4 text-sm text-gray-600">{party.gstin || '-'}</td>
                     <td className="p-4">
                       <span className={`font-medium ${
                         (party.opening_balance || 0) > 0 ? 'text-green-600' : 
@@ -162,12 +178,15 @@ export default function PartiesPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <Link href={`/parties/${party.id}`} className="text-blue-600 hover:underline text-sm font-medium">
-                          View
+                        <Link href={`/parties/${party.id}`} className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium">
+                          <Eye className="w-4 h-4" /> View
                         </Link>
-                        <Link href={`/parties/${party.id}/edit`} className="text-gray-600 hover:underline text-sm">
-                          Edit
+                        <Link href={`/parties/${party.id}/edit`} className="flex items-center gap-1 text-gray-600 hover:text-gray-700 text-sm">
+                          <Edit3 className="w-4 h-4" /> Edit
                         </Link>
+                        <button onClick={() => handleDelete(party.id, party.name)} className="flex items-center gap-1 text-red-600 hover:text-red-700 text-sm">
+                          <Trash2 className="w-4 h-4" /> Delete
+                        </button>
                       </div>
                     </td>
                   </tr>

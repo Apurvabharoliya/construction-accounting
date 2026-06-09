@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Edit3, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { deletePurchase } from '@/lib/api/purchases'
+import { toast } from 'sonner'
 
 export default function PurchaseDetailPage() {
   const params = useParams()
@@ -44,7 +46,21 @@ export default function PurchaseDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900">{purchase.purchase_number}</h1>
           <p className="text-gray-500 text-sm">Purchase from {purchase.supplier?.name}</p>
         </div>
-        <Link href={`/purchases/${purchase.id}/edit`} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Edit</Link>
+        <div className="flex items-center gap-3">
+          <button onClick={() => {
+            if (confirm(`Are you sure you want to delete ${purchase.purchase_number}?`)) {
+              deletePurchase(purchase.id).then(() => {
+                toast.success('Purchase deleted')
+                router.push('/purchases')
+              }).catch((e: any) => toast.error(e.message))
+            }
+          }} className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+            <Trash2 className="w-4 h-4" /> Delete
+          </button>
+          <Link href={`/purchases/${purchase.id}/edit`} className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">
+            <Edit3 className="w-4 h-4" /> Edit
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

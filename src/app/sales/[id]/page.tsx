@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
-import { ArrowLeft, Printer, Edit3, FileText, Building2, User, Hash, Calendar, IndianRupee, CheckCircle, Clock } from 'lucide-react'
+import { ArrowLeft, Printer, Edit3, Trash2, FileText } from 'lucide-react'
 import Link from 'next/link'
+import { deleteSale } from '@/lib/api/sales'
+import { toast } from 'sonner'
 
 export default function SaleDetailPage() {
   const params = useParams()
@@ -78,7 +80,17 @@ export default function SaleDetailPage() {
               <p className="text-gray-500 text-sm">Sale to {sale.client?.name}</p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => {
+              if (confirm(`Are you sure you want to delete ${sale.sale_number}?`)) {
+                deleteSale(sale.id).then(() => {
+                  toast.success('Sale deleted')
+                  router.push('/sales')
+                }).catch((e: any) => toast.error(e.message))
+              }
+            }} className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-all text-sm font-medium">
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
             <Link href={`/sales/${sale.id}/edit`} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium text-gray-700">
               <Edit3 className="w-4 h-4" />
               Edit

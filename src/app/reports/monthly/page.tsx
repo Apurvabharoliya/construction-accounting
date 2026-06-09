@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { getMonthlySummary } from '@/lib/api/ledger'
 import { formatCurrency } from '@/lib/gst'
-import { exportToExcel, exportToPDF } from '@/lib/export'
+import { exportToExcel, exportToPDF, getMonthlyExportData } from '@/lib/export'
 import { ArrowLeft, TrendingUp, ShoppingCart, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import ExportButton from '@/components/ui/ExportButton'
@@ -30,31 +30,15 @@ export default function MonthlySummaryPage() {
   }
 
   const handleExportExcel = async () => {
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const endDate = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
-    const rows: any[][] = []
-    // Add summary row
-    if (data) {
-      rows.push(['Total Sales', formatCurrency(data.totalSales)])
-      rows.push(['Total Received', formatCurrency(data.totalReceived)])
-      rows.push(['Total Purchases', formatCurrency(data.totalPurchases)])
-      rows.push(['Total Paid', formatCurrency(data.totalPaid)])
-      rows.push(['Net Income', formatCurrency(data.netIncome)])
-    }
-    await exportToExcel(rows, ['Metric', 'Amount'], `Monthly_Summary_${year}_${month}`)
+    const rows = await getMonthlyExportData(year, month)
+    await exportToExcel(rows, ['Date', 'Invoice', 'Party', 'Type', 'Amount', 'Received/Paid', 'Status'], `Monthly_Summary_${year}_${month}`)
   }
 
   const handleExportPDF = async () => {
     if (!data) return
-    const rows = [
-      ['Total Sales', formatCurrency(data.totalSales)],
-      ['Total Received', formatCurrency(data.totalReceived)],
-      ['Total Purchases', formatCurrency(data.totalPurchases)],
-      ['Total Paid', formatCurrency(data.totalPaid)],
-      ['Net Income', formatCurrency(data.netIncome)]
-    ]
-    await exportToPDF('Monthly Summary', ['Metric', 'Amount'], rows, `Monthly_Summary_${year}_${month}`, {
-      subtitle: `${monthNames[month - 1]} ${year}`
+    const rows = await getMonthlyExportData(year, month)
+    await exportToPDF('Monthly Summary', ['Date', 'Invoice', 'Party', 'Type', 'Amount', 'Received/Paid', 'Status'], rows, `Monthly_Summary_${year}_${month}`, {
+      subtitle: `${monthNames[month - 1]} ${year} | Net Income: ${formatCurrency(data.netIncome)}`
     })
   }
 
