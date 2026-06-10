@@ -11,8 +11,7 @@ import { toast } from 'sonner'
 const partyTypeColors: Record<string, string> = {
   supplier: 'bg-blue-100 text-blue-800',
   client: 'bg-green-100 text-green-800',
-  beneficiary: 'bg-purple-100 text-purple-800',
-  debtor: 'bg-orange-100 text-orange-800'
+  beneficiary: 'bg-purple-100 text-purple-800'
 }
 
 export default function PartiesPage() {
@@ -109,7 +108,7 @@ export default function PartiesPage() {
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {['all', 'supplier', 'client', 'beneficiary', 'debtor'].map((type) => (
+            {['all', 'supplier', 'client', 'beneficiary'].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}

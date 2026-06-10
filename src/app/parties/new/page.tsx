@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 import { createParty } from '@/lib/api/parties'
 import { toast } from 'sonner'
 import PartyForm from '@/components/parties/PartyForm'
@@ -13,7 +14,7 @@ export default function NewPartyPage() {
   async function handleSubmit(data: any) {
     setIsLoading(true)
     try {
-      await createParty({
+      const party = await createParty({
         name: data.name,
         phone: data.phone || undefined,
         email: data.email || undefined,
@@ -31,6 +32,20 @@ export default function NewPartyPage() {
         ifsc_code: data.ifsc_code || undefined,
         notes: data.notes || undefined
       })
+
+      // If party is a beneficiary, auto-create a beneficiary record
+      if (data.party_type === 'beneficiary') {
+        await supabase.from('beneficiaries').insert([{
+          party_id: party.id,
+          aadhaar_number: undefined,
+          subsidy_status: 'pending',
+          construction_progress: 0,
+          total_amount_received: 0,
+          total_amount_due: 400000,
+          payment_installments: 1
+        }])
+      }
+
       toast.success('Party created successfully')
       router.push('/parties')
       router.refresh()

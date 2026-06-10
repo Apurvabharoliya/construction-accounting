@@ -100,5 +100,4 @@ export const PARTY_TYPES = [
   { value: 'supplier', label: 'Supplier' },
   { value: 'client', label: 'Client' },
   { value: 'beneficiary', label: 'Beneficiary' },
-  { value: 'debtor', label: 'Debtor' },
 ] as const

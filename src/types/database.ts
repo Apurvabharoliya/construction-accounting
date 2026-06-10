@@ -9,7 +9,7 @@ export interface Party {
   city?: string
   state?: string
   pin_code?: string
-  party_type: 'supplier' | 'client' | 'beneficiary' | 'debtor'
+  party_type: 'supplier' | 'client' | 'beneficiary'
   opening_balance: number
   gst_registered: boolean
   bank_name?: string

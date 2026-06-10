@@ -15,7 +15,7 @@ const partySchema = z.object({
   city: z.string().optional().or(z.literal('')),
   state: z.string().optional().or(z.literal('')),
   pin_code: z.string().optional().or(z.literal('')),
-  party_type: z.enum(['supplier', 'client', 'beneficiary', 'debtor']),
+  party_type: z.enum(['supplier', 'client', 'beneficiary']),
   opening_balance: z.string().optional().or(z.literal('')),
   gst_registered: z.boolean(),
   bank_name: z.string().optional().or(z.literal('')),
