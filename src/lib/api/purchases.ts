@@ -124,6 +124,39 @@ export async function updatePurchase(
     await supabase.from('purchase_items').insert(itemsWithPurchaseId)
   }
 
+  // Sync transactions: delete old and recreate with updated amounts
+  await supabase.from('transactions').delete().eq('reference_id', id).eq('reference_type', 'purchase')
+
+  // Create updated purchase transaction
+  await supabase.from('transactions').insert([{
+    party_id: purchase.supplier_id,
+    transaction_type: 'purchase' as const,
+    reference_id: id,
+    reference_type: 'purchase',
+    debit: purchase.total_amount,
+    credit: 0,
+    balance: purchase.total_amount,
+    description: `Purchase ${data.purchase_number}`,
+    transaction_date: purchase.invoice_date,
+    created_at: new Date().toISOString()
+  }])
+
+  // Recreate payment transaction if applicable
+  if (purchase.amount_paid && purchase.amount_paid > 0) {
+    await supabase.from('transactions').insert([{
+      party_id: purchase.supplier_id,
+      transaction_type: 'payment' as const,
+      reference_id: id,
+      reference_type: 'purchase',
+      debit: 0,
+      credit: purchase.amount_paid,
+      balance: 0,
+      description: `Payment for ${data.purchase_number}`,
+      transaction_date: purchase.invoice_date,
+      created_at: new Date().toISOString()
+    }])
+  }
+
   return data
 }
 

@@ -239,6 +239,117 @@ export async function getPartyInvoices(partyId: string, partyType: string): Prom
   return invoices.sort((a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime())
 }
 
+export async function recordInvoicePayment(
+  invoiceId: string,
+  invoiceType: 'purchase' | 'sale',
+  payment: {
+    amount: number
+    payment_mode?: string
+    payment_date: string
+  },
+  partyId: string
+) {
+  if (payment.amount <= 0) {
+    throw new Error('Payment amount must be greater than 0')
+  }
+
+  if (invoiceType === 'purchase') {
+    // Fetch current purchase
+    const { data: purchase, error: fetchError } = await supabase
+      .from('purchases')
+      .select('*')
+      .eq('id', invoiceId)
+      .single()
+
+    if (fetchError) throw fetchError
+    if (!purchase) throw new Error('Purchase invoice not found')
+
+    const newAmountPaid = Number(purchase.amount_paid) + payment.amount
+    const newBalanceDue = Number(purchase.total_amount) - newAmountPaid
+    
+    // Determine new payment status
+    const newStatus = newBalanceDue <= 0 ? 'paid' : 'partial'
+
+    // Update purchase record
+    const { error: updateError } = await supabase
+      .from('purchases')
+      .update({
+        amount_paid: newAmountPaid,
+        balance_due: Math.max(0, newBalanceDue),
+        payment_status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', invoiceId)
+
+    if (updateError) throw updateError
+
+    // Create payment transaction
+    const { error: txnError } = await supabase.from('transactions').insert([{
+      party_id: partyId,
+      transaction_type: 'payment' as const,
+      reference_id: invoiceId,
+      reference_type: 'purchase',
+      debit: 0,
+      credit: payment.amount,
+      balance: 0,
+      description: `Payment for ${purchase.purchase_number}${payment.payment_mode ? ` via ${payment.payment_mode}` : ''}`,
+      transaction_date: payment.payment_date,
+      created_at: new Date().toISOString()
+    }])
+
+    if (txnError) throw txnError
+
+    return { invoice_number: purchase.purchase_number, newStatus, newBalanceDue: Math.max(0, newBalanceDue) }
+  } else {
+    // Fetch current sale
+    const { data: sale, error: fetchError } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('id', invoiceId)
+      .single()
+
+    if (fetchError) throw fetchError
+    if (!sale) throw new Error('Sale invoice not found')
+
+    const newAmountReceived = Number(sale.amount_received) + payment.amount
+    const newBalanceDue = Number(sale.total_amount) - newAmountReceived
+
+    // Determine new payment status
+    const newStatus = newBalanceDue <= 0 ? 'paid' : 'partial'
+
+    // Update sale record
+    const { error: updateError } = await supabase
+      .from('sales')
+      .update({
+        amount_received: newAmountReceived,
+        balance_due: Math.max(0, newBalanceDue),
+        payment_status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', invoiceId)
+
+    if (updateError) throw updateError
+
+    // Create receipt transaction
+    const { error: txnError } = await supabase.from('transactions').insert([{
+      party_id: partyId,
+      transaction_type: 'receipt' as const,
+      reference_id: invoiceId,
+      reference_type: 'sale',
+      debit: payment.amount,
+      credit: 0,
+      balance: 0,
+      description: `Receipt for ${sale.sale_number}${payment.payment_mode ? ` via ${payment.payment_mode}` : ''}`,
+      transaction_date: payment.payment_date,
+      created_at: new Date().toISOString()
+    }])
+
+    if (txnError) throw txnError
+
+    return { invoice_number: sale.sale_number, newStatus, newBalanceDue: Math.max(0, newBalanceDue) }
+  }
+}
+
 export async function getGstSummary(startDate: string, endDate: string) {
   // Get sales GST summary
   const { data: sales, error: salesError } = await supabase

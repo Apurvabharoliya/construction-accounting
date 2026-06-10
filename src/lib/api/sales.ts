@@ -122,6 +122,39 @@ export async function updateSale(
     await supabase.from('sale_items').insert(itemsWithSaleId)
   }
 
+  // Sync transactions: delete old and recreate with updated amounts
+  await supabase.from('transactions').delete().eq('reference_id', id).eq('reference_type', 'sale')
+
+  // Create updated sale transaction
+  await supabase.from('transactions').insert([{
+    party_id: sale.client_id,
+    transaction_type: 'sale' as const,
+    reference_id: id,
+    reference_type: 'sale',
+    debit: 0,
+    credit: sale.total_amount,
+    balance: sale.total_amount,
+    description: `Sale ${data.sale_number}`,
+    transaction_date: sale.invoice_date,
+    created_at: new Date().toISOString()
+  }])
+
+  // Recreate receipt transaction if applicable
+  if (sale.amount_received && sale.amount_received > 0) {
+    await supabase.from('transactions').insert([{
+      party_id: sale.client_id,
+      transaction_type: 'receipt' as const,
+      reference_id: id,
+      reference_type: 'sale',
+      debit: sale.amount_received,
+      credit: 0,
+      balance: 0,
+      description: `Receipt for ${data.sale_number}`,
+      transaction_date: sale.invoice_date,
+      created_at: new Date().toISOString()
+    }])
+  }
+
   return data
 }
 

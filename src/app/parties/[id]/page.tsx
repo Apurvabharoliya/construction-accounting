@@ -7,10 +7,11 @@ import type { Party } from '@/types/database'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
 import { getPartyLedger, getPartyInvoices, type InvoiceSummary } from '@/lib/api/ledger'
-import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2, ExternalLink, ShoppingCart, DollarSign, FileText, Receipt } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2, ExternalLink, ShoppingCart, DollarSign, Banknote, FileText, Receipt, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { deleteParty } from '@/lib/api/parties'
 import { toast } from 'sonner'
+import RecordPaymentDialog from '@/components/payments/RecordPaymentDialog'
 
 function PaymentProgress({ paid, total }: { paid: number; total: number }) {
   const percentage = total > 0 ? Math.min((paid / total) * 100, 100) : 0
@@ -57,6 +58,7 @@ export default function PartyDetailPage() {
   const [currentBalance, setCurrentBalance] = useState(0)
   const [invoices, setInvoices] = useState<InvoiceSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [paymentDialogInvoice, setPaymentDialogInvoice] = useState<InvoiceSummary | null>(null)
 
   useEffect(() => {
     if (params.id) {
@@ -225,6 +227,7 @@ export default function PartyDetailPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mode</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Items</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Pay</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
                 </tr>
               </thead>
@@ -274,6 +277,16 @@ export default function PartyDetailPage() {
                       <span className="text-xs text-gray-400 font-medium">{inv.items_count} item{inv.items_count !== 1 ? 's' : ''}</span>
                     </td>
                     <td className="px-4 py-3 text-center">
+                      {inv.balance_due > 0 && (
+                        <button
+                          onClick={() => setPaymentDialogInvoice(inv)}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Plus className="w-3 h-3" /> Pay
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
                       <Link
                         href={inv.link}
                         className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-all"
@@ -289,52 +302,184 @@ export default function PartyDetailPage() {
         </div>
       )}
 
-      {/* Ledger */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Transaction Ledger</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left border-b">
-                <th className="pb-3 text-sm font-medium text-gray-500">Date</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Description</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Type</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Debit</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Credit</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ledger.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500">No transactions yet</td>
-                </tr>
-              ) : (
-                ledger.map((txn: any) => (
-                  <tr key={txn.id} className="border-t hover:bg-gray-50">
-                    <td className="py-3 text-sm">{formatDate(txn.transaction_date)}</td>
-                    <td className="py-3 text-sm">{txn.description || '-'}</td>
-                    <td className="py-3">
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs capitalize">
-                        {txn.transaction_type}
-                      </span>
-                    </td>
-                    <td className="py-3 text-sm font-medium text-red-600">
-                      {txn.debit > 0 ? formatCurrency(txn.debit) : '-'}
-                    </td>
-                    <td className="py-3 text-sm font-medium text-green-600">
-                      {txn.credit > 0 ? formatCurrency(txn.credit) : '-'}
-                    </td>
-                    <td className="py-3 text-sm font-medium">{formatCurrency(txn.running_balance)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Invoice-wise Ledger Sections */}
+      {(() => {
+        // Group transactions by reference_id
+        const invoiceMap = new Map<string, any>()
+        invoices.forEach(inv => invoiceMap.set(inv.id, inv))
+
+        const groups: Record<string, { invoice?: any; transactions: any[] }> = {
+          unlinked: { transactions: [] }
+        }
+        ledger.forEach((txn: any) => {
+          const refId = txn.reference_id
+          if (refId && invoiceMap.has(refId)) {
+            if (!groups[refId]) {
+              groups[refId] = { invoice: invoiceMap.get(refId), transactions: [] }
+            }
+            groups[refId].transactions.push(txn)
+          } else {
+            groups['unlinked'].transactions.push(txn)
+          }
+        })
+        if (groups['unlinked'].transactions.length === 0) delete groups['unlinked']
+
+        const isSupplier = party?.party_type === 'supplier'
+        const groupEntries = Object.entries(groups)
+
+        if (groupEntries.length === 0) {
+          return <div className="bg-white rounded-xl shadow-sm p-6"><p className="text-center text-gray-500 py-8">No transactions yet</p></div>
+        }
+
+        return (
+          <div className="space-y-3">
+            {/* Summary cards for the ledger */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg p-4 border border-blue-100">
+                <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">{isSupplier ? 'Total Purchases' : 'Total Sales'}</p>
+                <p className="text-lg font-bold text-blue-700 mt-1">
+                  {formatCurrency(ledger.filter((t: any) => isSupplier ? t.transaction_type === 'purchase' : t.transaction_type === 'sale').reduce((s: number, t: any) => s + Number(t.debit || t.credit), 0))}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg p-4 border border-green-100">
+                <p className="text-xs font-medium text-green-600 uppercase tracking-wider">{isSupplier ? 'Total Paid' : 'Total Received'}</p>
+                <p className="text-lg font-bold text-green-700 mt-1">
+                  {formatCurrency(ledger.filter((t: any) => isSupplier ? t.transaction_type === 'payment' : t.transaction_type === 'receipt').reduce((s: number, t: any) => s + Number(t.debit || t.credit), 0))}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-lg p-4 border border-orange-100">
+                <p className="text-xs font-medium text-orange-600 uppercase tracking-wider">Pending Balance</p>
+                <p className="text-lg font-bold text-orange-700 mt-1">
+                  {formatCurrency(Math.abs(currentBalance))}
+                </p>
+              </div>
+            </div>
+
+            {groupEntries.map(([refId, group]) => {
+              if (refId === 'unlinked') {
+                return (
+                  <div key="unlinked" className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                      <h4 className="text-sm font-semibold text-gray-600">Other Transactions ({group.transactions.length})</h4>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-left bg-gray-50/50">
+                            <th className="p-2.5 pl-4 text-xs font-medium text-gray-500">Date</th>
+                            <th className="p-2.5 text-xs font-medium text-gray-500">Description</th>
+                            <th className="p-2.5 text-xs font-medium text-gray-500">Type</th>
+                            <th className="p-2.5 text-xs font-medium text-gray-500 text-right">Debit</th>
+                            <th className="p-2.5 text-xs font-medium text-gray-500 text-right">Credit</th>
+                            <th className="p-2.5 text-xs font-medium text-gray-500 text-right pr-4">Balance</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {group.transactions.map((txn: any) => (
+                            <tr key={txn.id} className="hover:bg-gray-50/50">
+                              <td className="p-2.5 pl-4 text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
+                              <td className="p-2.5 text-sm text-gray-800">{txn.description || '-'}</td>
+                              <td className="p-2.5"><span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded capitalize">{txn.transaction_type}</span></td>
+                              <td className="p-2.5 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                              <td className="p-2.5 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                              <td className="p-2.5 pr-4 text-sm font-medium text-right">{formatCurrency(txn.running_balance)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )
+              }
+
+              const inv = group.invoice!
+              return (
+                <div key={refId} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                  {/* Invoice Header */}
+                  <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Link href={inv.link} className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700">
+                        <FileText className="w-3.5 h-3.5" />
+                        {inv.invoice_number}
+                      </Link>
+                      <span className="text-xs text-gray-400">{formatDate(inv.invoice_date)}</span>
+                  <span className="text-xs text-gray-400">—</span>
+                  <span className="text-xs text-gray-500">Total: <span className="font-semibold text-gray-700">{formatCurrency(inv.total_amount)}</span></span>
+                  <span className="text-xs text-green-600">Paid: <span className="font-semibold">{formatCurrency(inv.amount_paid)}</span></span>
+                  {inv.balance_due > 0 && (
+                    <span className="text-xs text-orange-600 font-semibold">Pending: {formatCurrency(inv.balance_due)}</span>
+                  )}
+                  <StatusBadge status={inv.payment_status} />
+                  {inv.balance_due > 0 && (
+                    <button
+                      onClick={() => setPaymentDialogInvoice(inv)}
+                      className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition-colors border border-green-200"
+                    >
+                      <Banknote className="w-3.5 h-3.5" /> Record Payment
+                    </button>
+                  )}
+                    </div>
+                  </div>
+
+                  {/* Invoice Transactions */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left bg-gray-50/50">
+                          <th className="p-2.5 pl-4 text-xs font-medium text-gray-500">Date</th>
+                          <th className="p-2.5 text-xs font-medium text-gray-500">Description</th>
+                          <th className="p-2.5 text-xs font-medium text-gray-500">Type</th>
+                          <th className="p-2.5 text-xs font-medium text-gray-500 text-right">Debit</th>
+                          <th className="p-2.5 text-xs font-medium text-gray-500 text-right">Credit</th>
+                          <th className="p-2.5 text-xs font-medium text-gray-500 text-right pr-4">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {group.transactions.map((txn: any) => (
+                          <tr key={txn.id} className="hover:bg-gray-50/50">
+                            <td className="p-2.5 pl-4 text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
+                            <td className="p-2.5 text-sm text-gray-800">{txn.description || '-'}</td>
+                            <td className="p-2.5">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                                txn.transaction_type === 'purchase' ? 'bg-orange-50 text-orange-700' :
+                                txn.transaction_type === 'payment' ? 'bg-green-50 text-green-700' :
+                                txn.transaction_type === 'sale' ? 'bg-blue-50 text-blue-700' :
+                                txn.transaction_type === 'receipt' ? 'bg-teal-50 text-teal-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {txn.transaction_type === 'purchase' && <ShoppingCart className="w-3 h-3" />}
+                                {txn.transaction_type === 'payment' && <Banknote className="w-3 h-3" />}
+                                {txn.transaction_type === 'sale' && <DollarSign className="w-3 h-3" />}
+                                {txn.transaction_type === 'receipt' && <Banknote className="w-3 h-3" />}
+                                {txn.transaction_type}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                            <td className="p-2.5 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                            <td className="p-2.5 pr-4 text-sm font-medium text-right">{formatCurrency(txn.running_balance)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
+
+      {/* Record Payment Dialog */}
+      {paymentDialogInvoice && (
+        <RecordPaymentDialog
+          invoice={paymentDialogInvoice}
+          partyName={party?.name || ''}
+          partyId={party?.id || ''}
+          open={!!paymentDialogInvoice}
+          onOpenChange={(open) => { if (!open) setPaymentDialogInvoice(null) }}
+          onSuccess={() => fetchParty()}
+        />
+      )}
     </div>
   )
 }
