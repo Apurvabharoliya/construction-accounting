@@ -19,7 +19,7 @@ const itemSchema = z.object({
 })
 
 const formSchema = z.object({
-  client_id: z.string().min(1, 'Select a client'),
+  client_name: z.string().min(1, 'Enter client name'),
   invoice_date: z.string().min(1, 'Date required'),
   payment_mode: z.string().optional().or(z.literal('')),
   payment_status: z.enum(['paid', 'partial', 'unpaid']),
@@ -34,7 +34,7 @@ interface SaleFormProps {
   onSubmit: (data: FormData) => Promise<void>
   isLoading?: boolean
   initialData?: {
-    client_id: string
+    client_name: string
     invoice_date: string
     payment_mode?: string
     payment_status: 'paid' | 'partial' | 'unpaid'
@@ -52,13 +52,12 @@ interface SaleFormProps {
 }
 
 export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormProps) {
-  const [clients, setClients] = useState<any[]>([])
   const [calculations, setCalculations] = useState({ subtotal: 0, totalGst: 0, total: 0 })
 
   const { register, control, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      client_id: initialData?.client_id || '',
+      client_name: initialData?.client_name || '',
       invoice_date: initialData?.invoice_date || new Date().toISOString().split('T')[0],
       payment_mode: initialData?.payment_mode || '',
       payment_status: initialData?.payment_status || 'unpaid',
@@ -80,9 +79,7 @@ export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormP
   const watchPaymentStatus = watch('payment_status')
   const watchAmountReceived = watch('amount_received')
 
-  useEffect(() => {
-    supabase.from('parties').select('id, name, phone').eq('party_type', 'client').order('name').then(({ data }) => setClients(data || []))
-  }, [])
+
 
   // Calculate totals on every render from watched items (robust approach)
   const calc = (watchItems || []).reduce((acc, item) => {
@@ -105,12 +102,9 @@ export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormP
         <h3 className="text-lg font-semibold mb-4">Sale Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Client *</label>
-            <select {...register('client_id')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-              <option value="">Select client</option>
-              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            {errors.client_id && <p className="text-red-500 text-sm mt-1">{errors.client_id.message}</p>}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Client Name *</label>
+            <input type="text" {...register('client_name')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter client name" />
+            {errors.client_name && <p className="text-red-500 text-sm mt-1">{errors.client_name.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Date *</label>

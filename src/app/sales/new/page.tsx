@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 import { createSale } from '@/lib/api/sales'
 import { toast } from 'sonner'
 import SaleForm from '@/components/sales/SaleForm'
@@ -10,8 +11,25 @@ export default function NewSalePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
+  async function resolveOrCreateClient(name: string): Promise<string> {
+    const { data: existing } = await supabase
+      .from('parties')
+      .select('id')
+      .eq('name', name)
+      .eq('party_type', 'client')
+      .maybeSingle()
+    if (existing) return existing.id
+    const { data: created, error } = await supabase
+      .from('parties')
+      .insert([{ name, party_type: 'client' }])
+      .select('id')
+      .single()
+    if (error) throw new Error(`Failed to create client: ${error.message}`)
+    return created.id
+  }
+
   async function handleSubmit(data: {
-    client_id: string
+    client_name: string
     invoice_date: string
     payment_mode?: string
     payment_status: 'paid' | 'partial' | 'unpaid'
@@ -48,8 +66,10 @@ export default function NewSalePage() {
       const totalGstAmount = itemsWithGst.reduce((sum, item) => sum + item.gst_amount, 0)
       const totalWithGst = totalAmount + totalGstAmount
 
+      const client_id = await resolveOrCreateClient(data.client_name)
+
       const saleData = {
-        client_id: data.client_id,
+        client_id,
         invoice_date: data.invoice_date,
         subtotal: totalAmount,
         gst_rate: 0,

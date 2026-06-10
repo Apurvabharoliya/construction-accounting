@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 import { createPurchase } from '@/lib/api/purchases'
 import { toast } from 'sonner'
 import PurchaseForm from '@/components/purchases/PurchaseForm'
@@ -10,8 +11,27 @@ export default function NewPurchasePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
+  async function resolveOrCreateSupplier(name: string): Promise<string> {
+    // Look up existing supplier
+    const { data: existing } = await supabase
+      .from('parties')
+      .select('id')
+      .eq('name', name)
+      .eq('party_type', 'supplier')
+      .maybeSingle()
+    if (existing) return existing.id
+    // Create a new supplier party
+    const { data: created, error } = await supabase
+      .from('parties')
+      .insert([{ name, party_type: 'supplier' }])
+      .select('id')
+      .single()
+    if (error) throw new Error(`Failed to create supplier: ${error.message}`)
+    return created.id
+  }
+
   async function handleSubmit(data: {
-    supplier_id: string
+    supplier_name: string
     invoice_date: string
     supplier_invoice_number?: string
     payment_mode?: string
@@ -49,8 +69,10 @@ export default function NewPurchasePage() {
       const totalGstAmount = itemsWithGst.reduce((sum, item) => sum + item.gst_amount, 0)
       const totalWithGst = totalAmount + totalGstAmount
 
+      const supplier_id = await resolveOrCreateSupplier(data.supplier_name)
+
       const purchaseData = {
-        supplier_id: data.supplier_id,
+        supplier_id,
         invoice_date: data.invoice_date,
         supplier_invoice_number: data.supplier_invoice_number || undefined,
         subtotal: totalAmount,

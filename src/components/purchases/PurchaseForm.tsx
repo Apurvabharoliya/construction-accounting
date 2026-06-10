@@ -19,7 +19,7 @@ const itemSchema = z.object({
 })
 
 const formSchema = z.object({
-  supplier_id: z.string().min(1, 'Select a supplier'),
+  supplier_name: z.string().min(1, 'Enter supplier name'),
   invoice_date: z.string().min(1, 'Date required'),
   supplier_invoice_number: z.string().optional().or(z.literal('')),
   payment_mode: z.string().optional().or(z.literal('')),
@@ -35,7 +35,7 @@ interface PurchaseFormProps {
   onSubmit: (data: FormData) => Promise<void>
   isLoading?: boolean
   initialData?: {
-    supplier_id: string
+    supplier_name: string
     invoice_date: string
     supplier_invoice_number?: string
     payment_mode?: string
@@ -54,13 +54,12 @@ interface PurchaseFormProps {
 }
 
 export default function PurchaseForm({ onSubmit, isLoading, initialData }: PurchaseFormProps) {
-  const [suppliers, setSuppliers] = useState<any[]>([])
   const [calculations, setCalculations] = useState({ subtotal: 0, totalGst: 0, total: 0 })
 
   const { register, control, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      supplier_id: initialData?.supplier_id || '',
+      supplier_name: initialData?.supplier_name || '',
       invoice_date: initialData?.invoice_date || new Date().toISOString().split('T')[0],
       supplier_invoice_number: initialData?.supplier_invoice_number || '',
       payment_mode: initialData?.payment_mode || '',
@@ -83,9 +82,7 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
   const watchPaymentStatus = watch('payment_status')
   const watchAmountPaid = watch('amount_paid')
 
-  useEffect(() => {
-    supabase.from('parties').select('id, name, phone').eq('party_type', 'supplier').order('name').then(({ data }) => setSuppliers(data || []))
-  }, [])
+
 
   // Calculate totals on every render from watched items (robust approach)
   const calc = (watchItems || []).reduce((acc, item) => {
@@ -109,12 +106,9 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
         <h3 className="text-lg font-semibold mb-4">Vendor Purchase Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier *</label>
-            <select {...register('supplier_id')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-              <option value="">Select supplier</option>
-              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            {errors.supplier_id && <p className="text-red-500 text-sm mt-1">{errors.supplier_id.message}</p>}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label>
+            <input type="text" {...register('supplier_name')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter supplier name" />
+            {errors.supplier_name && <p className="text-red-500 text-sm mt-1">{errors.supplier_name.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Date *</label>

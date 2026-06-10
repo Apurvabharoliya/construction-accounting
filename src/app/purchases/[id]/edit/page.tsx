@@ -37,6 +37,23 @@ export default function EditPurchasePage() {
     }
   }
 
+  async function resolveOrCreateSupplier(name: string): Promise<string> {
+    const { data: existing } = await supabase
+      .from('parties')
+      .select('id')
+      .eq('name', name)
+      .eq('party_type', 'supplier')
+      .maybeSingle()
+    if (existing) return existing.id
+    const { data: created, error } = await supabase
+      .from('parties')
+      .insert([{ name, party_type: 'supplier' }])
+      .select('id')
+      .single()
+    if (error) throw new Error(`Failed to create supplier: ${error.message}`)
+    return created.id
+  }
+
   async function handleSubmit(data: any) {
     if (!params.id) return
     setIsLoading(true)
@@ -45,8 +62,10 @@ export default function EditPurchasePage() {
       const totalGst = data.items.reduce((sum: number, item: any) => sum + (item.quantity * item.rate * item.gst_rate / 100), 0)
       const totalWithGst = totalAmount + totalGst
 
+      const supplier_id = await resolveOrCreateSupplier(data.supplier_name)
+
       await updatePurchase(params.id as string, {
-        supplier_id: data.supplier_id,
+        supplier_id,
         invoice_date: data.invoice_date,
         supplier_invoice_number: data.supplier_invoice_number || undefined,
         subtotal: totalAmount,
@@ -104,7 +123,7 @@ export default function EditPurchasePage() {
         onSubmit={handleSubmit}
         isLoading={isLoading}
         initialData={purchase ? {
-          supplier_id: purchase.supplier_id,
+          supplier_name: purchase.supplier?.name || '',
           invoice_date: purchase.invoice_date,
           supplier_invoice_number: purchase.supplier_invoice_number,
           payment_mode: purchase.payment_mode,

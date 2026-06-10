@@ -36,6 +36,23 @@ export default function EditSalePage() {
     }
   }
 
+  async function resolveOrCreateClient(name: string): Promise<string> {
+    const { data: existing } = await supabase
+      .from('parties')
+      .select('id')
+      .eq('name', name)
+      .eq('party_type', 'client')
+      .maybeSingle()
+    if (existing) return existing.id
+    const { data: created, error } = await supabase
+      .from('parties')
+      .insert([{ name, party_type: 'client' }])
+      .select('id')
+      .single()
+    if (error) throw new Error(`Failed to create client: ${error.message}`)
+    return created.id
+  }
+
   async function handleSubmit(data: any) {
     if (!params.id) return
     setIsLoading(true)
@@ -44,8 +61,10 @@ export default function EditSalePage() {
       const totalGst = data.items.reduce((sum: number, item: any) => sum + (item.quantity * item.rate * item.gst_rate / 100), 0)
       const totalWithGst = totalAmount + totalGst
 
+      const client_id = await resolveOrCreateClient(data.client_name)
+
       await updateSale(params.id as string, {
-        client_id: data.client_id,
+        client_id,
         invoice_date: data.invoice_date,
         subtotal: totalAmount,
         gst_rate: 0,
@@ -102,7 +121,7 @@ export default function EditSalePage() {
         onSubmit={handleSubmit}
         isLoading={isLoading}
         initialData={sale ? {
-          client_id: sale.client_id,
+          client_name: sale.client?.name || '',
           invoice_date: sale.invoice_date,
           payment_mode: sale.payment_mode,
           payment_status: sale.payment_status,
