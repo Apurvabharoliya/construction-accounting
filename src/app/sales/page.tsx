@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Eye, Edit3, Trash2, Sparkles } from 'lucide-react'
+import { Plus, Eye, Edit3, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
 import { deleteSale } from '@/lib/api/sales'
 import { toast } from 'sonner'
-import { useAiDescriptions } from '@/lib/hooks/useAiDescriptions'
-
 export default function SalesPage() {
   const [sales, setSales] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,7 +23,7 @@ export default function SalesPage() {
     try {
       let query = supabase
         .from('sales')
-        .select('*, client:parties!client_id(name, phone)')
+        .select('*, client:parties!client_id(name, phone), remarks')
         .order('invoice_date', { ascending: false })
 
       if (statusFilter !== 'all') {
@@ -54,12 +52,6 @@ export default function SalesPage() {
       toast.error(error.message)
     }
   }
-
-  const { descriptions: aiDescs, loading: aiLoading, error: aiError } = useAiDescriptions({
-    records: sales,
-    type: 'sale',
-    enabled: sales.length > 0
-  })
 
   return (
     <div className="space-y-6">
@@ -120,15 +112,7 @@ export default function SalesPage() {
                     <td className="p-4 text-sm">{s.client?.name || 'N/A'}</td>
                     <td className="p-4 text-sm font-medium">{formatCurrency(Number(s.total_amount))}</td>
                     <td className="p-4 text-sm text-gray-500 max-w-xs truncate">
-                      {aiLoading && !aiDescs[s.id] ? (
-                        <span className="flex items-center gap-1 text-gray-400"><Sparkles className="w-3 h-3 animate-pulse" /> Generating...</span>
-                      ) : aiDescs[s.id] ? (
-                        <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-blue-500 shrink-0" />{aiDescs[s.id]}</span>
-                      ) : aiError ? (
-                        <span className="flex items-center gap-1 text-gray-400" title={aiError}><Sparkles className="w-3 h-3 text-red-400" /> Unavailable</span>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
+                      {s.remarks || <span className="text-gray-400">—</span>}
                     </td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${

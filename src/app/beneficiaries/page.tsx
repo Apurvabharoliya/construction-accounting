@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Search, Eye, Edit3, Trash2, Sparkles, IndianRupee } from 'lucide-react'
+import { Plus, Search, Eye, Edit3, Trash2, IndianRupee } from 'lucide-react'
 import Link from 'next/link'
 import { deleteBeneficiary } from '@/lib/api/beneficiaries'
 import { toast } from 'sonner'
-import { useAiDescriptions } from '@/lib/hooks/useAiDescriptions'
 import { formatCurrency } from '@/lib/gst'
 
 export default function BeneficiariesPage() {
@@ -47,12 +46,6 @@ export default function BeneficiariesPage() {
       toast.error(error.message)
     }
   }
-
-  const { descriptions: aiDescs, loading: aiLoading, error: aiError } = useAiDescriptions({
-    records: beneficiaries,
-    type: 'beneficiary',
-    enabled: beneficiaries.length > 0
-  })
 
   return (
     <div className="space-y-6">
@@ -108,15 +101,7 @@ export default function BeneficiariesPage() {
                       </div>
                     </td>
                     <td className="p-4 text-sm text-gray-500 max-w-xs truncate">
-                      {aiLoading && !aiDescs[b.id] ? (
-                        <span className="flex items-center gap-1 text-gray-400"><Sparkles className="w-3 h-3 animate-pulse" /> Generating...</span>
-                      ) : aiDescs[b.id] ? (
-                        <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-blue-500 shrink-0" />{aiDescs[b.id]}</span>
-                      ) : aiError ? (
-                        <span className="flex items-center gap-1 text-gray-400" title={aiError}><Sparkles className="w-3 h-3 text-red-400" /> Unavailable</span>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
+                      {b.notes || <span className="text-gray-400">—</span>}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
