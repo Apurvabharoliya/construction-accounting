@@ -191,12 +191,37 @@ export default function PartiesPage() {
                       )}
                     </td>
                     <td className="p-4">
-                      <span className={`font-medium ${
-                        (mainBalance || 0) > 0 ? 'text-green-600' : 
-                        (mainBalance || 0) < 0 ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {formatCurrency(mainBalance || 0)}
-                      </span>
+                      <div className="relative group">
+                        <span className={`font-medium cursor-help ${
+                          (mainBalance || 0) > 0 ? 'text-green-600' : 
+                          (mainBalance || 0) < 0 ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {formatCurrency(mainBalance || 0)}
+                        </span>
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-0 mb-2 w-56 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          <div className="bg-gray-900 text-white text-xs rounded-lg shadow-lg p-3 space-y-1.5">
+                            <p className="font-semibold text-gray-300 text-[11px] uppercase tracking-wider">Balance Breakdown</p>
+                            <div className="flex justify-between">
+                              <span>Opening Balance</span>
+                              <span>{formatCurrency(party.opening_balance || 0)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Transaction Balance</span>
+                              <span className={balanceMap[party.id] >= 0 ? 'text-green-400' : 'text-red-400'}>
+                                {formatCurrency(balanceMap[party.id] || 0)}
+                              </span>
+                            </div>
+                            <div className="border-t border-gray-700 pt-1.5 flex justify-between font-semibold">
+                              <span>Total</span>
+                              <span className={mainBalance > 0 ? 'text-green-400' : mainBalance < 0 ? 'text-red-400' : ''}>
+                                {formatCurrency(mainBalance || 0)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="w-2 h-2 bg-gray-900 rotate-45 -mt-1 ml-4"></div>
+                        </div>
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
