@@ -46,13 +46,17 @@ export default function Dashboard() {
 
   async function fetchDashboardStats() {
     try {
-      const [salesRes, purchasesRes, partiesRes, outstandingRes, recentTransactionsRes, beneficiariesRes] = await Promise.all([
+      const [salesRes, purchasesRes, partiesRes, outstandingRes, recentSalesRes, recentPurchasesRes, beneficiariesRes] = await Promise.all([
         supabase.from('sales').select('total_amount'),
         supabase.from('purchases').select('total_amount'),
         supabase.from('parties').select('*', { count: 'exact', head: true }),
         supabase.from('sales').select('balance_due').gt('balance_due', 0),
         supabase.from('sales')
           .select('*, client:parties!client_id(name)')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase.from('purchases')
+          .select('*, supplier:parties!supplier_id(name)')
           .order('created_at', { ascending: false })
           .limit(5),
         supabase.from('beneficiaries').select('*', { count: 'exact', head: true })
@@ -62,12 +66,29 @@ export default function Dashboard() {
       const totalPurchases = purchasesRes.data?.reduce((sum, p) => sum + Number(p.total_amount), 0) || 0
       const totalOutstanding = outstandingRes.data?.reduce((sum, o) => sum + Number(o.balance_due), 0) || 0
 
+      // Merge recent sales and purchases, sort by date descending, take top 5
+      const sales = (recentSalesRes.data || []).map((s: any) => ({
+        ...s,
+        party_name: s.client?.name,
+        type: 'sale'
+      }))
+      const purchases = (recentPurchasesRes.data || []).map((p: any) => ({
+        ...p,
+        party_name: p.supplier?.name,
+        total_amount: p.total_amount,
+        payment_status: p.payment_status,
+        type: 'purchase'
+      }))
+      const merged = [...sales, ...purchases]
+        .sort((a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime())
+        .slice(0, 5)
+
       setStats({
         totalSales,
         totalPurchases,
         totalParties: partiesRes.count || 0,
         outstandingAmount: totalOutstanding,
-        recentTransactions: recentTransactionsRes.data || [],
+        recentTransactions: merged,
         totalBeneficiaries: beneficiariesRes.count || 0
       })
     } catch (error) {
@@ -305,7 +326,16 @@ export default function Dashboard() {
                     stats.recentTransactions.map((txn: any, i: number) => (
                       <tr key={txn.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors animate-in fade-in" style={{ animationDelay: `${500 + i * 80}ms`, animationFillMode: 'both' }}>
                         <td className="py-3 text-sm text-gray-600 whitespace-nowrap pr-4">{formatDate(txn.invoice_date)}</td>
-                        <td className="py-3 text-sm font-medium text-gray-900 whitespace-nowrap pr-4 truncate max-w-[120px] md:max-w-none">{txn.client?.name || 'N/A'}</td>
+                        <td className="py-3 text-sm font-medium text-gray-900 whitespace-nowrap pr-4 truncate max-w-[120px] md:max-w-none">
+                          <span className="flex items-center gap-1.5">
+                            {txn.party_name || 'N/A'}
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                              txn.type === 'purchase' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
+                            }`}>
+                              {txn.type === 'purchase' ? 'Vendor' : 'Sale'}
+                            </span>
+                          </span>
+                        </td>
                         <td className="py-3 text-sm font-semibold text-gray-900 whitespace-nowrap pr-4">
                           {formatCurrency(Number(txn.total_amount))}
                         </td>
