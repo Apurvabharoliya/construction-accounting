@@ -63,7 +63,7 @@ export default function PurchasesPage() {
     }
   }
 
-  const { descriptions: aiDescs, loading: aiLoading } = useAiDescriptions({
+  const { descriptions: aiDescs, loading: aiLoading, error: aiError } = useAiDescriptions({
     records: purchases,
     type: 'purchase',
     enabled: purchases.length > 0
@@ -163,6 +163,8 @@ export default function PurchasesPage() {
                         <span className="flex items-center gap-1 text-gray-400"><Sparkles className="w-3 h-3 animate-pulse" /> Generating...</span>
                       ) : aiDescs[p.id] ? (
                         <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-blue-500 shrink-0" />{aiDescs[p.id]}</span>
+                      ) : aiError ? (
+                        <span className="flex items-center gap-1 text-gray-400" title={aiError}><Sparkles className="w-3 h-3 text-red-400" /> Unavailable</span>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}

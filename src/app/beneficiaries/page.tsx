@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Search, Eye, Edit3, Trash2, Sparkles } from 'lucide-react'
+import { Plus, Search, Eye, Edit3, Trash2, Sparkles, IndianRupee } from 'lucide-react'
 import Link from 'next/link'
 import { deleteBeneficiary } from '@/lib/api/beneficiaries'
 import { toast } from 'sonner'
 import { useAiDescriptions } from '@/lib/hooks/useAiDescriptions'
+import { formatCurrency } from '@/lib/gst'
 
 export default function BeneficiariesPage() {
   const [beneficiaries, setBeneficiaries] = useState<any[]>([])
@@ -47,7 +48,7 @@ export default function BeneficiariesPage() {
     }
   }
 
-  const { descriptions: aiDescs, loading: aiLoading } = useAiDescriptions({
+  const { descriptions: aiDescs, loading: aiLoading, error: aiError } = useAiDescriptions({
     records: beneficiaries,
     type: 'beneficiary',
     enabled: beneficiaries.length > 0
@@ -88,6 +89,7 @@ export default function BeneficiariesPage() {
                 <tr className="text-left bg-gray-50">
                   <th className="p-4 text-sm font-medium text-gray-500">Name</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Aadhaar</th>
+                  <th className="p-4 text-sm font-medium text-gray-500">Amount (₹)</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Description</th>
                   <th className="p-4 text-sm font-medium text-gray-500">Actions</th>
                 </tr>
@@ -99,11 +101,19 @@ export default function BeneficiariesPage() {
                       <p className="font-medium text-gray-900">{b.party?.name || 'N/A'}</p>
                     </td>
                     <td className="p-4 text-sm text-gray-600">{b.aadhaar_number || '-'}</td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-1">
+                        <IndianRupee className="w-3.5 h-3.5 text-orange-500" />
+                        <span className="font-semibold text-orange-600">{formatCurrency(b.total_amount_due || 0)}</span>
+                      </div>
+                    </td>
                     <td className="p-4 text-sm text-gray-500 max-w-xs truncate">
                       {aiLoading && !aiDescs[b.id] ? (
                         <span className="flex items-center gap-1 text-gray-400"><Sparkles className="w-3 h-3 animate-pulse" /> Generating...</span>
                       ) : aiDescs[b.id] ? (
                         <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-blue-500 shrink-0" />{aiDescs[b.id]}</span>
+                      ) : aiError ? (
+                        <span className="flex items-center gap-1 text-gray-400" title={aiError}><Sparkles className="w-3 h-3 text-red-400" /> Unavailable</span>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}
