@@ -65,7 +65,7 @@ export default function TopPartiesChart() {
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend iconType="circle" />
-          <Bar dataKey="purchases" name="Purchases" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={35} />
+          <Bar dataKey="purchases" name="Vendors" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={35} />
           <Bar dataKey="sales" name="Sales" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={35} />
         </BarChart>
       </ResponsiveContainer>

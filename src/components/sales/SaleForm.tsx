@@ -216,8 +216,8 @@ export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormP
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold mb-4">Remarks</h3>
-        <textarea {...register('remarks')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" rows={3} placeholder="Any additional remarks..." />
+        <h3 className="text-lg font-semibold mb-4">Description</h3>
+        <textarea {...register('remarks')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" rows={3} placeholder="Enter sale description..." />
       </div>
 
       <div className="flex justify-end gap-4">

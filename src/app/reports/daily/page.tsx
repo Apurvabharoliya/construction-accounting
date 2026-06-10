@@ -85,7 +85,7 @@ export default function DailySummaryPage() {
             <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-sm p-6 border border-orange-200">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-orange-500 rounded-lg shadow-sm"><ShoppingCart className="w-6 h-6 text-white" /></div>
-                <div><p className="text-sm text-orange-700 font-medium">Total Purchases</p><p className="text-2xl font-bold text-orange-800">{formatCurrency(data.totalPurchases)}</p></div>
+                <div><p className="text-sm text-orange-700 font-medium">Total Vendor Purchases</p><p className="text-2xl font-bold text-orange-800">{formatCurrency(data.totalPurchases)}</p></div>
               </div>
             </div>
             <div className={`bg-gradient-to-br rounded-xl shadow-sm p-6 border ${data.netIncome >= 0 ? 'from-green-50 to-green-100 border-green-200' : 'from-red-50 to-red-100 border-red-200'}`}>

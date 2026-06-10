@@ -6,7 +6,8 @@ import { z } from 'zod'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  aadhaar_number: z.string().length(12, 'Aadhaar must be 12 digits')
+  aadhaar_number: z.string().length(12, 'Aadhaar must be 12 digits'),
+  outstanding_amount: z.number().min(400000, 'Minimum outstanding amount is ₹4,00,000 (4 Lakhs)')
 })
 
 export type BeneficiaryFormData = z.infer<typeof formSchema>
@@ -15,6 +16,7 @@ interface BeneficiaryFormProps {
   initialData?: {
     name?: string
     aadhaar_number?: string | null
+    outstanding_amount?: number
   }
   onSubmit: (data: BeneficiaryFormData) => Promise<void>
   isLoading?: boolean
@@ -25,7 +27,8 @@ export default function BeneficiaryForm({ initialData, onSubmit, isLoading }: Be
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || '',
-      aadhaar_number: initialData?.aadhaar_number || ''
+      aadhaar_number: initialData?.aadhaar_number || '',
+      outstanding_amount: initialData?.outstanding_amount || 400000
     }
   })
 
@@ -43,6 +46,12 @@ export default function BeneficiaryForm({ initialData, onSubmit, isLoading }: Be
             <label className="block text-sm font-medium text-gray-700 mb-1">Aadhaar Number *</label>
             <input type="text" {...register('aadhaar_number')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="12-digit Aadhaar number" maxLength={12} />
             {errors.aadhaar_number && <p className="text-red-500 text-sm mt-1">{errors.aadhaar_number.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Outstanding Amount (₹) *</label>
+            <input type="number" step="1000" {...register('outstanding_amount', { valueAsNumber: true })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Minimum ₹4,00,000" />
+            {errors.outstanding_amount && <p className="text-red-500 text-sm mt-1">{errors.outstanding_amount.message}</p>}
+            <p className="text-gray-400 text-xs mt-1">Minimum outstanding: ₹4,00,000 (4 Lakhs)</p>
           </div>
         </div>
       </div>

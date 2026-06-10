@@ -44,7 +44,7 @@ export default function PurchaseDetailPage() {
         <button onClick={() => router.push('/purchases')} className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="w-5 h-5 text-gray-600" /></button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{purchase.purchase_number}</h1>
-          <p className="text-gray-500 text-sm">Purchase from {purchase.supplier?.name}</p>
+          <p className="text-gray-500 text-sm">{purchase.supplier?.name}</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => {
@@ -131,7 +131,7 @@ export default function PurchaseDetailPage() {
 
       {purchase.remarks && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Remarks</h3>
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
           <p className="text-sm">{purchase.remarks}</p>
         </div>
       )}

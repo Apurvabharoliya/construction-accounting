@@ -25,7 +25,7 @@ export default function NewBeneficiaryPage() {
           subsidy_status: 'pending',
           construction_progress: 0,
           total_amount_received: 0,
-          total_amount_due: 0,
+          total_amount_due: data.outstanding_amount || 400000,
           payment_installments: 1
         }
       )

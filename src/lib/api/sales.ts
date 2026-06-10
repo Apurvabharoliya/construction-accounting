@@ -111,6 +111,12 @@ export async function updateSale(
 }
 
 export async function deleteSale(id: string) {
+  // First delete sale items
+  await supabase.from('sale_items').delete().eq('sale_id', id)
+  
+  // Delete related transactions
+  await supabase.from('transactions').delete().eq('reference_id', id).eq('reference_type', 'sale')
+
   const { error } = await supabase
     .from('sales')
     .delete()

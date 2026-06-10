@@ -113,6 +113,12 @@ export async function updatePurchase(
 }
 
 export async function deletePurchase(id: string) {
+  // First delete purchase items
+  await supabase.from('purchase_items').delete().eq('purchase_id', id)
+  
+  // Delete related transactions
+  await supabase.from('transactions').delete().eq('reference_id', id).eq('reference_type', 'purchase')
+
   const { error } = await supabase
     .from('purchases')
     .delete()

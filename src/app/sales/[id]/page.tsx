@@ -188,7 +188,7 @@ export default function SaleDetailPage() {
               </p>
               {sale.remarks && (
                 <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-700 mb-1">Remarks</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Description</p>
                   <p className="text-sm text-gray-600">{sale.remarks}</p>
                 </div>
               )}

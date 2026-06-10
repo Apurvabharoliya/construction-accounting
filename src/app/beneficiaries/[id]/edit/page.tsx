@@ -49,7 +49,8 @@ export default function EditBeneficiaryPage() {
 
       // Update beneficiary aadhaar
       await updateBeneficiary(params.id as string, {
-        aadhaar_number: data.aadhaar_number || undefined
+        aadhaar_number: data.aadhaar_number || undefined,
+        total_amount_due: data.outstanding_amount || beneficiary.total_amount_due
       })
 
       toast.success('Beneficiary updated successfully')
@@ -79,7 +80,8 @@ export default function EditBeneficiaryPage() {
       <BeneficiaryForm
         initialData={{
           name: beneficiary.party?.name,
-          aadhaar_number: beneficiary.aadhaar_number
+          aadhaar_number: beneficiary.aadhaar_number,
+          outstanding_amount: beneficiary.total_amount_due || 400000
         }}
         onSubmit={handleSubmit}
         isLoading={isLoading}

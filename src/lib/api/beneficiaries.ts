@@ -112,8 +112,9 @@ export async function deleteBeneficiary(id: string) {
 
   if (error) throw error
 
-  // Delete the associated party record
+  // Delete related transactions and the associated party record
   if (beneficiary?.party_id) {
+    await supabase.from('transactions').delete().eq('party_id', beneficiary.party_id)
     await supabase
       .from('parties')
       .delete()

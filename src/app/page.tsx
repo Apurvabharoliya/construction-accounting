@@ -89,7 +89,7 @@ export default function Dashboard() {
       delay: 0
     },
     {
-      title: 'Total Purchases',
+      title: 'Total Vendors',
       value: formatCurrency(stats.totalPurchases),
       icon: ShoppingCart,
       bgColor: 'bg-gradient-to-br from-blue-50 to-indigo-50',
@@ -179,13 +179,13 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '150ms', animationFillMode: 'both' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base md:text-lg font-semibold text-gray-900">Purchase vs Sales</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">Vendors vs Sales</h2>
               <p className="text-xs md:text-sm text-gray-500 mt-0.5">Monthly comparison</p>
             </div>
             <div className="hidden sm:flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="text-xs text-gray-500">Purchases</span>
+                <span className="text-xs text-gray-500">Vendors</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -200,7 +200,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base md:text-lg font-semibold text-gray-900">Net Profit Trend</h2>
-              <p className="text-xs md:text-sm text-gray-500 mt-0.5">Monthly profit (Sales - Purchases)</p>
+              <p className="text-xs md:text-sm text-gray-500 mt-0.5">Monthly profit (Sales - Vendors)</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-purple-500"></div>
@@ -245,7 +245,7 @@ export default function Dashboard() {
           <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { href: '/purchases/new', icon: ShoppingCart, color: 'blue', label: 'New Purchase' },
+              { href: '/purchases/new', icon: ShoppingCart, color: 'blue', label: 'New Vendor' },
               { href: '/sales/new', icon: TrendingUp, color: 'green', label: 'New Sale' },
               { href: '/parties/new', icon: Users, color: 'purple', label: 'Add Party' },
               { href: '/beneficiaries/new', icon: HandHeart, color: 'orange', label: 'Beneficiary' },

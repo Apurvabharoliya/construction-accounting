@@ -58,6 +58,12 @@ export async function updateParty(id: string, party: Partial<Party>) {
 }
 
 export async function deleteParty(id: string) {
+  // Delete related transactions
+  await supabase.from('transactions').delete().eq('party_id', id)
+  
+  // Delete related beneficiaries
+  await supabase.from('beneficiaries').delete().eq('party_id', id)
+
   const { error } = await supabase
     .from('parties')
     .delete()
