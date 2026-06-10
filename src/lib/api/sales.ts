@@ -71,7 +71,7 @@ export async function createSale(
 
   if (itemsError) throw itemsError
 
-  // Create transaction entry
+  // Create transaction entry for the sale (credit = amount owed by client)
   await supabase.from('transactions').insert([{
     party_id: sale.client_id,
     transaction_type: 'sale' as const,
@@ -83,6 +83,21 @@ export async function createSale(
     description: `Sale ${saleNumber}`,
     transaction_date: sale.invoice_date
   }])
+
+  // If partial or full payment was received at the time of sale, record a receipt transaction
+  if (sale.amount_received && sale.amount_received > 0) {
+    await supabase.from('transactions').insert([{
+      party_id: sale.client_id,
+      transaction_type: 'receipt' as const,
+      reference_id: saleData.id,
+      reference_type: 'sale',
+      debit: sale.amount_received,
+      credit: 0,
+      balance: 0,
+      description: `Receipt for ${saleNumber}`,
+      transaction_date: sale.invoice_date
+    }])
+  }
 
   return saleData
 }

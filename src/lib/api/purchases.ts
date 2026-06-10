@@ -73,7 +73,7 @@ export async function createPurchase(
 
   if (itemsError) throw itemsError
 
-  // Create transaction entry
+  // Create transaction entry for the purchase (debit = amount owed to supplier)
   await supabase.from('transactions').insert([{
     party_id: purchase.supplier_id,
     transaction_type: 'purchase' as const,
@@ -85,6 +85,21 @@ export async function createPurchase(
     description: `Purchase ${purchaseNumber}`,
     transaction_date: purchase.invoice_date
   }])
+
+  // If partial or full payment was made at the time of purchase, record a payment transaction
+  if (purchase.amount_paid && purchase.amount_paid > 0) {
+    await supabase.from('transactions').insert([{
+      party_id: purchase.supplier_id,
+      transaction_type: 'payment' as const,
+      reference_id: purchaseData.id,
+      reference_type: 'purchase',
+      debit: 0,
+      credit: purchase.amount_paid,
+      balance: 0,
+      description: `Payment for ${purchaseNumber}`,
+      transaction_date: purchase.invoice_date
+    }])
+  }
 
   return purchaseData
 }
