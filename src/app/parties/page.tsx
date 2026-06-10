@@ -19,6 +19,7 @@ const partyTypeColors: Record<string, string> = {
 
 export default function PartiesPage() {
   const [parties, setParties] = useState<Party[]>([])
+  const [balanceMap, setBalanceMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -42,7 +43,26 @@ export default function PartiesPage() {
 
       const { data, error } = await query
       if (error) throw error
-      setParties(data || [])
+      const partiesData = data || []
+      setParties(partiesData)
+
+      // Fetch transaction balances to compute actual balance per party
+      const partyIds = partiesData.map(p => p.id)
+      if (partyIds.length > 0) {
+        const { data: transactions } = await supabase
+          .from('transactions')
+          .select('party_id, debit, credit')
+          .in('party_id', partyIds)
+
+        // Compute net balance from transactions: sum(debit) - sum(credit)
+        const txnBalanceMap: Record<string, number> = {}
+        transactions?.forEach(txn => {
+          txnBalanceMap[txn.party_id] = (txnBalanceMap[txn.party_id] || 0) + Number(txn.debit) - Number(txn.credit)
+        })
+        setBalanceMap(txnBalanceMap)
+      } else {
+        setBalanceMap({})
+      }
     } catch (error) {
       console.error('Error fetching parties:', error)
     } finally {
@@ -139,7 +159,9 @@ export default function PartiesPage() {
                 </tr>
               </thead>
               <tbody>
-                {parties.map((party) => (
+                {parties.map((party) => {
+                  const mainBalance = (party.opening_balance || 0) + (balanceMap[party.id] || 0)
+                  return (
                   <tr key={party.id} className="border-t hover:bg-gray-50 transition-colors">
                     <td className="p-4">
                       <div>
@@ -170,10 +192,10 @@ export default function PartiesPage() {
                     </td>
                     <td className="p-4">
                       <span className={`font-medium ${
-                        (party.opening_balance || 0) > 0 ? 'text-green-600' : 
-                        (party.opening_balance || 0) < 0 ? 'text-red-600' : 'text-gray-600'
+                        (mainBalance || 0) > 0 ? 'text-green-600' : 
+                        (mainBalance || 0) < 0 ? 'text-red-600' : 'text-gray-600'
                       }`}>
-                        {formatCurrency(party.opening_balance || 0)}
+                        {formatCurrency(mainBalance || 0)}
                       </span>
                     </td>
                     <td className="p-4">
@@ -190,7 +212,8 @@ export default function PartiesPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
