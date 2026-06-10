@@ -6,11 +6,48 @@ import { supabase } from '@/lib/supabase'
 import type { Party } from '@/types/database'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
-import { getPartyLedger } from '@/lib/api/ledger'
-import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2 } from 'lucide-react'
+import { getPartyLedger, getPartyInvoices, type InvoiceSummary } from '@/lib/api/ledger'
+import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2, ExternalLink, ShoppingCart, DollarSign, FileText, Receipt } from 'lucide-react'
 import Link from 'next/link'
 import { deleteParty } from '@/lib/api/parties'
 import { toast } from 'sonner'
+
+function PaymentProgress({ paid, total }: { paid: number; total: number }) {
+  const percentage = total > 0 ? Math.min((paid / total) * 100, 100) : 0
+  const roundedPct = Math.round(percentage)
+
+  return (
+    <div className="flex items-center gap-3 min-w-[160px]">
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            roundedPct >= 100 ? 'bg-green-500' : roundedPct > 0 ? 'bg-yellow-400' : 'bg-red-400'
+          }`}
+          style={{ width: `${roundedPct}%` }}
+        />
+      </div>
+      <span className={`text-xs font-semibold min-w-[36px] text-right ${
+        roundedPct >= 100 ? 'text-green-600' : roundedPct > 0 ? 'text-yellow-600' : 'text-red-600'
+      }`}>
+        {roundedPct}%
+      </span>
+    </div>
+  )
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles = {
+    paid: 'bg-green-100 text-green-700 ring-green-600/20',
+    partial: 'bg-yellow-100 text-yellow-700 ring-yellow-600/20',
+    unpaid: 'bg-red-100 text-red-700 ring-red-600/20',
+  }
+  const s = styles[status as keyof typeof styles] || styles.unpaid
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${s}`}>
+      {status === 'paid' ? 'Paid' : status === 'partial' ? 'Partial' : 'Unpaid'}
+    </span>
+  )
+}
 
 export default function PartyDetailPage() {
   const params = useParams()
@@ -18,6 +55,7 @@ export default function PartyDetailPage() {
   const [party, setParty] = useState<Party | null>(null)
   const [ledger, setLedger] = useState<any[]>([])
   const [currentBalance, setCurrentBalance] = useState(0)
+  const [invoices, setInvoices] = useState<InvoiceSummary[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -37,9 +75,13 @@ export default function PartyDetailPage() {
       if (error) throw error
       setParty(data)
 
-      const ledgerData = await getPartyLedger(params.id as string)
+      const [ledgerData, invoiceData] = await Promise.all([
+        getPartyLedger(params.id as string),
+        getPartyInvoices(params.id as string, data.party_type)
+      ])
       setLedger(ledgerData.transactions)
       setCurrentBalance(ledgerData.currentBalance)
+      setInvoices(invoiceData)
     } catch (error) {
       console.error('Error fetching party:', error)
     } finally {
@@ -63,6 +105,10 @@ export default function PartyDetailPage() {
       </div>
     )
   }
+
+  const totalInvoiceAmount = invoices.reduce((sum, inv) => sum + inv.total_amount, 0)
+  const totalPaidAmount = invoices.reduce((sum, inv) => sum + inv.amount_paid, 0)
+  const totalBalanceDue = invoices.reduce((sum, inv) => sum + inv.balance_due, 0)
 
   return (
     <div className="space-y-6">
@@ -93,7 +139,7 @@ export default function PartyDetailPage() {
       </div>
 
       {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
           <div className="space-y-2">
@@ -136,7 +182,112 @@ export default function PartyDetailPage() {
           </p>
           <p className="text-xs text-gray-500 mt-1">Current outstanding balance</p>
         </div>
+
+        {/* Invoice Summary Card */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm p-6 border border-blue-100">
+          <h3 className="text-sm font-medium text-blue-700 mb-2">
+            {party.party_type === 'supplier' ? 'Purchase Summary' : 'Sale Summary'}
+          </h3>
+          <div className="space-y-1.5">
+            <p className="text-xs text-blue-600">Total Invoices: <span className="font-bold">{invoices.length}</span></p>
+            <p className="text-xs text-blue-600">Total Amount: <span className="font-bold">{formatCurrency(totalInvoiceAmount)}</span></p>
+            <p className="text-xs text-green-600">Total Paid: <span className="font-bold">{formatCurrency(totalPaidAmount)}</span></p>
+            <p className="text-xs text-orange-600">Balance Due: <span className="font-bold">{formatCurrency(totalBalanceDue)}</span></p>
+          </div>
+        </div>
       </div>
+
+      {/* Invoices / Transactions Section */}
+      {invoices.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-gray-700" />
+                <h2 className="text-lg font-semibold">
+                  {party.party_type === 'supplier' ? 'Purchase Invoices' : 'Sale Invoices'}
+                </h2>
+              </div>
+              <span className="text-xs text-gray-400">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment Progress</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Paid / Received</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Balance Due</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mode</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Items</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {invoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-gray-50/80 transition-colors group">
+                    <td className="px-4 py-3">
+                      <Link href={inv.link} className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700">
+                        <FileText className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate max-w-[120px]">{inv.invoice_number}</span>
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(inv.invoice_date)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                        inv.type === 'purchase'
+                          ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20'
+                          : 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'
+                      }`}>
+                        {inv.type === 'purchase' ? <ShoppingCart className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
+                        {inv.type === 'purchase' ? 'Purchase' : 'Sale'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right whitespace-nowrap">
+                      {formatCurrency(inv.total_amount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <PaymentProgress paid={inv.amount_paid} total={inv.total_amount} />
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-green-600 text-right whitespace-nowrap">
+                      {formatCurrency(inv.amount_paid)}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap">
+                      {inv.balance_due > 0 ? (
+                        <span className="text-orange-600 font-bold">{formatCurrency(inv.balance_due)}</span>
+                      ) : (
+                        <span className="text-green-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={inv.payment_status} />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {inv.payment_mode || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="text-xs text-gray-400 font-medium">{inv.items_count} item{inv.items_count !== 1 ? 's' : ''}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Link
+                        href={inv.link}
+                        className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-all"
+                      >
+                        View <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Ledger */}
       <div className="bg-white rounded-xl shadow-sm p-6">

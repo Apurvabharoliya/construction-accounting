@@ -146,6 +146,99 @@ export async function getMonthlySummary(year: number, month: number) {
   }
 }
 
+export interface InvoiceSummary {
+  id: string
+  invoice_number: string
+  invoice_date: string
+  type: 'purchase' | 'sale'
+  subtotal: number
+  total_amount: number
+  gst_rate: number
+  cgst_amount: number
+  sgst_amount: number
+  igst_amount: number
+  payment_mode?: string
+  payment_status: 'paid' | 'partial' | 'unpaid'
+  amount_paid: number
+  balance_due: number
+  remarks?: string
+  items_count: number
+  link: string
+}
+
+export async function getPartyInvoices(partyId: string, partyType: string): Promise<InvoiceSummary[]> {
+  const invoices: InvoiceSummary[] = []
+
+  // Fetch purchases if party is a supplier
+  if (partyType === 'supplier') {
+    const { data: purchases, error: purchasesError } = await supabase
+      .from('purchases')
+      .select('*, items:purchase_items(count)')
+      .eq('supplier_id', partyId)
+      .order('invoice_date', { ascending: false })
+
+    if (purchasesError) throw purchasesError
+
+    purchases?.forEach((p: any) => {
+      invoices.push({
+        id: p.id,
+        invoice_number: p.purchase_number,
+        invoice_date: p.invoice_date,
+        type: 'purchase',
+        subtotal: Number(p.subtotal),
+        total_amount: Number(p.total_amount),
+        gst_rate: Number(p.gst_rate),
+        cgst_amount: Number(p.cgst_amount),
+        sgst_amount: Number(p.sgst_amount),
+        igst_amount: Number(p.igst_amount),
+        payment_mode: p.payment_mode,
+        payment_status: p.payment_status,
+        amount_paid: Number(p.amount_paid),
+        balance_due: Number(p.balance_due),
+        remarks: p.remarks,
+        items_count: p.items?.[0]?.count || 0,
+        link: `/purchases/${p.id}`
+      })
+    })
+  }
+
+  // Fetch sales if party is a client
+  if (partyType === 'client') {
+    const { data: sales, error: salesError } = await supabase
+      .from('sales')
+      .select('*, items:sale_items(count)')
+      .eq('client_id', partyId)
+      .order('invoice_date', { ascending: false })
+
+    if (salesError) throw salesError
+
+    sales?.forEach((s: any) => {
+      invoices.push({
+        id: s.id,
+        invoice_number: s.sale_number,
+        invoice_date: s.invoice_date,
+        type: 'sale',
+        subtotal: Number(s.subtotal),
+        total_amount: Number(s.total_amount),
+        gst_rate: Number(s.gst_rate),
+        cgst_amount: Number(s.cgst_amount),
+        sgst_amount: Number(s.sgst_amount),
+        igst_amount: Number(s.igst_amount),
+        payment_mode: s.payment_mode,
+        payment_status: s.payment_status,
+        amount_paid: Number(s.amount_received),
+        balance_due: Number(s.balance_due),
+        remarks: s.remarks,
+        items_count: s.items?.[0]?.count || 0,
+        link: `/sales/${s.id}`
+      })
+    })
+  }
+
+  // Sort by date descending
+  return invoices.sort((a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime())
+}
+
 export async function getGstSummary(startDate: string, endDate: string) {
   // Get sales GST summary
   const { data: sales, error: salesError } = await supabase
