@@ -41,7 +41,12 @@ export default function PaymentStatusChart() {
   const [data, setData] = useState<PaymentStatusData[]>([])
   const [loading, setLoading] = useState(true)
   const [Recharts, setRecharts] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
 
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
   useEffect(() => { loadRecharts().then(setRecharts).catch(console.error) }, [])
 
   useEffect(() => {
@@ -49,20 +54,22 @@ export default function PaymentStatusChart() {
       .catch(err => { console.error(err); setLoading(false) })
   }, [])
 
-  if (loading || !Recharts) {
-    return <div className="flex items-center justify-center h-[300px]"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></div>
+  const ready = mounted && Recharts && !loading
+
+  if (!ready) {
+    return <div className="w-full h-[300px] flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></div>
   }
 
   const { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } = Recharts
   const total = data.reduce((sum, d) => sum + d.value, 0)
 
   if (total === 0) {
-    return <div className="flex items-center justify-center h-[300px] text-gray-500"><p className="text-sm">No transactions yet</p></div>
+    return <div className="w-full h-[300px] flex items-center justify-center text-gray-500"><p className="text-sm">No transactions yet</p></div>
   }
 
   return (
-    <div className="h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full relative" style={{ height: 300 }}>
+      <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie data={data} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value" labelLine={false} label={renderLabel}>
             {data.map((entry, index) => (

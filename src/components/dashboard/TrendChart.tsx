@@ -35,6 +35,12 @@ export default function TrendChart() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [Recharts, setRecharts] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
 
   useEffect(() => {
     async function init() {
@@ -63,9 +69,11 @@ export default function TrendChart() {
     fetchData()
   }, [])
 
-  if (loading || !Recharts) {
+  const ready = mounted && Recharts && !loading
+
+  if (!ready && !error) {
     return (
-      <div className="flex items-center justify-center h-[350px]">
+      <div className="w-full h-[350px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p className="text-gray-500 text-sm">Loading chart...</p>
@@ -76,7 +84,7 @@ export default function TrendChart() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-[350px]">
+      <div className="w-full h-[350px] flex items-center justify-center">
         <p className="text-red-500">{error}</p>
       </div>
     )
@@ -87,7 +95,7 @@ export default function TrendChart() {
 
   if (!hasData) {
     return (
-      <div className="flex items-center justify-center h-[350px]">
+      <div className="w-full h-[350px] flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-500 font-medium">No data available for current period</p>
           <p className="text-gray-400 text-sm mt-1">Add purchases and sales to see trends</p>
@@ -99,8 +107,8 @@ export default function TrendChart() {
   const { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } = Recharts
 
   return (
-    <div className="h-[350px]">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full relative" style={{ height: 350 }}>
+      <ResponsiveContainer width="100%" height={350}>
         <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis 

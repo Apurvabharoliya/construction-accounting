@@ -30,7 +30,12 @@ export default function TopPartiesChart() {
   const [data, setData] = useState<PartyVolume[]>([])
   const [loading, setLoading] = useState(true)
   const [Recharts, setRecharts] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
 
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
   useEffect(() => { loadRecharts().then(setRecharts).catch(console.error) }, [])
 
   useEffect(() => {
@@ -39,12 +44,14 @@ export default function TopPartiesChart() {
       .catch(err => { console.error(err); setLoading(false) })
   }, [])
 
-  if (loading || !Recharts) {
-    return <div className="flex items-center justify-center h-[300px]"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div></div>
+  const ready = mounted && Recharts && !loading
+
+  if (!ready) {
+    return <div className="w-full h-[300px] flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div></div>
   }
 
   if (data.length === 0) {
-    return <div className="flex items-center justify-center h-[300px] text-gray-500"><p className="text-sm">No party data available yet</p></div>
+    return <div className="w-full h-[300px] flex items-center justify-center text-gray-500"><p className="text-sm">No party data available yet</p></div>
   }
 
   const { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } = Recharts
@@ -55,8 +62,8 @@ export default function TopPartiesChart() {
   }))
 
   return (
-    <div className="h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full relative" style={{ height: 300 }}>
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey="shortName" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }} />

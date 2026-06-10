@@ -26,7 +26,6 @@ export function useAiDescriptions({ records, type, enabled = true }: UseAiDescri
 
     // Skip if we already have descriptions cached for these exact IDs
     if (idsKey === lastFetchRef.current) return
-    lastFetchRef.current = idsKey
 
     let cancelled = false
     setLoading(true)
@@ -58,15 +57,16 @@ export function useAiDescriptions({ records, type, enabled = true }: UseAiDescri
         }
 
         if (!cancelled) {
+          lastFetchRef.current = idsKey
           setDescriptions(descMap)
+          setLoading(false)
         }
       } catch (e: any) {
         if (!cancelled) {
           setError(e.message)
           console.error('AI descriptions error:', e)
+          setLoading(false)
         }
-      } finally {
-        if (!cancelled) setLoading(false)
       }
     }
 

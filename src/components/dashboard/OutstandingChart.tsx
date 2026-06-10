@@ -30,7 +30,12 @@ export default function OutstandingChart() {
   const [data, setData] = useState<OutstandingParty[]>([])
   const [loading, setLoading] = useState(true)
   const [Recharts, setRecharts] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
 
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
   useEffect(() => { loadRecharts().then(setRecharts).catch(console.error) }, [])
 
   useEffect(() => {
@@ -39,12 +44,14 @@ export default function OutstandingChart() {
       .catch(err => { console.error(err); setLoading(false) })
   }, [])
 
-  if (loading || !Recharts) {
-    return <div className="flex items-center justify-center h-[300px]"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div></div>
+  const ready = mounted && Recharts && !loading
+
+  if (!ready) {
+    return <div className="w-full h-[300px] flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div></div>
   }
 
   if (data.length === 0) {
-    return <div className="flex items-center justify-center h-[300px] text-gray-500"><div className="text-center"><p className="text-lg font-medium">No outstanding balances</p><p className="text-sm mt-1">All payments are settled</p></div></div>
+    return <div className="w-full h-[300px] flex items-center justify-center text-gray-500"><div className="text-center"><p className="text-lg font-medium">No outstanding balances</p><p className="text-sm mt-1">All payments are settled</p></div></div>
   }
 
   const { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } = Recharts
@@ -55,8 +62,8 @@ export default function OutstandingChart() {
   }))
 
   return (
-    <div className="h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full relative" style={{ height: 300 }}>
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
           <XAxis type="number" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }}

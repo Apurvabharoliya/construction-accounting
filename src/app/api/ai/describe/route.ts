@@ -14,13 +14,13 @@ function buildPrompt(type: string, records: RecordData[]): string {
   const items = records.map((r, i) => {
     switch (type) {
       case 'beneficiary':
-        return `${i + 1}. ${r.party?.name || 'Unknown'} — Aadhaar: ${r.aadhaar_number || 'N/A'}, Scheme: ${r.subsidy_scheme || 'N/A'}, Status: ${r.subsidy_status || 'pending'}, Progress: ${r.construction_progress || 0}%, Sanctioned: ₹${Number(r.subsidy_amount_sanctioned || 0).toLocaleString('en-IN')}`
+        return `${i + 1}. ${r.party?.name || 'Unknown'} — Aadhaar: ${r.aadhaar_number || 'N/A'}, Scheme: ${r.subsidy_scheme || 'N/A'}, Status: ${r.subsidy_status || 'pending'}, Progress: ${r.construction_progress || 0}%, Sanctioned: Rs ${Number(r.subsidy_amount_sanctioned || 0).toLocaleString('en-IN')}`
       case 'party':
-        return `${i + 1}. ${r.name} — Type: ${r.party_type}, City: ${r.city || 'N/A'}, State: ${r.state || 'N/A'}, GST: ${r.gst_registered ? 'Registered' : 'Not registered'}, Balance: ₹${Number(r.opening_balance || 0).toLocaleString('en-IN')}`
+        return `${i + 1}. ${r.name} — Type: ${r.party_type}, City: ${r.city || 'N/A'}, State: ${r.state || 'N/A'}, GST: ${r.gst_registered ? 'Registered' : 'Not registered'}, Balance: Rs ${Number(r.opening_balance || 0).toLocaleString('en-IN')}`
       case 'purchase':
-        return `${i + 1}. ${r.purchase_number} — Supplier: ${r.supplier?.name || 'N/A'}, Total: ₹${Number(r.total_amount || 0).toLocaleString('en-IN')}, Paid: ₹${Number(r.amount_paid || 0).toLocaleString('en-IN')}, Status: ${r.payment_status || 'unpaid'}`
+        return `${i + 1}. ${r.purchase_number} — Supplier: ${r.supplier?.name || 'N/A'}, Total: Rs ${Number(r.total_amount || 0).toLocaleString('en-IN')}, Paid: Rs ${Number(r.amount_paid || 0).toLocaleString('en-IN')}, Status: ${r.payment_status || 'unpaid'}`
       case 'sale':
-        return `${i + 1}. ${r.sale_number} — Client: ${r.client?.name || 'N/A'}, Total: ₹${Number(r.total_amount || 0).toLocaleString('en-IN')}, Received: ₹${Number(r.amount_received || 0).toLocaleString('en-IN')}, Status: ${r.payment_status || 'unpaid'}`
+        return `${i + 1}. ${r.sale_number} — Client: ${r.client?.name || 'N/A'}, Total: Rs ${Number(r.total_amount || 0).toLocaleString('en-IN')}, Received: Rs ${Number(r.amount_received || 0).toLocaleString('en-IN')}, Status: ${r.payment_status || 'unpaid'}`
       default:
         return `${i + 1}. Record ${r.id}`
     }
