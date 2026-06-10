@@ -131,29 +131,29 @@ export default function PurchasesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full responsive-table-card">
               <thead>
                 <tr className="text-left bg-gray-50">
-                  <th className="p-4 text-sm font-medium text-gray-500">Date</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Invoice #</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Supplier</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Amount</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Description</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Status</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Actions</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Date</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Invoice #</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Supplier</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Amount</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Description</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Status</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {purchases.map((p) => (
                   <tr key={p.id} className="border-t hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-sm">{formatDate(p.invoice_date)}</td>
-                    <td className="p-4 text-sm font-medium">{p.purchase_number}</td>
-                    <td className="p-4 text-sm">{p.supplier?.name || 'N/A'}</td>
-                    <td className="p-4 text-sm font-medium">{formatCurrency(Number(p.total_amount))}</td>
-                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate">
+                    <td className="p-4 text-sm" data-label="Date">{formatDate(p.invoice_date)}</td>
+                    <td className="p-4 text-sm font-medium" data-label="Invoice #">{p.purchase_number}</td>
+                    <td className="p-4 text-sm" data-label="Supplier">{p.supplier?.name || 'N/A'}</td>
+                    <td className="p-4 text-sm font-medium" data-label="Amount">{formatCurrency(Number(p.total_amount))}</td>
+                    <td className="p-4 text-sm text-gray-500 max-w-[200px] truncate hidden md:table-cell" data-label="Description">
                       {p.remarks || <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="p-4">
+                    <td className="p-4" data-label="Status">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                         p.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
                         p.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
@@ -162,16 +162,16 @@ export default function PurchasesPage() {
                         {p.payment_status.charAt(0).toUpperCase() + p.payment_status.slice(1)}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Link href={`/purchases/${p.id}`} className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                          <Eye className="w-4 h-4" /> View
+                    <td className="p-4" data-label="">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <Link href={`/purchases/${p.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
+                          <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
                         </Link>
-                        <Link href={`/purchases/${p.id}/edit`} className="flex items-center gap-1 text-gray-600 hover:text-gray-700 text-sm">
-                          <Edit3 className="w-4 h-4" /> Edit
+                        <Link href={`/purchases/${p.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
+                          <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
                         </Link>
-                        <button onClick={() => handleDelete(p.id, p.purchase_number)} className="flex items-center gap-1 text-red-600 hover:text-red-700 text-sm">
-                          <Trash2 className="w-4 h-4" /> Delete
+                        <button onClick={() => handleDelete(p.id, p.purchase_number)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
+                          <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Delete</span>
                         </button>
                       </div>
                     </td>

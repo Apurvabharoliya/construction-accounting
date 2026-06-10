@@ -37,14 +37,14 @@ export default function ReportsPage() {
       </div>
 
       {/* Ledger Viewer */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold mb-4">Party Ledger</h2>
-        <p className="text-sm text-gray-500 mb-4">View transaction ledger for any party</p>
-        <div className="flex gap-4">
+      <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+        <h2 className="text-base md:text-lg font-semibold mb-2 md:mb-4">Party Ledger</h2>
+        <p className="text-xs md:text-sm text-gray-500 mb-3 md:mb-4">View transaction ledger for any party</p>
+        <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             placeholder="Search for a party..."
-            className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50"
+            className="flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-sm"
             onKeyDown={async (e: any) => {
               if (e.key === 'Enter' && e.target.value) {
                 const results = await (await import('@/lib/api/parties')).searchParties(e.target.value)
@@ -54,7 +54,7 @@ export default function ReportsPage() {
               }
             }}
           />
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <Download className="w-5 h-5" />
           </button>
         </div>

@@ -129,50 +129,52 @@ export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormP
             <Plus className="w-4 h-4" /> Add Item
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-gray-500 text-sm border-b">
-                <th className="pb-3 font-medium">Item/Service</th>
-                <th className="pb-3 font-medium">HSN/SAC</th>
-                <th className="pb-3 font-medium">Qty</th>
-                <th className="pb-3 font-medium">Unit</th>
-                <th className="pb-3 font-medium">Rate (₹)</th>
-                <th className="pb-3 font-medium">GST %</th>
-                <th className="pb-3 font-medium">Amount</th>
-                <th className="pb-3 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {fields.map((field, index) => {
-                const item = watchItems?.[index]
-                const amount = (item?.quantity || 0) * (item?.rate || 0)
-                const gstAmt = amount * (item?.gst_rate || 0) / 100
-                return (
-                  <tr key={field.id} className="border-b">
-                    <td className="py-2 pr-2"><input {...register(`items.${index}.item_name`)} className="w-28 px-2 py-1 border rounded text-sm" placeholder="Item" /></td>
-                    <td className="py-2 pr-2"><input {...register(`items.${index}.hsn_code`)} className="w-16 px-2 py-1 border rounded text-sm" placeholder="HSN" /></td>
-                    <td className="py-2 pr-2"><input type="number" step="0.001" {...register(`items.${index}.quantity`, { valueAsNumber: true })} className="w-16 px-2 py-1 border rounded text-sm" /></td>
-                    <td className="py-2 pr-2">
-                      <select {...register(`items.${index}.unit`)} className="w-16 px-2 py-1 border rounded text-sm">
-                        {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    </td>
-                    <td className="py-2 pr-2"><input type="number" step="0.01" {...register(`items.${index}.rate`, { valueAsNumber: true })} className="w-20 px-2 py-1 border rounded text-sm" /></td>
-                    <td className="py-2 pr-2">
-                      <select {...register(`items.${index}.gst_rate`, { valueAsNumber: true })} className="w-16 px-2 py-1 border rounded text-sm">
-                        {[0, 3, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
-                      </select>
-                    </td>
-                    <td className="py-2 text-sm font-medium">{formatCurrency(amount + gstAmt)}</td>
-                    <td className="py-2">
-                      {fields.length > 1 && <button type="button" onClick={() => remove(index)} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <div className="overflow-x-auto -mx-4 md:mx-0">
+          <div className="inline-block min-w-full px-4 md:px-0">
+            <table className="w-full min-w-[500px] md:min-w-0">
+              <thead>
+                <tr className="text-left text-gray-500 text-xs md:text-sm border-b">
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap">Item</th>
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap hidden sm:table-cell">HSN</th>
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap">Qty</th>
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap hidden sm:table-cell">Unit</th>
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap">Rate (₹)</th>
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap">GST %</th>
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap hidden md:table-cell">Amt</th>
+                  <th className="pb-2 md:pb-3 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {fields.map((field, index) => {
+                  const item = watchItems?.[index]
+                  const amount = (item?.quantity || 0) * (item?.rate || 0)
+                  const gstAmt = amount * (item?.gst_rate || 0) / 100
+                  return (
+                    <tr key={field.id} className="border-b">
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input {...register(`items.${index}.item_name`)} className="w-20 md:w-28 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="Item" /></td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2 hidden sm:table-cell"><input {...register(`items.${index}.hsn_code`)} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="HSN" /></td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input type="number" step="0.001" {...register(`items.${index}.quantity`, { valueAsNumber: true })} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" /></td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2 hidden sm:table-cell">
+                        <select {...register(`items.${index}.unit`)} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm">
+                          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input type="number" step="0.01" {...register(`items.${index}.rate`, { valueAsNumber: true })} className="w-16 md:w-20 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" /></td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2">
+                        <select {...register(`items.${index}.gst_rate`, { valueAsNumber: true })} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm">
+                          {[0, 3, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
+                        </select>
+                      </td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2 text-xs md:text-sm font-medium hidden md:table-cell">{formatCurrency(amount + gstAmt)}</td>
+                      <td className="py-1.5 md:py-2">
+                        {fields.length > 1 && <button type="button" onClick={() => remove(index)} className="p-1.5 md:p-0 text-red-500 hover:text-red-700 rounded-lg hover:bg-red-50 md:bg-transparent transition-colors"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
         {errors.items && <p className="text-red-500 text-sm mt-2">{errors.items.message}</p>}
       </div>

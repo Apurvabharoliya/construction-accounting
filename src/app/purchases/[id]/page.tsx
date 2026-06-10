@@ -63,20 +63,20 @@ export default function PurchaseDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Supplier</h3>
-          <p className="font-medium">{purchase.supplier?.name}</p>
-          {purchase.supplier?.phone && <p className="text-sm text-gray-500">{purchase.supplier.phone}</p>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+          <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Supplier</h3>
+          <p className="font-medium text-sm md:text-base">{purchase.supplier?.name}</p>
+          {purchase.supplier?.phone && <p className="text-xs md:text-sm text-gray-500">{purchase.supplier.phone}</p>}
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Date & Invoice</h3>
-          <p className="font-medium">{formatDate(purchase.invoice_date)}</p>
-          {purchase.supplier_invoice_number && <p className="text-sm text-gray-500">Supplier Inv: {purchase.supplier_invoice_number}</p>}
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+          <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Date & Invoice</h3>
+          <p className="font-medium text-sm md:text-base">{formatDate(purchase.invoice_date)}</p>
+          {purchase.supplier_invoice_number && <p className="text-xs md:text-sm text-gray-500">Supplier Inv: {purchase.supplier_invoice_number}</p>}
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Payment Status</h3>
-          <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 sm:col-span-2 md:col-span-1">
+          <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Payment Status</h3>
+          <span className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-medium ${
             purchase.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
             purchase.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
           }`}>
@@ -85,41 +85,43 @@ export default function PurchaseDetailPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold mb-4">Items</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left border-b">
-                <th className="pb-3 text-sm font-medium text-gray-500">Material</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">HSN</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Qty</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Unit</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Rate</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">GST</th>
-                <th className="pb-3 text-sm font-medium text-gray-500">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purchase.items?.map((item: any) => (
-                <tr key={item.id} className="border-t">
-                  <td className="py-3 text-sm">{item.material_name}</td>
-                  <td className="py-3 text-sm">{item.hsn_code || '-'}</td>
-                  <td className="py-3 text-sm">{item.quantity}</td>
-                  <td className="py-3 text-sm">{item.unit}</td>
-                  <td className="py-3 text-sm">{formatCurrency(item.rate)}</td>
-                  <td className="py-3 text-sm">{item.gst_rate}%</td>
-                  <td className="py-3 text-sm font-medium">{formatCurrency(Number(item.amount) + Number(item.gst_amount))}</td>
+      <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Items</h3>
+        <div className="overflow-x-auto -mx-4 md:-mx-0">
+          <div className="inline-block min-w-full px-4 md:px-0">
+            <table className="w-full responsive-table-card">
+              <thead>
+                <tr className="text-left border-b">
+                  <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Material</th>
+                  <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap hidden sm:table-cell">HSN</th>
+                  <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Qty</th>
+                  <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap hidden sm:table-cell">Unit</th>
+                  <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Rate</th>
+                  <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">GST</th>
+                  <th className="pb-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Total</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {purchase.items?.map((item: any) => (
+                  <tr key={item.id} className="border-t">
+                    <td className="py-2 md:py-3 pr-3 text-xs md:text-sm" data-label="Material">{item.material_name}</td>
+                    <td className="py-2 md:py-3 pr-3 text-xs md:text-sm hidden sm:table-cell" data-label="HSN">{item.hsn_code || '-'}</td>
+                    <td className="py-2 md:py-3 pr-3 text-xs md:text-sm" data-label="Qty">{item.quantity}</td>
+                    <td className="py-2 md:py-3 pr-3 text-xs md:text-sm hidden sm:table-cell" data-label="Unit">{item.unit}</td>
+                    <td className="py-2 md:py-3 pr-3 text-xs md:text-sm" data-label="Rate">{formatCurrency(item.rate)}</td>
+                    <td className="py-2 md:py-3 pr-3 text-xs md:text-sm" data-label="GST">{item.gst_rate}%</td>
+                    <td className="py-2 md:py-3 text-xs md:text-sm font-medium" data-label="Total">{formatCurrency(Number(item.amount) + Number(item.gst_amount))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold mb-4">Summary</h3>
-        <div className="max-w-md space-y-3">
+      <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Summary</h3>
+        <div className="max-w-md space-y-2 md:space-y-3 text-sm md:text-base">
           <div className="flex justify-between"><span className="text-gray-600">Subtotal</span><span className="font-medium">{formatCurrency(Number(purchase.subtotal))}</span></div>
           <div className="flex justify-between"><span className="text-gray-600">CGST</span><span className="font-medium">{formatCurrency(Number(purchase.cgst_amount))}</span></div>
           <div className="flex justify-between"><span className="text-gray-600">SGST</span><span className="font-medium">{formatCurrency(Number(purchase.sgst_amount))}</span></div>

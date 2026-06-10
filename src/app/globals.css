@@ -123,8 +123,54 @@
   }
   body {
     @apply bg-background text-foreground;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    -webkit-tap-highlight-color: transparent;
   }
   html {
     @apply font-sans;
+  }
+  /* Better touch targets on mobile */
+  button, a, select, input, textarea {
+    @apply touch-manipulation;
+  }
+  /* Prevent zoom on input focus on iOS */
+  input, select, textarea {
+    font-size: 16px;
+  }
+  /* Smooth momentum scrolling */
+  .overflow-x-auto, .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile responsive table: convert to cards on small screens */
+@media (max-width: 640px) {
+  .responsive-table-card {
+    display: block !important;
+  }
+  .responsive-table-card thead {
+    display: none;
+  }
+  .responsive-table-card tbody,
+  .responsive-table-card tr {
+    display: block;
+  }
+  .responsive-table-card tr {
+    @apply border rounded-lg p-3 mb-3 bg-white shadow-sm;
+  }
+  .responsive-table-card td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0 !important;
+    border: none !important;
+    @apply text-sm;
+  }
+  .responsive-table-card td::before {
+    content: attr(data-label);
+    @apply text-xs text-gray-500 font-medium mr-2 flex-shrink-0;
   }
 }

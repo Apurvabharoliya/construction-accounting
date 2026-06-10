@@ -53,15 +53,15 @@ export default function DailySummaryPage() {
         {data && <ExportButton onExportExcel={handleExportExcel} onExportPDF={handleExportPDF} />}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex gap-4 items-end">
-          <div className="flex-1 max-w-xs">
+      <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1 max-w-xs w-full sm:w-auto">
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50" />
+              className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm" />
           </div>
           <button onClick={fetchSummary}
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm">
+            className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm text-sm">
             {loading ? 'Loading...' : 'View Summary'}
           </button>
         </div>

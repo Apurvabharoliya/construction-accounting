@@ -55,21 +55,21 @@ export default function MonthlySummaryPage() {
         {data && <ExportButton onExportExcel={handleExportExcel} onExportPDF={handleExportPDF} />}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex gap-4 items-end">
-          <div>
+      <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="w-full sm:w-auto">
             <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="px-4 py-2.5 border rounded-lg bg-gray-50">
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-full px-4 py-2.5 border rounded-lg bg-gray-50 text-sm">
               {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-            <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="px-4 py-2.5 border rounded-lg bg-gray-50">
+            <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="w-full px-4 py-2.5 border rounded-lg bg-gray-50 text-sm">
               {monthNames.map((name, i) => <option key={i + 1} value={i + 1}>{name}</option>)}
             </select>
           </div>
-          <button onClick={fetchSummary} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm">
+          <button onClick={fetchSummary} className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm text-sm">
             {loading ? 'Loading...' : 'View Summary'}
           </button>
         </div>

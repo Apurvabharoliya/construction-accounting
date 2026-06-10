@@ -304,7 +304,7 @@ export default function Dashboard() {
           </div>
           <div className="overflow-x-auto -mx-4 md:-mx-6">
             <div className="inline-block min-w-full px-4 md:px-6">
-              <table className="w-full">
+              <table className="w-full responsive-table-card">
                 <thead>
                   <tr className="text-left border-b border-gray-100">
                     <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap pr-4">Date</th>
@@ -325,8 +325,8 @@ export default function Dashboard() {
                   ) : (
                     stats.recentTransactions.map((txn: any, i: number) => (
                       <tr key={txn.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors animate-in fade-in" style={{ animationDelay: `${500 + i * 80}ms`, animationFillMode: 'both' }}>
-                        <td className="py-3 text-sm text-gray-600 whitespace-nowrap pr-4">{formatDate(txn.invoice_date)}</td>
-                        <td className="py-3 text-sm font-medium text-gray-900 whitespace-nowrap pr-4 truncate max-w-[120px] md:max-w-none">
+                        <td className="py-3 text-sm text-gray-600 whitespace-nowrap pr-4" data-label="Date">{formatDate(txn.invoice_date)}</td>
+                        <td className="py-3 text-sm font-medium text-gray-900 whitespace-nowrap pr-4 truncate max-w-[120px] md:max-w-none" data-label="Party">
                           <span className="flex items-center gap-1.5">
                             {txn.party_name || 'N/A'}
                             <span className={`text-xs px-1.5 py-0.5 rounded ${
@@ -336,10 +336,10 @@ export default function Dashboard() {
                             </span>
                           </span>
                         </td>
-                        <td className="py-3 text-sm font-semibold text-gray-900 whitespace-nowrap pr-4">
+                        <td className="py-3 text-sm font-semibold text-gray-900 whitespace-nowrap pr-4" data-label="Amount">
                           {formatCurrency(Number(txn.total_amount))}
                         </td>
-                        <td className="py-3 whitespace-nowrap">
+                        <td className="py-3 whitespace-nowrap" data-label="Status">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             txn.payment_status === 'paid' ? 'bg-green-100 text-green-700' :
                             txn.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-700' :

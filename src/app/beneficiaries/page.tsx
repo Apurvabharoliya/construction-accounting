@@ -77,42 +77,42 @@ export default function BeneficiariesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full responsive-table-card">
               <thead>
                 <tr className="text-left bg-gray-50">
-                  <th className="p-4 text-sm font-medium text-gray-500">Name</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Aadhaar</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Amount (₹)</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Description</th>
-                  <th className="p-4 text-sm font-medium text-gray-500">Actions</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Name</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Aadhaar</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Amount (₹)</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Description</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {beneficiaries.map((b: any) => (
                   <tr key={b.id} className="border-t hover:bg-gray-50">
-                    <td className="p-4">
+                    <td className="p-4" data-label="Name">
                       <p className="font-medium text-gray-900">{b.party?.name || 'N/A'}</p>
                     </td>
-                    <td className="p-4 text-sm text-gray-600">{b.aadhaar_number || '-'}</td>
-                    <td className="p-4">
+                    <td className="p-4 text-sm text-gray-600" data-label="Aadhaar">{b.aadhaar_number || '-'}</td>
+                    <td className="p-4" data-label="Amount">
                       <div className="flex items-center gap-1">
                         <IndianRupee className="w-3.5 h-3.5 text-orange-500" />
                         <span className="font-semibold text-orange-600">{formatCurrency(b.total_amount_due || 0)}</span>
                       </div>
                     </td>
-                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate">
+                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate hidden md:table-cell" data-label="Description">
                       {b.notes || <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Link href={`/beneficiaries/${b.id}`} className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                          <Eye className="w-4 h-4" /> View
+                    <td className="p-4" data-label="">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <Link href={`/beneficiaries/${b.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
+                          <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
                         </Link>
-                        <Link href={`/beneficiaries/${b.id}/edit`} className="flex items-center gap-1 text-gray-600 hover:text-gray-700 text-sm">
-                          <Edit3 className="w-4 h-4" /> Edit
+                        <Link href={`/beneficiaries/${b.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
+                          <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
                         </Link>
-                        <button onClick={() => handleDelete(b.id, b.party?.name)} className="flex items-center gap-1 text-red-600 hover:text-red-700 text-sm font-medium">
-                          <Trash2 className="w-4 h-4" /> Delete
+                        <button onClick={() => handleDelete(b.id, b.party?.name)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
+                          <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> Delete</span>
                         </button>
                       </div>
                     </td>
