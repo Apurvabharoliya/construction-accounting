@@ -77,7 +77,7 @@ CREATE TABLE purchase_items (
 CREATE TABLE sales (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sale_number VARCHAR(50) UNIQUE NOT NULL,
-  client_id UUID REFERENCES parties(id),
+  client_id UUID REFERENCES parties(id) ON DELETE CASCADE,
   invoice_date DATE NOT NULL,
   subtotal DECIMAL(15,2) NOT NULL,
   gst_rate DECIMAL(5,2) DEFAULT 0,
@@ -137,7 +137,7 @@ CREATE TABLE beneficiaries (
 -- =============================================
 CREATE TABLE transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  party_id UUID REFERENCES parties(id),
+  party_id UUID REFERENCES parties(id) ON DELETE CASCADE,
   transaction_type VARCHAR(20) CHECK (transaction_type IN ('purchase', 'sale', 'payment', 'receipt', 'subsidy')),
   reference_id UUID,
   reference_type VARCHAR(50),

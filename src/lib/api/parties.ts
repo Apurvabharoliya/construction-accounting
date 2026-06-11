@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import type { Party } from '@/types/database'
+import { deleteSale } from './sales'
+import { deletePurchase } from './purchases'
 
 export async function getParties(filters?: {
   type?: string
@@ -57,8 +59,46 @@ export async function updateParty(id: string, party: Partial<Party>) {
   return data as Party
 }
 
-export async function deleteParty(id: string) {
-  // Delete related transactions
+export async function deleteParty(id: string, partyType?: string) {
+  // Fetch party type if not provided
+  if (!partyType) {
+    const { data: party } = await supabase
+      .from('parties')
+      .select('party_type')
+      .eq('id', id)
+      .single()
+    partyType = party?.party_type
+  }
+
+  // Cascade delete related sales (party is a client)
+  if (partyType === 'client') {
+    const { data: sales } = await supabase
+      .from('sales')
+      .select('id')
+      .eq('client_id', id)
+
+    if (sales && sales.length > 0) {
+      for (const sale of sales) {
+        await deleteSale(sale.id)
+      }
+    }
+  }
+
+  // Cascade delete related purchases (party is a supplier)
+  if (partyType === 'supplier') {
+    const { data: purchases } = await supabase
+      .from('purchases')
+      .select('id')
+      .eq('supplier_id', id)
+
+    if (purchases && purchases.length > 0) {
+      for (const purchase of purchases) {
+        await deletePurchase(purchase.id)
+      }
+    }
+  }
+
+  // Delete related transactions (for any remaining party type)
   await supabase.from('transactions').delete().eq('party_id', id)
   
   // Delete related beneficiaries
