@@ -103,7 +103,7 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Basic Details */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold mb-4">Vendor Purchase Details</h3>
+        <h3 className="text-lg font-semibold mb-4">Purchase Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label>
@@ -231,7 +231,7 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
       <div className="flex justify-end gap-4">
         <button type="button" onClick={() => window.history.back()} className="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
         <button type="submit" disabled={isLoading} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-          {isLoading ? 'Saving...' : 'Create Vendor Purchase'}
+          {isLoading ? 'Saving...' : 'Create Purchase'}
         </button>
       </div>
     </form>

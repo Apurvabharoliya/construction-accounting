@@ -78,12 +78,12 @@ export default function PartyForm({ initialData, onSubmit, isLoading }: PartyFor
         <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Party Name *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name *</label>
             <input type="text" {...register('name')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter party name" />
             {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Party Type *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Type *</label>
             <select {...register('party_type')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
               {PARTY_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>{type.label}</option>
@@ -173,7 +173,7 @@ export default function PartyForm({ initialData, onSubmit, isLoading }: PartyFor
       <div className="flex justify-end gap-4">
         <button type="button" onClick={() => window.history.back()} className="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
         <button type="submit" disabled={isLoading} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-          {isLoading ? 'Saving...' : initialData ? 'Update Party' : 'Create Party'}
+          {isLoading ? 'Saving...' : initialData ? 'Update Vendor' : 'Create Vendor'}
         </button>
       </div>
     </form>

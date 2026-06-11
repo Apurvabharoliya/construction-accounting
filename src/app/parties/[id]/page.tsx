@@ -102,8 +102,8 @@ export default function PartyDetailPage() {
   if (!party) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Party not found</p>
-        <button onClick={() => router.push('/parties')} className="text-blue-600 hover:underline mt-2">Back to parties</button>
+        <p className="text-gray-500">Vendor not found</p>
+        <button onClick={() => router.push('/parties')} className="text-blue-600 hover:underline mt-2">Back to vendors</button>
       </div>
     )
   }

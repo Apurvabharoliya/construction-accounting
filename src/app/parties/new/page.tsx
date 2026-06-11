@@ -59,7 +59,7 @@ export default function NewPartyPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Add New Party</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Add New Vendor</h1>
         <p className="text-gray-500 text-sm mt-1">Add a new supplier, client, or beneficiary</p>
       </div>
       <PartyForm onSubmit={handleSubmit} isLoading={isLoading} />

@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, TrendingUp, ShoppingCart, IndianRupee, Calculator, Download } from 'lucide-react'
+import { FileText, TrendingUp, ShoppingCart, IndianRupee, Calculator, Download, Upload } from 'lucide-react'
 import Link from 'next/link'
 
 const reportCards = [
@@ -8,6 +8,7 @@ const reportCards = [
   { title: 'Daily Summary', description: 'View transaction summary for a specific date', icon: FileText, href: '/reports/daily', color: 'bg-blue-500' },
   { title: 'Monthly Summary', description: 'Monthly profit/loss and transaction analysis', icon: TrendingUp, href: '/reports/monthly', color: 'bg-green-500' },
   { title: 'GST Summary', description: 'GST payable/receivable summary for filing', icon: Calculator, href: '/reports/gst', color: 'bg-purple-500' },
+  { title: 'Import from Excel', description: 'Upload Excel files to import vendors, purchases, or sales', icon: Upload, href: '/reports/import', color: 'bg-teal-500' },
 ]
 
 export default function ReportsPage() {
@@ -38,12 +39,12 @@ export default function ReportsPage() {
 
       {/* Ledger Viewer */}
       <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
-        <h2 className="text-base md:text-lg font-semibold mb-2 md:mb-4">Party Ledger</h2>
-        <p className="text-xs md:text-sm text-gray-500 mb-3 md:mb-4">View transaction ledger for any party</p>
+        <h2 className="text-base md:text-lg font-semibold mb-2 md:mb-4">Vendor Ledger</h2>
+        <p className="text-xs md:text-sm text-gray-500 mb-3 md:mb-4">View transaction ledger for any vendor</p>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
-            placeholder="Search for a party..."
+            placeholder="Search for a vendor..."
             className="flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-sm"
             onKeyDown={async (e: any) => {
               if (e.key === 'Enter' && e.target.value) {

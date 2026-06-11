@@ -110,7 +110,7 @@ export default function Dashboard() {
       delay: 0
     },
     {
-      title: 'Total Vendors',
+      title: 'Total Purchases',
       value: formatCurrency(stats.totalPurchases),
       icon: ShoppingCart,
       bgColor: 'bg-gradient-to-br from-blue-50 to-indigo-50',
@@ -200,13 +200,13 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '150ms', animationFillMode: 'both' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base md:text-lg font-semibold text-gray-900">Vendors vs Sales</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">Purchases vs Sales</h2>
               <p className="text-xs md:text-sm text-gray-500 mt-0.5">Monthly comparison</p>
             </div>
             <div className="hidden sm:flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="text-xs text-gray-500">Vendors</span>
+                <span className="text-xs text-gray-500">Purchases</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -221,7 +221,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base md:text-lg font-semibold text-gray-900">Net Profit Trend</h2>
-              <p className="text-xs md:text-sm text-gray-500 mt-0.5">Monthly profit (Sales - Vendors)</p>
+              <p className="text-xs md:text-sm text-gray-500 mt-0.5">Monthly profit (Sales - Purchases)</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-purple-500"></div>
@@ -244,15 +244,14 @@ export default function Dashboard() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
           <div className="mb-4">
-            <h2 className="text-base md:text-lg font-semibold text-gray-900">Outstanding Balances</h2>
-            <p className="text-xs md:text-sm text-gray-500 mt-0.5">Pending by party</p>
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">Outstanding Balances</h2>              <p className="text-xs md:text-sm text-gray-500 mt-0.5">Pending by vendor</p>
           </div>
           <OutstandingChart />
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500 md:col-span-2 lg:col-span-1" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
           <div className="mb-4">
-            <h2 className="text-base md:text-lg font-semibold text-gray-900">Top Parties</h2>
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">Top Vendors</h2>
             <p className="text-xs md:text-sm text-gray-500 mt-0.5">By transaction volume</p>
           </div>
           <TopPartiesChart />
@@ -266,9 +265,9 @@ export default function Dashboard() {
           <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { href: '/purchases/new', icon: ShoppingCart, color: 'blue', label: 'New Vendor' },
+              { href: '/purchases/new', icon: ShoppingCart, color: 'blue', label: 'New Purchase' },
               { href: '/sales/new', icon: TrendingUp, color: 'green', label: 'New Sale' },
-              { href: '/parties/new', icon: Users, color: 'purple', label: 'Add Party' },
+              { href: '/parties/new', icon: Users, color: 'purple', label: 'Add Vendor' },
               { href: '/beneficiaries/new', icon: HandHeart, color: 'orange', label: 'Beneficiary' },
             ].map((action, i) => (
               <Link key={action.label} href={action.href}>
@@ -284,7 +283,7 @@ export default function Dashboard() {
 
           <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Total Parties</span>
+              <span className="text-gray-500">Total Vendors</span>
               <span className="font-semibold text-gray-900">{stats.totalParties}</span>
             </div>
             <div className="flex items-center justify-between text-sm mt-2">
@@ -308,7 +307,7 @@ export default function Dashboard() {
                 <thead>
                   <tr className="text-left border-b border-gray-100">
                     <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap pr-4">Date</th>
-                    <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap pr-4">Party</th>
+                    <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap pr-4">Vendor</th>
                     <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap pr-4">Amount</th>
                     <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
                   </tr>
@@ -326,13 +325,13 @@ export default function Dashboard() {
                     stats.recentTransactions.map((txn: any, i: number) => (
                       <tr key={txn.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors animate-in fade-in" style={{ animationDelay: `${500 + i * 80}ms`, animationFillMode: 'both' }}>
                         <td className="py-3 text-sm text-gray-600 whitespace-nowrap pr-4" data-label="Date">{formatDate(txn.invoice_date)}</td>
-                        <td className="py-3 text-sm font-medium text-gray-900 whitespace-nowrap pr-4 truncate max-w-[120px] md:max-w-none" data-label="Party">
+                        <td className="py-3 text-sm font-medium text-gray-900 whitespace-nowrap pr-4 truncate max-w-[120px] md:max-w-none" data-label="Vendor">
                           <span className="flex items-center gap-1.5">
                             {txn.party_name || 'N/A'}
                             <span className={`text-xs px-1.5 py-0.5 rounded ${
                               txn.type === 'purchase' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
                             }`}>
-                              {txn.type === 'purchase' ? 'Vendor' : 'Sale'}
+                              {txn.type === 'purchase' ? 'Purchase' : 'Sale'}
                             </span>
                           </span>
                         </td>

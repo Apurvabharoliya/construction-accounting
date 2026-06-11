@@ -79,7 +79,7 @@ export default function GstSummaryPage() {
           <div className="bg-white rounded-xl shadow-sm p-6 border hover:shadow-md transition-shadow">
             <div className="flex items-center gap-3 mb-5">
               <div className="p-2.5 bg-blue-100 rounded-lg"><ArrowDownCircle className="w-6 h-6 text-blue-600" /></div>
-              <h3 className="text-lg font-semibold">Input GST (Vendors) [ITC]</h3>
+              <h3 className="text-lg font-semibold">Input GST (Purchases) [ITC]</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between p-2 bg-gray-50 rounded"><span className="text-gray-600">CGST</span><span className="font-medium">{formatCurrency(data.inputGst.cgst)}</span></div>

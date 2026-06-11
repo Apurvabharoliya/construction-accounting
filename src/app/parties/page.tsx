@@ -82,15 +82,15 @@ export default function PartiesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Parties</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage suppliers, clients, and beneficiaries</p>
+          <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage vendors (suppliers, clients, and beneficiaries)</p>
         </div>
         <Link
           href="/parties/new"
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          Add Party
+          Add Vendor
         </Link>
       </div>
 
@@ -133,8 +133,8 @@ export default function PartiesPage() {
           </div>
         ) : parties.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-gray-500 mb-4">No parties found</p>
-            <Link href="/parties/new" className="text-blue-600 hover:underline font-medium">Add your first party</Link>
+            <p className="text-gray-500 mb-4">No vendors found</p>
+            <Link href="/parties/new" className="text-blue-600 hover:underline font-medium">Add your first vendor</Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
