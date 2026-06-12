@@ -36,27 +36,36 @@ export async function getBeneficiary(id: string) {
 
 export async function createBeneficiary(
   partyData: Omit<Party, 'id' | 'created_at' | 'updated_at'>,
-  beneficiaryData: Omit<Beneficiary, 'id' | 'party_id' | 'created_at' | 'updated_at'>
+  beneficiaryData: Omit<Beneficiary, 'id' | 'party_id' | 'created_at' | 'updated_at'>,
+  existingPartyId?: string
 ) {
-  // Create party first
-  const { data: party, error: partyError } = await supabase
-    .from('parties')
-    .insert([{ ...partyData, party_type: 'beneficiary' }])
-    .select()
-    .single()
+  let partyId: string
 
-  if (partyError) throw partyError
+  if (existingPartyId) {
+    // Link to existing party - update its type if needed
+    partyId = existingPartyId
+  } else {
+    // Create party first
+    const { data: party, error: partyError } = await supabase
+      .from('parties')
+      .insert([{ ...partyData, party_type: 'beneficiary' }])
+      .select()
+      .single()
+
+    if (partyError) throw partyError
+    partyId = party.id
+  }
 
   // Create beneficiary record
   const { data: beneficiary, error: beneficiaryError } = await supabase
     .from('beneficiaries')
-    .insert([{ ...beneficiaryData, party_id: party.id }])
+    .insert([{ ...beneficiaryData, party_id: partyId }])
     .select()
     .single()
 
   if (beneficiaryError) throw beneficiaryError
 
-  return { party, beneficiary }
+  return { party: null, beneficiary }
 }
 
 export async function updateBeneficiary(id: string, beneficiaryData: Partial<Beneficiary>) {

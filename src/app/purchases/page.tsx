@@ -232,7 +232,7 @@ export default function CashbookPage() {
         </div>
         <div className="bg-white rounded-xl shadow-sm p-4 md:p-5 border-l-4 border-orange-500">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Net Balance</p>
-          <p className={`text-lg md:text-xl font-bold mt-1 ${summary.netBalance > 0 ? 'text-red-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+          <p className={`text-lg md:text-xl font-bold mt-1 ${summary.netBalance > 0 ? 'text-green-600' : summary.netBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
             {formatCurrency(Math.abs(summary.netBalance))}
           </p>
           <p className="text-xs text-gray-400 mt-1">
@@ -294,7 +294,7 @@ export default function CashbookPage() {
                   ? `${filteredTransactions.length} of ${transactions.length} entries`
                   : `${transactions.length} entries`}
               </span>
-              <span className={`font-semibold ${summary.netBalance > 0 ? 'text-red-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+              <span className={`font-semibold ${summary.netBalance > 0 ? 'text-green-600' : summary.netBalance < 0 ? 'text-red-600' : 'text-gray-600'}`}>
                 Bal: {formatCurrency(Math.abs(summary.netBalance))} {summary.netBalance > 0 ? 'Dr' : summary.netBalance < 0 ? 'Cr' : ''}
               </span>
             </div>
@@ -419,7 +419,7 @@ export default function CashbookPage() {
 
                       {/* Running Balance */}
                       <td className="p-3 pr-5 text-sm font-semibold text-right whitespace-nowrap max-sm:border-l-0 max-sm:border-t-2 max-sm:border-t-gray-200 sm:border-l-2 sm:border-gray-200" data-label="Running Bal.">
-                        <span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-green-600'}>
+                        <span className={txn.running_balance > 0 ? 'text-green-600' : txn.running_balance < 0 ? 'text-red-600' : 'text-green-600'}>
                           {txn.running_balance === 0 ? '—' : (
                             <>
                               {formatCurrency(Math.abs(txn.running_balance))}
@@ -477,7 +477,7 @@ export default function CashbookPage() {
                     {formatCurrency(summary.totalCredits)}
                   </td>
                   <td className="p-3 pr-5 text-sm font-bold text-right whitespace-nowrap max-sm:border-t-2 max-sm:border-t-gray-200 sm:border-l-2 sm:border-gray-200" data-label="Final Balance">
-                    <span className={summary.netBalance > 0 ? 'text-red-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-600'}>
+                    <span className={summary.netBalance > 0 ? 'text-green-600' : summary.netBalance < 0 ? 'text-red-600' : 'text-gray-600'}>
                       {formatCurrency(Math.abs(summary.netBalance))}
                       <span className="text-xs ml-0.5 font-normal">
                         {summary.netBalance > 0 ? 'Dr' : summary.netBalance < 0 ? 'Cr' : ''}

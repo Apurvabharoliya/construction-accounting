@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Party } from '@/types/database'
-import { Search, Plus, Phone, Mail, MapPin, Eye, Edit3, Trash2 } from 'lucide-react'
+import { Search, Plus, Phone, Mail, MapPin, Eye, Edit3, Trash2, HandHeart } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { deleteParty } from '@/lib/api/parties'
@@ -15,6 +15,7 @@ const partyTypeColors: Record<string, string> = {
 export default function PartiesPage() {
   const [parties, setParties] = useState<Party[]>([])
   const [balanceMap, setBalanceMap] = useState<Record<string, number>>({})
+  const [beneficiaryPartyIds, setBeneficiaryPartyIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -26,6 +27,13 @@ export default function PartiesPage() {
   async function fetchParties() {
     setLoading(true)
     try {
+      // Fetch beneficiary party IDs
+      const { data: beneficiaries } = await supabase
+        .from('beneficiaries')
+        .select('party_id')
+      const benSet = new Set<string>((beneficiaries || []).map(b => b.party_id))
+      setBeneficiaryPartyIds(benSet)
+
       let query = supabase.from('parties').select('*').order('created_at', { ascending: false })
 
       // Only filter by party_type for valid types; 'paid'/'unpaid' are client-side filters
@@ -172,8 +180,16 @@ export default function PartiesPage() {
                   return (
                   <tr key={party.id} className="border-t hover:bg-gray-50 transition-colors">
                     <td className="p-4" data-label="Name">
-                      <div>
+                      <div className="flex items-center gap-2">
                         <p className="font-medium text-gray-900">{party.name}</p>
+                        {beneficiaryPartyIds.has(party.id) && (
+                          <Link href={`/beneficiaries?search=${encodeURIComponent(party.name)}`} title="Also a beneficiary">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                              <HandHeart className="w-3 h-3" />
+                              Beneficiary
+                            </span>
+                          </Link>
+                        )}
                       </div>
                     </td>
                     <td className="p-4" data-label="Type">
@@ -195,8 +211,8 @@ export default function PartiesPage() {
                     <td className="p-4" data-label="Balance">
                       <div className="relative group">
                         <span className={`font-medium cursor-help ${
-                          (mainBalance || 0) > 0 ? 'text-red-600' : 
-                          'text-green-600'
+                          (mainBalance || 0) > 0 ? 'text-green-600' : 
+                          (mainBalance || 0) < 0 ? 'text-red-600' : ''
                         }`}>
                           {formatCurrency(mainBalance || 0)}
                         </span>
@@ -210,13 +226,13 @@ export default function PartiesPage() {
                             </div>
                             <div className="flex justify-between">
                               <span>Transaction Balance</span>
-                              <span className={balanceMap[party.id] > 0 ? 'text-red-400' : 'text-green-400'}>
+                              <span className={balanceMap[party.id] > 0 ? 'text-green-400' : balanceMap[party.id] < 0 ? 'text-red-400' : 'text-gray-400'}>
                                 {formatCurrency(balanceMap[party.id] || 0)}
                               </span>
                             </div>
                             <div className="border-t border-gray-700 pt-1.5 flex justify-between font-semibold">
                               <span>Total</span>
-                              <span className={mainBalance > 0 ? 'text-red-400' : mainBalance < 0 ? 'text-green-400' : ''}>
+                              <span className={mainBalance > 0 ? 'text-green-400' : mainBalance < 0 ? 'text-red-400' : ''}>
                                 {formatCurrency(mainBalance || 0)}
                               </span>
                             </div>

@@ -27,7 +27,8 @@ export default function NewBeneficiaryPage() {
           total_amount_received: 0,
           total_amount_due: data.outstanding_amount || 400000,
           payment_installments: 1
-        }
+        },
+        data.existingPartyId
       )
       toast.success('Beneficiary added successfully')
       router.push('/beneficiaries')

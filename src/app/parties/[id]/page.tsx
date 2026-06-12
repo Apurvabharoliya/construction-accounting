@@ -256,7 +256,7 @@ export default function PartyDetailPage() {
 
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Balance</h3>
-          <p className={`text-2xl font-bold ${currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+          <p className={`text-2xl font-bold ${currentBalance > 0 ? 'text-green-600' : currentBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
             {formatCurrency(currentBalance)}
           </p>
           <p className="text-xs text-gray-500 mt-1">
@@ -293,7 +293,7 @@ export default function PartyDetailPage() {
               </div>
               <div className="flex items-center gap-4 text-xs">
                 <span className="text-gray-400">{statementRows.length} entries</span>
-                <span className={`font-semibold ${currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <span className={`font-semibold ${currentBalance > 0 ? 'text-green-600' : currentBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                   Balance: {formatCurrency(currentBalance)}
                 </span>
               </div>
@@ -399,7 +399,7 @@ export default function PartyDetailPage() {
                       
                       {/* Running Balance */}
                       <td className="px-4 py-3 text-sm font-semibold text-right whitespace-nowrap border-l-2 border-gray-200">
-                        <span className={rowRunningBal > 0 ? 'text-red-600' : rowRunningBal < 0 ? 'text-green-600' : 'text-green-600'}>
+                        <span className={rowRunningBal > 0 ? 'text-green-600' : rowRunningBal < 0 ? 'text-red-600' : 'text-green-600'}>
                           {formatCurrency(rowRunningBal)}
                         </span>
                       </td>
