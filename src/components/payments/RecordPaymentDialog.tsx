@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import DatePicker from '@/components/ui/DatePicker'
 import { Label } from '@/components/ui/label'
 import { formatCurrency, PAYMENT_MODES } from '@/lib/gst'
 import { recordInvoicePayment } from '@/lib/api/ledger'
@@ -177,11 +178,9 @@ export default function RecordPaymentDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="paymentDate">Payment Date</Label>
-              <Input
-                id="paymentDate"
-                type="date"
+              <DatePicker
                 value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
+                onChange={setPaymentDate}
                 required
               />
             </div>

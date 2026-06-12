@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { useFieldArray, useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
+import DatePicker from '@/components/ui/DatePicker'
 import { Plus, Trash2 } from 'lucide-react'
 
 const itemSchema = z.object({
@@ -108,7 +109,13 @@ export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormP
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Date *</label>
-            <input type="date" {...register('invoice_date')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+            <Controller
+              name="invoice_date"
+              control={control}
+              render={({ field }) => (
+                <DatePicker value={field.value} onChange={field.onChange} />
+              )}
+            />
             {errors.invoice_date && <p className="text-red-500 text-sm mt-1">{errors.invoice_date.message}</p>}
           </div>
           <div>

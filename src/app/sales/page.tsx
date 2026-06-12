@@ -6,6 +6,7 @@ import { Plus, Eye, Edit3, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
+import DatePicker from '@/components/ui/DatePicker'
 import { deleteSale } from '@/lib/api/sales'
 import { toast } from 'sonner'
 export default function SalesPage() {
@@ -69,8 +70,8 @@ export default function SalesPage() {
       <div className="bg-white rounded-xl shadow-sm p-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex gap-2">
-            <input type="date" value={dateRange.start} onChange={(e) => setDateRange(p => ({ ...p, start: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
-            <input type="date" value={dateRange.end} onChange={(e) => setDateRange(p => ({ ...p, end: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
+            <DatePicker value={dateRange.start} onChange={(v) => setDateRange(p => ({ ...p, start: v }))} />
+            <DatePicker value={dateRange.end} onChange={(v) => setDateRange(p => ({ ...p, end: v }))} />
           </div>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2 border rounded-lg text-sm">
             <option value="all">All Status</option>

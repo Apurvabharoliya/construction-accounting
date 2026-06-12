@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getPartyLedger, getPartyInvoices, type InvoiceSummary } from '@/lib/api/ledger'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
+import DatePicker from '@/components/ui/DatePicker'
 import { ArrowLeft, ShoppingCart, DollarSign, Banknote, Receipt, AlertCircle, ChevronDown, ChevronRight, FileText } from 'lucide-react'
 import Link from 'next/link'
 import type { Party } from '@/types/database'
@@ -164,8 +165,8 @@ export default function LedgerReportPage() {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4">
         <div className="flex gap-4">
-          <input type="date" value={dateRange.start} onChange={(e) => setDateRange(p => ({ ...p, start: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
-          <input type="date" value={dateRange.end} onChange={(e) => setDateRange(p => ({ ...p, end: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
+          <DatePicker value={dateRange.start} onChange={(v) => setDateRange(p => ({ ...p, start: v }))} className="bg-white" />
+          <DatePicker value={dateRange.end} onChange={(v) => setDateRange(p => ({ ...p, end: v }))} className="bg-white" />
         </div>
       </div>
 

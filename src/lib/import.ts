@@ -843,35 +843,173 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
     return { success: false, imported: 0, errors: ['No data rows found in the Excel file'], warnings: [], entityType: 'unknown' }
   }
 
-  const entityType = forceType || detectEntityType(headers)
+  let entityType = forceType || detectEntityType(headers)
 
-  switch (entityType) {
-    case 'parties':
-      return importParties(rows, buildColumnMap(headers, PARTY_COLUMNS))
-    case 'purchases':
-      return importPurchases(rows, buildColumnMap(headers, PURCHASE_COLUMNS))
-    case 'sales':
-      return importSales(rows, buildColumnMap(headers, SALE_COLUMNS))
-    case 'transactions':
-      return importTransactions(rows, buildColumnMap(headers, TRANSACTION_COLUMNS), defaultPartyName)
-    default: {
-      // Broader keyword-based fallback
-      const headerStr = headers.join(' ')
-      if (headerStr.includes('debit') || headerStr.includes('credit') || (headerStr.includes('balance') && headerStr.includes('date'))) {
-        return importTransactions(rows, buildColumnMap(headers, TRANSACTION_COLUMNS), defaultPartyName)
-      }
-      if (headerStr.includes('supplier') || headerStr.includes('material') || headerStr.includes('item')) {
-        return importPurchases(rows, buildColumnMap(headers, PURCHASE_COLUMNS))
-      }
-      if (headerStr.includes('client') || headerStr.includes('customer')) {
-        return importSales(rows, buildColumnMap(headers, SALE_COLUMNS))
-      }
-      if (headerStr.includes('name') || headerStr.includes('type') || headerStr.includes('party')) {
-        return importParties(rows, buildColumnMap(headers, PARTY_COLUMNS))
-      }
+  // Broader keyword-based fallback for unknown types
+  if (entityType === 'unknown') {
+    const headerStr = headers.join(' ')
+    if (headerStr.includes('debit') || headerStr.includes('credit') || (headerStr.includes('balance') && headerStr.includes('date'))) {
+      entityType = 'transactions'
+    } else if (headerStr.includes('supplier') || headerStr.includes('material') || headerStr.includes('item')) {
+      entityType = 'purchases'
+    } else if (headerStr.includes('client') || headerStr.includes('customer')) {
+      entityType = 'sales'
+    } else if (headerStr.includes('name') || headerStr.includes('type') || headerStr.includes('party')) {
+      entityType = 'parties'
+    } else {
       return { success: false, imported: 0, errors: ['Could not detect data type from Excel columns.'], warnings: [], entityType: 'unknown' }
     }
   }
+
+  // Step 1: Transform the raw data to match the canonical template format
+  // This maps arbitrary file headers to the expected template columns
+  const transformed = transformToTemplate(headers, rows, entityType)
+
+  // Step 2: Build a column map from db fields to the canonical template headers
+  // (the transformed rows use template header names as keys, e.g. "Name", "Type")
+  const columnMap = getFieldToTemplateHeader(entityType)
+
+  // Step 3: Import the transformed data
+  let result: ImportResult
+  switch (entityType) {
+    case 'parties':
+      result = await importParties(transformed.rows, columnMap)
+      break
+    case 'purchases':
+      result = await importPurchases(transformed.rows, columnMap)
+      break
+    case 'sales':
+      result = await importSales(transformed.rows, columnMap)
+      break
+    case 'transactions':
+      result = await importTransactions(transformed.rows, columnMap, defaultPartyName)
+      break
+    default:
+      return { success: false, imported: 0, errors: ['Could not detect data type from Excel columns.'], warnings: transformed.warnings, entityType: 'unknown' }
+  }
+
+  // Include transform warnings (e.g. unmapped columns, missing fields) in the result
+  result.warnings = [...transformed.warnings, ...result.warnings]
+
+  return result
+}
+
+// =============================================
+// Template headers & field mapping
+// =============================================
+
+/** Canonical template headers for each entity type */
+export function getTemplateHeaders(type: EntityType): string[] {
+  switch (type) {
+    case 'parties':
+      return ['Name', 'Type', 'Phone', 'Email', 'GSTIN', 'PAN', 'Address', 'City', 'State', 'Pin Code', 'Opening Balance', 'GST Registered', 'Notes']
+    case 'purchases':
+      return ['Supplier Name', 'Invoice Date', 'Supplier Invoice No', 'Material', 'HSN', 'Quantity', 'Unit', 'Rate', 'GST %', 'Payment Status', 'Payment Mode', 'Amount Paid', 'Remarks']
+    case 'sales':
+      return ['Client Name', 'Invoice Date', 'Item', 'HSN/SAC', 'Quantity', 'Unit', 'Rate', 'GST %', 'Payment Status', 'Payment Mode', 'Amount Received', 'Remarks']
+    case 'transactions':
+      return ['Date', 'Party', 'Description', 'Debit', 'Credit', 'Balance']
+    default:
+      return []
+  }
+}
+
+/** Map from database field name to the canonical template header for a given entity type */
+export function getFieldToTemplateHeader(type: EntityType): Map<string, string> {
+  const map = new Map<string, string>()
+  const headers = getTemplateHeaders(type)
+
+  // Build mapping from column defs: field → template header
+  const defs = getColumnDefs(type)
+  // The template headers are in the same order as the column defs
+  // but transactions has fewer fields than TRANSACTION_COLUMNS
+  for (let i = 0; i < defs.length; i++) {
+    // Find matching template header by trying to find the template header
+    // that best matches the field name
+    const field = defs[i].field
+    const alias = defs[i].aliases[0] // first alias is usually the "official" name
+    // Try exact match against template headers (lowercased)
+    const matched = headers.find(h => h.toLowerCase() === alias.toLowerCase() || h.toLowerCase() === field.toLowerCase())
+    if (matched) {
+      map.set(field, matched)
+    }
+  }
+  return map
+}
+
+export interface TransformResult {
+  headers: string[]
+  rows: Record<string, string>[]
+  warnings: string[]
+  mapping: { fileHeader: string; templateHeader: string }[]
+}
+
+/**
+ * Transform uploaded file data to match the canonical template format.
+ * Maps arbitrary file headers to the expected template columns.
+ */
+export function transformToTemplate(
+  fileHeaders: string[],
+  rows: Record<string, string>[],
+  entityType: EntityType
+): TransformResult {
+  const templateHeaders = getTemplateHeaders(entityType)
+  if (templateHeaders.length === 0) {
+    return { headers: fileHeaders, rows, warnings: ['No template defined for this entity type'], mapping: [] }
+  }
+
+  const colDefs = getColumnDefs(entityType)
+  const columnMap = buildColumnMap(fileHeaders, colDefs)
+  const fieldToTemplate = getFieldToTemplateHeader(entityType)
+
+  const warnings: string[] = []
+  const mapping: { fileHeader: string; templateHeader: string }[] = []
+
+  // Track which file headers were mapped
+  const usedFileHeaders = new Set<string>()
+
+  // Build mapping display entries
+  for (const def of colDefs) {
+    const templateHeader = fieldToTemplate.get(def.field)
+    if (!templateHeader) continue
+    const fileHeader = columnMap.get(def.field)
+    if (fileHeader) {
+      mapping.push({ fileHeader, templateHeader })
+      usedFileHeaders.add(fileHeader)
+    } else {
+      warnings.push(`Column "${def.field}" not found in your file — will be empty in template`)
+    }
+  }
+
+  // Warn about unmapped file headers
+  for (const fh of fileHeaders) {
+    if (!usedFileHeaders.has(fh) && fh.trim() !== '') {
+      warnings.push(`Column "${fh}" in your file was not mapped to any template field`)
+    }
+  }
+
+  // Transform each row
+  const transformedRows: Record<string, string>[] = []
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]
+    const transformed: Record<string, string> = {}
+    for (const templateHeader of templateHeaders) {
+      // Find which db field maps to this template header
+      let dbField: string | undefined
+      for (const [field, th] of fieldToTemplate) {
+        if (th === templateHeader) { dbField = field; break }
+      }
+      if (dbField) {
+        const fileHeader = columnMap.get(dbField)
+        transformed[templateHeader] = fileHeader ? (row[fileHeader] || '') : ''
+      } else {
+        transformed[templateHeader] = ''
+      }
+    }
+    transformedRows.push(transformed)
+  }
+
+  return { headers: templateHeaders, rows: transformedRows, warnings, mapping }
 }
 
 // =============================================
@@ -882,12 +1020,11 @@ export async function downloadTemplate(type: EntityType): Promise<void> {
   const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
 
-  let headers: string[]
+  const templateHeaders = getTemplateHeaders(type)
   let sampleData: any[][]
 
   switch (type) {
     case 'parties':
-      headers = ['Name', 'Type', 'Phone', 'Email', 'GSTIN', 'PAN', 'Address', 'City', 'State', 'Pin Code', 'Opening Balance', 'GST Registered', 'Notes']
       sampleData = [
         ['ABC Constructions', 'Supplier', '9876543210', '', '22AAAAA0000A1Z5', '', '123, Main Road', 'Mumbai', 'Maharashtra', '400001', '0', 'Yes', ''],
         ['XYZ Builders', 'Client', '9876543211', 'info@xyz.com', '', '', '456, Park Street', 'Delhi', 'Delhi', '110001', '50000', 'No', 'Credit terms: 30 days'],
@@ -895,7 +1032,6 @@ export async function downloadTemplate(type: EntityType): Promise<void> {
       ]
       break
     case 'purchases':
-      headers = ['Supplier Name', 'Invoice Date', 'Supplier Invoice No', 'Material', 'HSN', 'Quantity', 'Unit', 'Rate', 'GST %', 'Payment Status', 'Payment Mode', 'Amount Paid', 'Remarks']
       sampleData = [
         ['ABC Constructions', '2025-04-01', 'SUP-001', 'Cement', '2523.29', 100, 'Bag', 350, 18, 'unpaid', '', 0, 'Cement for foundation'],
         ['ABC Constructions', '2025-04-01', 'SUP-001', 'Steel Rods', '7214.20', 50, 'Kg', 75, 18, 'unpaid', '', 0, ''],
@@ -903,19 +1039,24 @@ export async function downloadTemplate(type: EntityType): Promise<void> {
       ]
       break
     case 'sales':
-      headers = ['Client Name', 'Invoice Date', 'Item', 'HSN/SAC', 'Quantity', 'Unit', 'Rate', 'GST %', 'Payment Status', 'Payment Mode', 'Amount Received', 'Remarks']
       sampleData = [
         ['PQR Developers', '2025-04-10', 'Construction Service', '9954', 1, 'Nos', 500000, 18, 'partial', 'Cheque', 200000, 'Floor construction'],
         ['PQR Developers', '2025-04-10', 'Material Supply', '2523', 200, 'Bag', 380, 18, 'partial', 'Cheque', 0, ''],
         ['LMN Group', '2025-04-15', 'Consulting', '9983', 1, 'Nos', 25000, 18, 'unpaid', '', 0, 'Architecture consulting'],
       ]
       break
+    case 'transactions':
+      sampleData = [
+        ['2025-04-01', 'ABC Constructions', 'Purchase INV-001', 59000, 0, 59000],
+        ['2025-04-05', 'ABC Constructions', 'Payment for INV-001', 0, 30000, 29000],
+        ['2025-04-10', 'PQR Developers', 'Sale INV-001', 0, 118000, 118000],
+      ]
+      break
     default:
-      headers = ['Name']
       sampleData = [['Sample data']]
   }
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData])
+  const ws = XLSX.utils.aoa_to_sheet([templateHeaders, ...sampleData])
   XLSX.utils.book_append_sheet(wb, ws, type)
   XLSX.writeFile(wb, `${type}_import_template.xlsx`)
 }
