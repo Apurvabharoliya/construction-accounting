@@ -49,9 +49,9 @@ const PARTY_COLUMNS: ColumnDef[] = [
 
 const TRANSACTION_COLUMNS: ColumnDef[] = [
   { field: 'date', aliases: ['date', 'transaction date', 'txn date', 'entry date', 'posting date', 'value date', 'voucher date'], keywords: ['date'] },
-  { field: 'party', aliases: ['vendors name', 'vendor name', 'party', 'party name', 'name', 'account name', 'ledger name', 'account', 'supplier', 'vendor', 'client', 'customer', 'supplier name', 'client name'], keywords: ['vendors', 'party', 'account', 'ledger'] },
+  { field: 'party', aliases: ['vendors name', "vendor's name", 'vendor name', 'party', 'party name', 'name', 'account name', 'ledger name', 'account', 'supplier', 'vendor', 'client', 'customer', 'supplier name', 'client name'], keywords: ['vendors', "vendor's", 'vendor', 'party', 'account', 'ledger'] },
   { field: 'description', aliases: ['description/particulars', 'description', 'particulars', 'narration', 'details', 'remarks', 'notes', 'remark', 'note', 'transaction description'], keywords: ['description', 'particular', 'narration'] },
-  { field: 'debit', aliases: ['debit/purchase', 'debit', 'purchase', 'amount due', 'debit amount', 'dr', 'debit/ purchase'], keywords: ['debit', 'dr', 'due'] },
+  { field: 'debit', aliases: ['debit/purchase', 'debit', 'purchase', 'amount due', 'debit amount', 'dr', 'debit/ purchase'], keywords: ['debit', 'dr', 'due', 'purchase'] },
   { field: 'credit', aliases: ['credit/payment', 'credit', 'payment', 'amount paid', 'credit amount', 'cr', 'credit/ payment'], keywords: ['credit', 'cr', 'paid', 'payment'] },
   { field: 'balance', aliases: ['balance', 'running balance', 'closing balance', 'bal', 'balance amount', 'total amount'], keywords: ['balance', 'bal', 'total'] },
 ]
