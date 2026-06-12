@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { ArrowLeft, Upload, FileSpreadsheet, Download, CheckCircle2, AlertTriangle, XCircle, Loader2, Database } from 'lucide-react'
+import { ArrowLeft, Upload, FileSpreadsheet, Download, CheckCircle2, AlertTriangle, XCircle, Loader2, Database, User } from 'lucide-react'
 import Link from 'next/link'
-import { importFromExcel, downloadTemplate, type EntityType, type ImportResult } from '@/lib/import'
+import { importFromExcel, downloadTemplate, detectEntityType, buildColumnMapForType, getColumnDefs, type EntityType, type ImportResult } from '@/lib/import'
 
 const entityTypeInfo: Record<EntityType, { label: string; description: string; bgClass: string; borderClass: string; textClass: string }> = {
   parties: { label: 'Vendors', description: 'Import vendors (suppliers, clients, beneficiaries)', bgClass: 'bg-purple-50', borderClass: 'border-purple-200', textClass: 'text-purple-600' },
   purchases: { label: 'Purchases', description: 'Import purchase invoices with items', bgClass: 'bg-blue-50', borderClass: 'border-blue-200', textClass: 'text-blue-600' },
   sales: { label: 'Sales', description: 'Import sale invoices with items', bgClass: 'bg-green-50', borderClass: 'border-green-200', textClass: 'text-green-600' },
+  transactions: { label: 'Transactions', description: 'Import ledger/account statement with debits and credits', bgClass: 'bg-amber-50', borderClass: 'border-amber-200', textClass: 'text-amber-600' },
   unknown: { label: 'Unknown', description: 'Data type not detected', bgClass: 'bg-gray-50', borderClass: 'border-gray-200', textClass: 'text-gray-600' },
 }
 
@@ -20,7 +21,20 @@ export default function ImportPage() {
   const [dragOver, setDragOver] = useState(false)
   const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([])
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([])
+  const [columnMapping, setColumnMapping] = useState<{ dbField: string; fileHeader: string }[] | null>(null)
+  const [defaultPartyName, setDefaultPartyName] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Build column mapping display for a given type and headers
+  function buildMappingDisplay(headers: string[], type: EntityType) {
+    const colMap = buildColumnMapForType(headers, type)
+    const entries: { dbField: string; fileHeader: string }[] = []
+    for (const def of getColumnDefs(type)) {
+      const matched = colMap.get(def.field)
+      if (matched) entries.push({ dbField: def.field, fileHeader: matched })
+    }
+    setColumnMapping(entries)
+  }
 
   const handleFile = useCallback(async (selectedFile: File) => {
     setFile(selectedFile)
@@ -28,7 +42,7 @@ export default function ImportPage() {
 
     try {
       const buffer = await selectedFile.arrayBuffer()
-      const { default: XLSX } = await import('xlsx')
+      const XLSX = await import('xlsx')
       const workbook = XLSX.read(buffer, { type: 'array' })
       const sheetName = workbook.SheetNames[0]
       if (sheetName) {
@@ -50,22 +64,15 @@ export default function ImportPage() {
           }
           setPreviewRows(rows)
 
-          // Detect type from headers
-          const headerSet = new Set(headers.map(h => h.toLowerCase().trim()))
-          if (headerSet.has('name') && (headerSet.has('type') || headerSet.has('party type') || headerSet.has('vendor type'))) {
-            setDetectedType('parties')
-          } else if ((headerSet.has('supplier name') || headerSet.has('vendor name')) && (headerSet.has('material') || headerSet.has('item') || headerSet.has('item name'))) {
-            setDetectedType('purchases')
-          } else if ((headerSet.has('client name') || headerSet.has('customer name')) && (headerSet.has('material') || headerSet.has('item') || headerSet.has('item name'))) {
-            setDetectedType('sales')
-          } else if (headerSet.has('supplier name') || headerSet.has('material')) {
-            setDetectedType('purchases')
-          } else if (headerSet.has('client name') || headerSet.has('customer name')) {
-            setDetectedType('sales')
-          } else if (headerSet.has('name') || headerSet.has('type')) {
-            setDetectedType('parties')
+          // Detect type using the shared smart detection from import.ts
+          const detected = detectEntityType(headers)
+          setDetectedType(detected)
+
+          // Build and display column mapping
+          if (detected !== 'unknown') {
+            buildMappingDisplay(headers, detected)
           } else {
-            setDetectedType('unknown')
+            setColumnMapping(null)
           }
         }
       }
@@ -79,7 +86,8 @@ export default function ImportPage() {
     e.preventDefault()
     setDragOver(false)
     const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile && (droppedFile.name.endsWith('.xlsx') || droppedFile.name.endsWith('.xls'))) {
+    const excelExtensions = ['.xlsx', '.xls', '.xlsb', '.xlsm', '.csv', '.ods']
+    if (droppedFile && excelExtensions.some(ext => droppedFile.name.toLowerCase().endsWith(ext))) {
       handleFile(droppedFile)
     }
   }
@@ -89,7 +97,7 @@ export default function ImportPage() {
     setImporting(true)
     try {
       const buffer = await file.arrayBuffer()
-      const importResult = await importFromExcel(buffer, detectedType || undefined)
+      const importResult = await importFromExcel(buffer, detectedType || undefined, defaultPartyName || undefined)
       setResult(importResult)
     } catch (error: any) {
       setResult({
@@ -118,10 +126,16 @@ export default function ImportPage() {
     setResult(null)
     setPreviewRows([])
     setPreviewHeaders([])
+    setColumnMapping(null)
+    setDefaultPartyName('')
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const typeInfo = detectedType ? entityTypeInfo[detectedType] : null
+
+  // Check if transactions file is missing a party column
+  const missingPartyColumn = detectedType === 'transactions' && columnMapping !== null && !columnMapping.some(m => m.dbField === 'party')
+  const isImportDisabled = importing || detectedType === 'unknown' || (missingPartyColumn && !defaultPartyName.trim())
 
   return (
     <div className="space-y-6">
@@ -169,11 +183,11 @@ export default function ImportPage() {
           >
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 font-medium mb-1">Drop your Excel file here, or click to browse</p>
-            <p className="text-gray-400 text-sm">Supports .xlsx and .xls files</p>
+            <p className="text-gray-400 text-sm">Supports .xlsx, .xls, .xlsb, .xlsm, .csv, .ods</p>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.xlsb,.xlsm,.csv,.ods"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0]
@@ -201,11 +215,25 @@ export default function ImportPage() {
             {typeInfo && (
               <div className={`flex items-center gap-3 px-4 py-3 rounded-lg ${typeInfo.bgClass} border ${typeInfo.borderClass}`}>
                 <Database className={`w-5 h-5 ${typeInfo.textClass}`} />
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900">
                     Detected: <span className={typeInfo.textClass}>{typeInfo.label}</span>
                   </p>
                   <p className="text-xs text-gray-500">{typeInfo.description}</p>
+                  {columnMapping && columnMapping.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {columnMapping.map((m, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/70 rounded text-[11px] text-gray-600 border border-gray-200">
+                          <span className="font-medium text-gray-800">{m.dbField}</span>
+                          <span className="text-gray-400">←</span>
+                          <span className="text-gray-500 truncate max-w-[120px]">{m.fileHeader}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {columnMapping && columnMapping.length === 0 && (
+                    <p className="text-xs text-gray-400 mt-1">No columns could be mapped — import may not work correctly</p>
+                  )}
                 </div>
               </div>
             )}
@@ -239,11 +267,75 @@ export default function ImportPage() {
               </div>
             )}
 
+            {/* Manual type selector when unknown */}
+            {detectedType === 'unknown' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-amber-800 mb-1">Could not detect data type automatically</p>
+                    <p className="text-sm text-amber-700 mb-3">
+                      The column headers in your file don't match known patterns.
+                      You can manually select the data type below, or download a template to see the expected format.
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <button onClick={() => { setDetectedType('parties'); buildMappingDisplay(previewHeaders, 'parties'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-purple-300 bg-white text-purple-700 hover:bg-purple-50 transition-colors">
+                        Import as Vendors
+                      </button>
+                      <button onClick={() => { setDetectedType('purchases'); buildMappingDisplay(previewHeaders, 'purchases'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 transition-colors">
+                        Import as Purchases
+                      </button>
+                      <button onClick={() => { setDetectedType('sales'); buildMappingDisplay(previewHeaders, 'sales'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-green-300 bg-white text-green-700 hover:bg-green-50 transition-colors">
+                        Import as Sales
+                      </button>
+                      <button onClick={() => { setDetectedType('transactions'); buildMappingDisplay(previewHeaders, 'transactions'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 transition-colors">
+                        Import as Transactions
+                      </button>
+                    </div>
+                    {previewHeaders.length > 0 && (
+                      <p className="text-xs text-amber-600">
+                        Detected headers: <span className="font-mono">{previewHeaders.join(', ')}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Default party name for transactions without party column */}
+            {missingPartyColumn && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <User className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-800 mb-1">Party Name Required</p>
+                    <p className="text-sm text-amber-700 mb-3">
+                      Your file doesn&apos;t have a party/account column. Enter the party name to apply to all transactions:
+                    </p>
+                    <input
+                      type="text"
+                      value={defaultPartyName}
+                      onChange={(e) => setDefaultPartyName(e.target.value)}
+                      placeholder="e.g., ABC Constructions"
+                      className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none"
+                    />
+                    <p className="text-xs text-amber-600 mt-1.5">
+                      A party with this name will be created (or reused if it already exists) and all rows will be linked to it.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Import Button */}
             <button
               onClick={handleImport}
-              disabled={importing || detectedType === 'unknown'}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              disabled={isImportDisabled}
+              className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                isImportDisabled
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
               {importing ? (
                 <>

@@ -58,8 +58,14 @@ export default function EditPurchasePage() {
     if (!params.id) return
     setIsLoading(true)
     try {
-      const totalAmount = data.items.reduce((sum: number, item: any) => sum + (item.quantity * item.rate), 0)
-      const totalGst = data.items.reduce((sum: number, item: any) => sum + (item.quantity * item.rate * item.gst_rate / 100), 0)
+      const totalAmount = data.items.reduce((sum: number, item: any) => {
+        const amt = (item.amount || 0) > 0 ? item.amount : (item.quantity * item.rate)
+        return sum + amt
+      }, 0)
+      const totalGst = data.items.reduce((sum: number, item: any) => {
+        const amt = (item.amount || 0) > 0 ? item.amount : (item.quantity * item.rate)
+        return sum + (amt * item.gst_rate / 100)
+      }, 0)
       const totalWithGst = totalAmount + totalGst
 
       const supplier_id = await resolveOrCreateSupplier(data.supplier_name)
@@ -79,16 +85,19 @@ export default function EditPurchasePage() {
         amount_paid: data.amount_paid,
         balance_due: totalWithGst - data.amount_paid,
         remarks: data.remarks || undefined
-      }, data.items.map((item: any) => ({
-        material_name: item.material_name,
-        hsn_code: item.hsn_code || undefined,
-        quantity: item.quantity,
-        unit: item.unit,
-        rate: item.rate,
-        amount: item.quantity * item.rate,
-        gst_rate: item.gst_rate,
-        gst_amount: (item.quantity * item.rate) * item.gst_rate / 100
-      })))
+      }, data.items.map((item: any) => {
+        const amt = (item.amount || 0) > 0 ? item.amount : (item.quantity * item.rate)
+        return {
+          material_name: item.material_name,
+          hsn_code: item.hsn_code || undefined,
+          quantity: item.quantity,
+          unit: item.unit,
+          rate: item.rate,
+          amount: amt,
+          gst_rate: item.gst_rate,
+          gst_amount: amt * item.gst_rate / 100
+        }
+      }))
 
       toast.success('Purchase updated successfully')
       router.push(`/purchases/${params.id}`)
@@ -136,6 +145,7 @@ export default function EditPurchasePage() {
             quantity: i.quantity,
             unit: i.unit,
             rate: i.rate,
+            amount: i.amount || 0,
             gst_rate: i.gst_rate
           }))
         } : undefined}

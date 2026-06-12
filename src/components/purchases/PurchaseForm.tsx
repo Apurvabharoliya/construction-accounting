@@ -12,9 +12,10 @@ import { Plus, Trash2 } from 'lucide-react'
 const itemSchema = z.object({
   material_name: z.string().min(1, 'Required'),
   hsn_code: z.string().optional().or(z.literal('')),
-  quantity: z.number().min(0.001, 'Qty must be > 0'),
+  quantity: z.number().min(0, 'Qty cannot be negative'),
   unit: z.string().min(1, 'Required'),
   rate: z.number().min(0, 'Rate must be >= 0'),
+  amount: z.number().min(0, 'Amount must be >= 0'),
   gst_rate: z.number().min(0, 'GST rate required')
 })
 
@@ -48,6 +49,7 @@ interface PurchaseFormProps {
       quantity: number
       unit: string
       rate: number
+      amount: number
       gst_rate: number
     }>
   }
@@ -72,8 +74,9 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
         quantity: i.quantity,
         unit: i.unit,
         rate: i.rate,
+        amount: i.amount || 0,
         gst_rate: i.gst_rate
-      })) : [{ material_name: '', hsn_code: '', quantity: 0, unit: 'Nos', rate: 0, gst_rate: 18 }]
+      })) : [{ material_name: '', hsn_code: '', quantity: 0, unit: 'Nos', rate: 0, amount: 0, gst_rate: 18 }]
     }
   })
 
@@ -88,8 +91,10 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
   const calc = (watchItems || []).reduce((acc, item) => {
     const qty = Number(item?.quantity) || 0
     const rt = Number(item?.rate) || 0
+    const directAmt = Number(item?.amount) || 0
     const gstRate = Number(item?.gst_rate) || 0
-    const amt = qty * rt
+    // Use direct amount if provided, otherwise calculate from qty × rate
+    const amt = directAmt > 0 ? directAmt : (qty * rt)
     const gst = amt * gstRate / 100
     return { subtotal: acc.subtotal + amt, totalGst: acc.totalGst + gst, total: acc.total + amt + gst }
   }, { subtotal: 0, totalGst: 0, total: 0 })
@@ -133,7 +138,7 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Items</h3>
-          <button type="button" onClick={() => append({ material_name: '', hsn_code: '', quantity: 0, unit: 'Nos', rate: 0, gst_rate: 18 })} className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium">
+          <button type="button" onClick={() => append({ material_name: '', hsn_code: '', quantity: 0, unit: 'Nos', rate: 0, amount: 0, gst_rate: 18 })} className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium">
             <Plus className="w-4 h-4" /> Add Item
           </button>
         </div>
@@ -148,27 +153,30 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
                   <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap">Qty</th>
                   <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap hidden sm:table-cell">Unit</th>
                   <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap">Rate (₹)</th>
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap">Amount (₹)</th>
                   <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap">GST %</th>
-                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap hidden md:table-cell">Amount</th>
+                  <th className="pb-2 md:pb-3 pr-1 md:pr-2 font-medium whitespace-nowrap hidden md:table-cell">Total</th>
                   <th className="pb-2 md:pb-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
                 {fields.map((field, index) => {
                   const item = watchItems?.[index]
-                  const amount = (item?.quantity || 0) * (item?.rate || 0)
+                  const directAmt = Number(item?.amount) || 0
+                  const amount = directAmt > 0 ? directAmt : ((item?.quantity || 0) * (item?.rate || 0))
                   const gstAmount = amount * (item?.gst_rate || 0) / 100
                   return (
                     <tr key={field.id} className="border-b">
                       <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input {...register(`items.${index}.material_name`)} className="w-20 md:w-28 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="Matrl" /></td>
                       <td className="py-1.5 md:py-2 pr-1 md:pr-2 hidden sm:table-cell"><input {...register(`items.${index}.hsn_code`)} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="HSN" /></td>
-                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input type="number" step="0.001" {...register(`items.${index}.quantity`, { valueAsNumber: true })} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" /></td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input type="number" step="0.001" {...register(`items.${index}.quantity`, { valueAsNumber: true })} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="0" /></td>
                       <td className="py-1.5 md:py-2 pr-1 md:pr-2 hidden sm:table-cell">
                         <select {...register(`items.${index}.unit`)} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm">
                           {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                         </select>
                       </td>
-                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input type="number" step="0.01" {...register(`items.${index}.rate`, { valueAsNumber: true })} className="w-16 md:w-20 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" /></td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input type="number" step="0.01" {...register(`items.${index}.rate`, { valueAsNumber: true })} className="w-16 md:w-20 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="0" /></td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input type="number" step="0.01" {...register(`items.${index}.amount`, { valueAsNumber: true })} className="w-16 md:w-20 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="Or enter" /></td>
                       <td className="py-1.5 md:py-2 pr-1 md:pr-2">
                         <select {...register(`items.${index}.gst_rate`, { valueAsNumber: true })} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm">
                           {[0, 3, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}

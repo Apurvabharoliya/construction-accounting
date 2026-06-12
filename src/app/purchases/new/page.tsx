@@ -44,6 +44,7 @@ export default function NewPurchasePage() {
       quantity: number
       unit: string
       rate: number
+      amount: number
       gst_rate: number
     }>
   }) {
@@ -51,7 +52,8 @@ export default function NewPurchasePage() {
     try {
       // Calculate per-item GST for accurate tax computation
       const itemsWithGst = data.items.map(item => {
-        const amount = item.quantity * item.rate
+        // Use direct amount if provided (amount > 0), otherwise calculate from qty × rate
+        const amount = item.amount > 0 ? item.amount : (item.quantity * item.rate)
         const gstAmount = amount * item.gst_rate / 100
         return {
           material_name: item.material_name,
