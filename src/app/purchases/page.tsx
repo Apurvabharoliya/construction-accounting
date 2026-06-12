@@ -190,7 +190,7 @@ export default function CashbookPage() {
       purchase: 'Purchase',
       sale: 'Sale',
       payment: 'Payment',
-      receipt: 'Receipt',
+      receipt: 'Payment',
       subsidy: 'Subsidy',
     }
     return (
@@ -232,7 +232,7 @@ export default function CashbookPage() {
         </div>
         <div className="bg-white rounded-xl shadow-sm p-4 md:p-5 border-l-4 border-orange-500">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Net Balance</p>
-          <p className={`text-lg md:text-xl font-bold mt-1 ${summary.netBalance > 0 ? 'text-orange-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+          <p className={`text-lg md:text-xl font-bold mt-1 ${summary.netBalance > 0 ? 'text-red-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-900'}`}>
             {formatCurrency(Math.abs(summary.netBalance))}
           </p>
           <p className="text-xs text-gray-400 mt-1">
@@ -274,7 +274,7 @@ export default function CashbookPage() {
             <option value="purchase">Purchases</option>
             <option value="sale">Sales</option>
             <option value="payment">Payments</option>
-            <option value="receipt">Receipts</option>
+            <option value="receipt">Payments</option>
             <option value="subsidy">Subsidies</option>
           </select>
         </div>
@@ -294,7 +294,7 @@ export default function CashbookPage() {
                   ? `${filteredTransactions.length} of ${transactions.length} entries`
                   : `${transactions.length} entries`}
               </span>
-              <span className={`font-semibold ${summary.netBalance > 0 ? 'text-orange-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+              <span className={`font-semibold ${summary.netBalance > 0 ? 'text-red-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
                 Bal: {formatCurrency(Math.abs(summary.netBalance))} {summary.netBalance > 0 ? 'Dr' : summary.netBalance < 0 ? 'Cr' : ''}
               </span>
             </div>
@@ -324,7 +324,7 @@ export default function CashbookPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full responsive-table-card">
               <thead>
                 <tr className="bg-gray-50">
                   <th className="p-3 pl-5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
@@ -356,18 +356,18 @@ export default function CashbookPage() {
                       }`}
                     >
                       {/* Row number */}
-                      <td className="p-3 pl-5 text-xs text-gray-400 font-mono w-10">{idx + 1}</td>
+                      <td className="p-3 pl-5 text-xs text-gray-400 font-mono w-10" data-label="#">{idx + 1}</td>
 
                       {/* Date */}
-                      <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
+                      <td className="p-3 text-sm text-gray-600 whitespace-nowrap" data-label="Date">
                         {formatDate(txn.transaction_date)}
                         {txn.created_at && (
-                          <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
+                          <div className="text-xs text-gray-400 mt-0.5 hidden sm:block">{formatDateTime(txn.created_at)}</div>
                         )}
                       </td>
 
                       {/* Description */}
-                      <td className="p-3">
+                      <td className="p-3" data-label="Description">
                         {link && isInvoiceType ? (
                           <Link
                             href={link}
@@ -385,7 +385,7 @@ export default function CashbookPage() {
                       </td>
 
                       {/* Party */}
-                      <td className="p-3">
+                      <td className="p-3" data-label="Party">
                         <Link
                           href={`/parties/${txn.party_id}`}
                           className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors"
@@ -395,12 +395,12 @@ export default function CashbookPage() {
                       </td>
 
                       {/* Type Badge */}
-                      <td className="p-3">
+                      <td className="p-3" data-label="Type">
                         {getTypeBadge(txn.transaction_type)}
                       </td>
 
                       {/* Debit */}
-                      <td className="p-3 text-sm font-medium text-right whitespace-nowrap">
+                      <td className="p-3 text-sm font-medium text-right whitespace-nowrap" data-label="Debit (₹)">
                         {txn.debit > 0 ? (
                           <span className="text-red-600 font-semibold">{formatCurrency(txn.debit)}</span>
                         ) : (
@@ -409,7 +409,7 @@ export default function CashbookPage() {
                       </td>
 
                       {/* Credit */}
-                      <td className="p-3 text-sm font-medium text-right whitespace-nowrap">
+                      <td className="p-3 text-sm font-medium text-right whitespace-nowrap" data-label="Credit (₹)">
                         {txn.credit > 0 ? (
                           <span className="text-green-600 font-semibold">{formatCurrency(txn.credit)}</span>
                         ) : (
@@ -418,8 +418,8 @@ export default function CashbookPage() {
                       </td>
 
                       {/* Running Balance */}
-                      <td className="p-3 pr-5 text-sm font-semibold text-right whitespace-nowrap border-l-2 border-gray-200">
-                        <span className={txn.running_balance > 0 ? 'text-gray-900' : txn.running_balance < 0 ? 'text-red-600' : 'text-green-600'}>
+                      <td className="p-3 pr-5 text-sm font-semibold text-right whitespace-nowrap max-sm:border-l-0 max-sm:border-t-2 max-sm:border-t-gray-200 sm:border-l-2 sm:border-gray-200" data-label="Running Bal.">
+                        <span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-green-600'}>
                           {txn.running_balance === 0 ? '—' : (
                             <>
                               {formatCurrency(Math.abs(txn.running_balance))}
@@ -432,8 +432,8 @@ export default function CashbookPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <td className="p-3 text-center" data-label="">
+                        <div className="flex items-center justify-center sm:justify-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           {link && (
                             <Link
                               href={link}
@@ -460,6 +460,33 @@ export default function CashbookPage() {
                   )
                 })}
               </tbody>
+              {/* Summary footer row */}
+              <tfoot>
+                <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-gray-200">
+                  <td className="p-3 pl-5 text-xs font-semibold text-gray-700" data-label="">Total</td>
+                  <td className="p-3" data-label=""></td>
+                  <td className="p-3 text-xs text-gray-500" data-label="">
+                    {displayTransactions.length} {displayTransactions.length === 1 ? 'entry' : 'entries'}
+                  </td>
+                  <td className="p-3" data-label=""></td>
+                  <td className="p-3" data-label=""></td>
+                  <td className="p-3 text-sm font-bold text-red-600 text-right whitespace-nowrap" data-label="Total Debit">
+                    {formatCurrency(summary.totalDebits)}
+                  </td>
+                  <td className="p-3 text-sm font-bold text-green-600 text-right whitespace-nowrap" data-label="Total Credit">
+                    {formatCurrency(summary.totalCredits)}
+                  </td>
+                  <td className="p-3 pr-5 text-sm font-bold text-right whitespace-nowrap max-sm:border-t-2 max-sm:border-t-gray-200 sm:border-l-2 sm:border-gray-200" data-label="Final Balance">
+                    <span className={summary.netBalance > 0 ? 'text-red-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-600'}>
+                      {formatCurrency(Math.abs(summary.netBalance))}
+                      <span className="text-xs ml-0.5 font-normal">
+                        {summary.netBalance > 0 ? 'Dr' : summary.netBalance < 0 ? 'Cr' : ''}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="p-3" data-label=""></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

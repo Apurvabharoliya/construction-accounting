@@ -240,7 +240,7 @@ export default function SaleDetailPage() {
             <div className="mt-6 pt-6 border-t">
               <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
                 <Banknote className="w-5 h-5 text-gray-500" />
-                Payment & Receipt History
+                Payment History
               </h3>
               <div className="overflow-x-auto -mx-3 md:-mx-0">
                 <div className="inline-block min-w-full px-3 md:px-0">
@@ -266,7 +266,7 @@ export default function SaleDetailPage() {
                             }`}>
                               {txn.transaction_type === 'sale' && <DollarSign className="w-3 h-3" />}
                               {txn.transaction_type === 'receipt' && <Banknote className="w-3 h-3" />}
-                              {txn.transaction_type === 'sale' ? 'Sale' : 'Receipt'}
+                              {txn.transaction_type === 'sale' ? 'Sale' : 'Payment'}
                             </span>
                           </td>
                           <td className="py-2 text-sm font-medium text-right">

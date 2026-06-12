@@ -256,11 +256,11 @@ export default function PartyDetailPage() {
 
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Balance</h3>
-          <p className={`text-2xl font-bold ${currentBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <p className={`text-2xl font-bold ${currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
             {formatCurrency(currentBalance)}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            {currentBalance === 0 ? 'All settled — no outstanding amount' : 'Outstanding balance pending'}
+            {currentBalance > 0 ? 'Outstanding balance payable' : currentBalance < 0 ? 'Credit balance (overpaid)' : 'All settled — no outstanding amount'}
           </p>
         </div>
 
@@ -293,7 +293,7 @@ export default function PartyDetailPage() {
               </div>
               <div className="flex items-center gap-4 text-xs">
                 <span className="text-gray-400">{statementRows.length} entries</span>
-                <span className={`font-semibold ${currentBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`font-semibold ${currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   Balance: {formatCurrency(currentBalance)}
                 </span>
               </div>
@@ -370,7 +370,7 @@ export default function PartyDetailPage() {
                         ) : isPaymentRow ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-600/20">
                             <Banknote className="w-3 h-3" />
-                            {row.transaction?.transaction_type === 'receipt' ? 'Receipt' : 'Payment'}
+                            Payment
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 capitalize">
@@ -399,7 +399,7 @@ export default function PartyDetailPage() {
                       
                       {/* Running Balance */}
                       <td className="px-4 py-3 text-sm font-semibold text-right whitespace-nowrap border-l-2 border-gray-200">
-                        <span className={rowRunningBal > 0 ? 'text-gray-900' : rowRunningBal < 0 ? 'text-red-600' : 'text-green-600'}>
+                        <span className={rowRunningBal > 0 ? 'text-red-600' : rowRunningBal < 0 ? 'text-green-600' : 'text-green-600'}>
                           {formatCurrency(rowRunningBal)}
                         </span>
                       </td>

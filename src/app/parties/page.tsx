@@ -210,13 +210,13 @@ export default function PartiesPage() {
                             </div>
                             <div className="flex justify-between">
                               <span>Transaction Balance</span>
-                              <span className={balanceMap[party.id] >= 0 ? 'text-green-400' : 'text-red-400'}>
+                              <span className={balanceMap[party.id] > 0 ? 'text-red-400' : 'text-green-400'}>
                                 {formatCurrency(balanceMap[party.id] || 0)}
                               </span>
                             </div>
                             <div className="border-t border-gray-700 pt-1.5 flex justify-between font-semibold">
                               <span>Total</span>
-                              <span className={mainBalance > 0 ? 'text-green-400' : mainBalance < 0 ? 'text-red-400' : ''}>
+                              <span className={mainBalance > 0 ? 'text-red-400' : mainBalance < 0 ? 'text-green-400' : ''}>
                                 {formatCurrency(mainBalance || 0)}
                               </span>
                             </div>

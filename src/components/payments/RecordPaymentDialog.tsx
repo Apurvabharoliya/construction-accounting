@@ -232,7 +232,7 @@ export default function RecordPaymentDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <Banknote className="w-5 h-5 text-green-600" />
-            Record {isPurchase ? 'Payment' : 'Receipt'}
+            Record Payment
           </DialogTitle>
         </DialogHeader>
 
@@ -348,7 +348,7 @@ export default function RecordPaymentDialog({
               ) : (
                 <span className="flex items-center gap-2">
                   <Banknote className="w-4 h-4" />
-                  Record {isPurchase ? 'Payment' : 'Receipt'}
+                  Record Payment
                 </span>
               )}
             </Button>
