@@ -21,6 +21,7 @@ export default function ImportPage() {
   const [dragOver, setDragOver] = useState(false)
   const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([])
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([])
+  const [totalDataRows, setTotalDataRows] = useState(0)
   const [columnMapping, setColumnMapping] = useState<{ dbField: string; fileHeader: string }[] | null>(null)
   const [defaultPartyName, setDefaultPartyName] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -54,8 +55,19 @@ export default function ImportPage() {
           const headers = (jsonData[0] as any[]).map((h: any) => String(h || '').trim())
           setPreviewHeaders(headers)
 
+          // Count total data rows (excluding header row and empty rows)
+          let dataRowCount = 0
+          for (let j = 1; j < jsonData.length; j++) {
+            const r = jsonData[j] as any[]
+            if (r.some((cell: any) => cell !== undefined && cell !== null && String(cell).trim() !== '')) {
+              dataRowCount++
+            }
+          }
+          setTotalDataRows(dataRowCount)
+
           const rows: Record<string, string>[] = []
-          for (let i = 1; i < Math.min(jsonData.length, 6); i++) {
+          const previewLimit = 10
+          for (let i = 1; i < Math.min(jsonData.length, previewLimit + 1); i++) {
             const row = jsonData[i] as any[]
             const record: Record<string, string> = {}
             headers.forEach((header: string, idx: number) => {
@@ -135,6 +147,7 @@ export default function ImportPage() {
     setResult(null)
     setPreviewRows([])
     setPreviewHeaders([])
+    setTotalDataRows(0)
     setColumnMapping(null)
     setDefaultPartyName('')
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -271,7 +284,10 @@ export default function ImportPage() {
                   </tbody>
                 </table>
                 <p className="px-3 py-2 text-xs text-gray-400 border-t bg-gray-50">
-                  Showing first {Math.min(previewRows.length, 5)} of {file.name} rows
+                  Showing first {previewRows.length} of {totalDataRows} data rows
+                  {totalDataRows > previewRows.length && (
+                    <span className="text-gray-500"> — all rows will be imported</span>
+                  )}
                 </p>
               </div>
             )}
