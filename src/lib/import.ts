@@ -162,12 +162,13 @@ export function buildColumnMapForType(headers: string[], type: EntityType): Map<
 
 export async function parseExcelFile(buffer: ArrayBuffer): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
   const XLSX = await import('xlsx')
-  const workbook = XLSX.read(buffer, { type: 'array' })
+  // cellDates: true tells SheetJS to convert Excel serial date numbers to Date objects
+  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
   const sheetName = workbook.SheetNames[0]
   if (!sheetName) throw new Error('Excel file is empty - no sheets found')
 
   const sheet = workbook.Sheets[sheetName]
-  const jsonData = XLSX.utils.sheet_to_json<(string | number | undefined)[]>(sheet, { header: 1 })
+  const jsonData = XLSX.utils.sheet_to_json<(string | number | Date | undefined)[]>(sheet, { header: 1 })
 
   if (jsonData.length < 2) {
     throw new Error('Excel file must have a header row and at least one data row')
@@ -182,12 +183,32 @@ export async function parseExcelFile(buffer: ArrayBuffer): Promise<{ headers: st
 
     const record: Record<string, string> = {}
     headers.forEach((header: string, idx: number) => {
-      record[header] = row[idx] !== undefined && row[idx] !== null ? String(row[idx]).trim() : ''
+      const cell = row[idx]
+      if (cell === undefined || cell === null) {
+        record[header] = ''
+      } else if (cell instanceof Date && !isNaN(cell.getTime())) {
+        // Date object from cellDates: true → format as YYYY-MM-DD
+        record[header] = cell.toISOString().split('T')[0]
+      } else {
+        record[header] = String(cell).trim()
+      }
     })
     rows.push(record)
   }
 
   return { headers, rows }
+}
+
+/**
+ * Convert an Excel serial date number (days since Jan 1, 1900) to YYYY-MM-DD string.
+ * Uses the standard formula: (serial - 25569) * 86400 seconds to Unix epoch,
+ * where 25569 accounts for the Excel <-> Unix offset including the 1900 leap year bug.
+ */
+export function excelSerialToDate(serial: number): string {
+  if (serial <= 0 || serial > 100000) return ''
+  const date = new Date((serial - 25569) * 86400 * 1000)
+  if (isNaN(date.getTime())) return ''
+  return date.toISOString().split('T')[0]
 }
 
 // =============================================
@@ -761,6 +782,10 @@ async function importTransactions(rows: Record<string, string>[], columnMap: Map
       if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
         const [d, m, y] = date.split('-')
         date = `${y}-${m}-${d}`
+      }
+      // Safety net: if date is a numeric string (Excel serial date that slipped through)
+      if (/^\d{4,5}$/.test(date) && !isNaN(Number(date))) {
+        date = excelSerialToDate(Number(date))
       }
       const description = getField(row, columnMap, 'description')
       const debitStr = getField(row, columnMap, 'debit')
