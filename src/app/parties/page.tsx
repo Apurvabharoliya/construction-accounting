@@ -178,8 +178,8 @@ export default function PartiesPage() {
                     <td className="p-4" data-label="Balance">
                       <div className="relative group">
                         <span className={`font-medium cursor-help ${
-                          (mainBalance || 0) > 0 ? 'text-green-600' : 
-                          (mainBalance || 0) < 0 ? 'text-red-600' : 'text-gray-600'
+                          (mainBalance || 0) > 0 ? 'text-red-600' : 
+                          'text-green-600'
                         }`}>
                           {formatCurrency(mainBalance || 0)}
                         </span>
