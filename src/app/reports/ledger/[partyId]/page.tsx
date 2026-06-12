@@ -158,7 +158,7 @@ export default function LedgerReportPage() {
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">Current Balance</p>
-          <p className={`text-xl font-bold ${currentBalance > 0 ? 'text-green-600' : currentBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+          <p className={`text-xl font-bold ${currentBalance > 0 ? 'text-red-600' : currentBalance < 0 ? 'text-green-600' : 'text-gray-900'}`}>
             {currentBalance === 0 ? 'Settled' : formatCurrency(currentBalance)}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -317,7 +317,7 @@ export default function LedgerReportPage() {
                             </td>
                             <td className="p-3 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
                             <td className="p-3 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                            <td className="p-3 pr-5 text-sm font-medium text-right">{formatCurrency(txn.running_balance)}</td>
+                            <td className="p-3 pr-5 text-sm font-medium text-right"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
                           </tr>
                         ))}
                         {/* Summary row for this invoice */}
@@ -384,7 +384,7 @@ export default function LedgerReportPage() {
                         </td>
                         <td className="p-3 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
                         <td className="p-3 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                        <td className="p-3 pr-5 text-sm font-medium text-right">{formatCurrency(txn.running_balance)}</td>
+                        <td className="p-3 pr-5 text-sm font-medium text-right"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -432,7 +432,7 @@ export default function LedgerReportPage() {
                       </td>
                       <td className="p-3 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
                       <td className="p-3 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                      <td className="p-3 pr-5 text-sm font-medium text-right">{formatCurrency(txn.running_balance)}</td>
+                      <td className="p-3 pr-5 text-sm font-medium text-right"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
                     </tr>
                   ))}
                 </tbody>
