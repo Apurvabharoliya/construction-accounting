@@ -43,7 +43,8 @@ export default function ImportPage() {
     try {
       const buffer = await selectedFile.arrayBuffer()
       const XLSX = await import('xlsx')
-      const workbook = XLSX.read(buffer, { type: 'array' })
+      // cellDates: true ensures dates are converted to Date objects (handles Mac/iOS 1904 date system)
+      const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
       const sheetName = workbook.SheetNames[0]
       if (sheetName) {
         const sheet = workbook.Sheets[sheetName]
@@ -58,7 +59,15 @@ export default function ImportPage() {
             const row = jsonData[i] as any[]
             const record: Record<string, string> = {}
             headers.forEach((header: string, idx: number) => {
-              record[header] = row[idx] !== undefined && row[idx] !== null ? String(row[idx]).trim() : ''
+              const cell = row[idx]
+              if (cell instanceof Date && !isNaN(cell.getTime())) {
+                // Format Date objects as YYYY-MM-DD for preview
+                record[header] = cell.toISOString().split('T')[0]
+              } else if (cell !== undefined && cell !== null) {
+                record[header] = String(cell).trim()
+              } else {
+                record[header] = ''
+              }
             })
             rows.push(record)
           }

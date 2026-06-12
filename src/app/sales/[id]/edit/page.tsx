@@ -120,6 +120,7 @@ export default function EditSalePage() {
       <SaleForm
         onSubmit={handleSubmit}
         isLoading={isLoading}
+        isEditing={true}
         initialData={sale ? {
           client_name: sale.client?.name || '',
           invoice_date: sale.invoice_date,

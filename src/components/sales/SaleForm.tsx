@@ -34,6 +34,7 @@ type FormData = z.infer<typeof formSchema>
 interface SaleFormProps {
   onSubmit: (data: FormData) => Promise<void>
   isLoading?: boolean
+  isEditing?: boolean
   initialData?: {
     client_name: string
     invoice_date: string
@@ -52,7 +53,7 @@ interface SaleFormProps {
   }
 }
 
-export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormProps) {
+export default function SaleForm({ onSubmit, isLoading, isEditing, initialData }: SaleFormProps) {
   const [calculations, setCalculations] = useState({ subtotal: 0, totalGst: 0, total: 0 })
 
   const { register, control, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
@@ -225,7 +226,7 @@ export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormP
       <div className="flex justify-end gap-4">
         <button type="button" onClick={() => window.history.back()} className="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
         <button type="submit" disabled={isLoading} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-          {isLoading ? 'Saving...' : 'Create Sale'}
+          {isLoading ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Sale'}
         </button>
       </div>
     </form>

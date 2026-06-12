@@ -155,8 +155,13 @@ export default function LedgerReportPage() {
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">Current Balance</p>
-          <p className={`text-xl font-bold ${currentBalance > 0 ? 'text-green-600' : currentBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-            {currentBalance > 0 ? (isSupplier ? 'We owe ' : 'They owe ') : ''}{formatCurrency(Math.abs(currentBalance))}
+          <p className={`text-xl font-bold ${currentBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {currentBalance === 0 ? 'Settled' : formatCurrency(currentBalance)}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {currentBalance > 0 ? (isSupplier ? 'We owe this supplier' : 'They owe us') : 
+             currentBalance < 0 ? (isSupplier ? 'Overpaid (credit)' : 'Overpaid (debit)') : 
+             'No outstanding'}
           </p>
         </div>
       </div>

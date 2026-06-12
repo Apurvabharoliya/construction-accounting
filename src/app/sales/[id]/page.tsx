@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
-import { ArrowLeft, Printer, Edit3, Trash2, FileText } from 'lucide-react'
+import { ArrowLeft, Printer, Edit3, Trash2, FileText, Banknote, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { deleteSale } from '@/lib/api/sales'
 import { toast } from 'sonner'
@@ -15,6 +15,8 @@ export default function SaleDetailPage() {
   const router = useRouter()
   const [sale, setSale] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  const [transactions, setTransactions] = useState<any[]>([])
 
   useEffect(() => {
     if (params.id) fetchSale()
@@ -28,6 +30,17 @@ export default function SaleDetailPage() {
         .eq('id', params.id)
         .single()
       setSale(data)
+
+      // Fetch related receipt/payment transactions
+      if (data) {
+        const { data: txnData } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('reference_id', params.id)
+          .eq('reference_type', 'sale')
+          .order('created_at', { ascending: true })
+        setTransactions(txnData || [])
+      }
     } catch (error) {
       console.error('Error:', error)
     } finally {
@@ -220,6 +233,56 @@ export default function SaleDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Payment / Transaction History */}
+          {transactions.length > 1 && (
+            <div className="mt-6 pt-6 border-t">
+              <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                <Banknote className="w-5 h-5 text-gray-500" />
+                Payment & Receipt History
+              </h3>
+              <div className="overflow-x-auto -mx-3 md:-mx-0">
+                <div className="inline-block min-w-full px-3 md:px-0">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left border-b">
+                        <th className="pb-2 pr-3 text-xs font-medium text-gray-500 whitespace-nowrap">Date</th>
+                        <th className="pb-2 pr-3 text-xs font-medium text-gray-500 whitespace-nowrap">Description</th>
+                        <th className="pb-2 pr-3 text-xs font-medium text-gray-500 whitespace-nowrap">Type</th>
+                        <th className="pb-2 text-xs font-medium text-gray-500 text-right whitespace-nowrap">Amount (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactions.map((txn: any) => (
+                        <tr key={txn.id} className="border-t hover:bg-gray-50/50">
+                          <td className="py-2 pr-3 text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
+                          <td className="py-2 pr-3 text-sm text-gray-800">{txn.description || '-'}</td>
+                          <td className="py-2 pr-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                              txn.transaction_type === 'sale' ? 'bg-blue-50 text-blue-700' :
+                              txn.transaction_type === 'receipt' ? 'bg-teal-50 text-teal-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {txn.transaction_type === 'sale' && <DollarSign className="w-3 h-3" />}
+                              {txn.transaction_type === 'receipt' && <Banknote className="w-3 h-3" />}
+                              {txn.transaction_type === 'sale' ? 'Sale' : 'Receipt'}
+                            </span>
+                          </td>
+                          <td className="py-2 text-sm font-medium text-right">
+                            {txn.debit > 0 ? (
+                              <span className="text-blue-600">{formatCurrency(txn.debit)}</span>
+                            ) : (
+                              <span className="text-green-600">{formatCurrency(txn.credit)}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t text-center">

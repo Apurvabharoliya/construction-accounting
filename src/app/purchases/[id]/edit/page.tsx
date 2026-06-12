@@ -131,6 +131,7 @@ export default function EditPurchasePage() {
       <PurchaseForm
         onSubmit={handleSubmit}
         isLoading={isLoading}
+        isEditing={true}
         initialData={purchase ? {
           supplier_name: purchase.supplier?.name || '',
           invoice_date: purchase.invoice_date,

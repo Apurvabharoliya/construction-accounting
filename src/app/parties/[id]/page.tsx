@@ -7,7 +7,7 @@ import type { Party } from '@/types/database'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
 import { getPartyLedger, getPartyInvoices, type InvoiceSummary } from '@/lib/api/ledger'
-import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2, ExternalLink, ShoppingCart, DollarSign, Banknote, FileText, Receipt, Plus } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2, ExternalLink, ShoppingCart, DollarSign, Banknote, FileText, Receipt, Plus, ArrowDown, ArrowUp } from 'lucide-react'
 import Link from 'next/link'
 import { deleteParty } from '@/lib/api/parties'
 import { toast } from 'sonner'
@@ -111,6 +111,77 @@ export default function PartyDetailPage() {
   const totalPaidAmount = invoices.reduce((sum, inv) => sum + inv.amount_paid, 0)
   const totalBalanceDue = invoices.reduce((sum, inv) => sum + inv.balance_due, 0)
 
+  // Build a merged chronological statement from invoices AND payment transactions
+  // This creates a bank-statement-style view where every entry (purchase, payment) is a visible row
+  const invoiceById = new Map<string, InvoiceSummary>()
+  invoices.forEach(inv => invoiceById.set(inv.id, inv))
+
+  interface StatementRow {
+    id: string
+    type: 'invoice' | 'payment' | 'other'
+    date: string
+    invoice?: InvoiceSummary
+    transaction?: any
+    debit: number
+    credit: number
+    runningBalance: number
+    description: string
+    link?: string
+    paymentStatus?: string
+  }
+
+  const statementRows: StatementRow[] = []
+  let runningBal = 0
+
+  // Ledger is already sorted oldest-first from getPartyLedger
+  ledger.forEach((txn: any) => {
+    const isPurchase = txn.transaction_type === 'purchase' || txn.transaction_type === 'sale'
+    const isPayment = txn.transaction_type === 'payment' || txn.transaction_type === 'receipt'
+
+    if (isPurchase && txn.reference_id && invoiceById.has(txn.reference_id)) {
+      const inv = invoiceById.get(txn.reference_id)!
+      runningBal += inv.total_amount
+      statementRows.push({
+        id: `inv-${inv.id}`,
+        type: 'invoice',
+        date: txn.transaction_date,
+        invoice: inv,
+        debit: inv.total_amount,
+        credit: 0,
+        runningBalance: runningBal,
+        description: inv.invoice_number,
+        link: inv.link,
+        paymentStatus: inv.payment_status
+      })
+    } else if (isPayment) {
+      const amount = txn.credit || txn.debit || 0
+      runningBal -= amount
+      statementRows.push({
+        id: `pay-${txn.id}`,
+        type: 'payment',
+        date: txn.transaction_date,
+        transaction: txn,
+        debit: 0,
+        credit: amount,
+        runningBalance: runningBal,
+        description: txn.description || 'Payment'
+      })
+    } else {
+      const netChange = (Number(txn.debit) || 0) - (Number(txn.credit) || 0)
+      runningBal += netChange
+      statementRows.push({
+        id: `txn-${txn.id}`,
+        type: 'other',
+        date: txn.transaction_date,
+        transaction: txn,
+        debit: Number(txn.debit) || 0,
+        credit: Number(txn.credit) || 0,
+        runningBalance: runningBal,
+        description: txn.description || txn.transaction_type
+      })
+    }
+  })
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -178,123 +249,177 @@ export default function PartyDetailPage() {
 
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Balance</h3>
-          <p className={`text-2xl font-bold ${currentBalance > 0 ? 'text-green-600' : currentBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+          <p className={`text-2xl font-bold ${currentBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
             {formatCurrency(currentBalance)}
           </p>
-          <p className="text-xs text-gray-500 mt-1">Current outstanding balance</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {currentBalance === 0 ? 'All settled — no outstanding amount' : 'Outstanding balance pending'}
+          </p>
         </div>
 
         {/* Invoice Summary Card */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm p-6 border border-blue-100">
-          <h3 className="text-sm font-medium text-blue-700 mb-2">
+        <div className={`rounded-xl shadow-sm p-6 border ${totalBalanceDue === 0 ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200'}`}>
+          <h3 className={`text-sm font-medium mb-2 ${totalBalanceDue === 0 ? 'text-green-700' : 'text-red-700'}`}>
             {party.party_type === 'supplier' ? 'Purchase Summary' : 'Sale Summary'}
           </h3>
           <div className="space-y-1.5">
-            <p className="text-xs text-blue-600">Total Invoices: <span className="font-bold">{invoices.length}</span></p>
-            <p className="text-xs text-blue-600">Total Amount: <span className="font-bold">{formatCurrency(totalInvoiceAmount)}</span></p>
+            <p className="text-xs text-gray-600">Total Invoices: <span className="font-bold text-gray-800">{invoices.length}</span></p>
+            <p className="text-xs text-gray-600">Total Amount: <span className="font-bold text-gray-800">{formatCurrency(totalInvoiceAmount)}</span></p>
             <p className="text-xs text-green-600">Total Paid: <span className="font-bold">{formatCurrency(totalPaidAmount)}</span></p>
-            <p className="text-xs text-orange-600">Balance Due: <span className="font-bold">{formatCurrency(totalBalanceDue)}</span></p>
+            <p className={`text-xs ${totalBalanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              Balance Due: <span className="font-bold">{totalBalanceDue > 0 ? formatCurrency(totalBalanceDue) : '✓ Settled'}</span>
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Invoices / Transactions Section */}
-      {invoices.length > 0 && (
+      {/* Statement / Ledger View (Combines invoices + payments chronologically) */}
+      {(statementRows.length > 0 || invoices.length > 0) && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-gray-700" />
                 <h2 className="text-lg font-semibold">
-                  {party.party_type === 'supplier' ? 'Purchase Invoices' : 'Sale Invoices'}
+                  {party.party_type === 'supplier' ? 'Ledger Statement' : 'Ledger Statement'}
                 </h2>
               </div>
-              <span className="text-xs text-gray-400">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}</span>
+              <div className="flex items-center gap-4 text-xs">
+                <span className="text-gray-400">{statementRows.length} entries</span>
+                <span className={`font-semibold ${currentBalance === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  Balance: {formatCurrency(currentBalance)}
+                </span>
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment Progress</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Paid / Received</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Balance Due</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mode</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Items</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Pay</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Debit (₹)</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Credit (₹)</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Running Balance</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {invoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-gray-50/80 transition-colors group">
-                    <td className="px-4 py-3">
-                      <Link href={inv.link} className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700">
-                        <FileText className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate max-w-[120px]">{inv.invoice_number}</span>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(inv.invoice_date)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
-                        inv.type === 'purchase'
-                          ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20'
-                          : 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'
-                      }`}>
-                        {inv.type === 'purchase' ? <ShoppingCart className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
-                        {inv.type === 'purchase' ? 'Purchase' : 'Sale'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right whitespace-nowrap">
-                      {formatCurrency(inv.total_amount)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <PaymentProgress paid={inv.amount_paid} total={inv.total_amount} />
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-green-600 text-right whitespace-nowrap">
-                      {formatCurrency(inv.amount_paid)}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap">
-                      {inv.balance_due > 0 ? (
-                        <span className="text-orange-600 font-bold">{formatCurrency(inv.balance_due)}</span>
-                      ) : (
-                        <span className="text-green-600">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={inv.payment_status} />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {inv.payment_mode || '—'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-xs text-gray-400 font-medium">{inv.items_count} item{inv.items_count !== 1 ? 's' : ''}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {inv.balance_due > 0 && (
-                        <button
-                          onClick={() => setPaymentDialogInvoice(inv)}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <Plus className="w-3 h-3" /> Pay
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Link
-                        href={inv.link}
-                        className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-all"
-                      >
-                        View <ExternalLink className="w-3 h-3" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {statementRows.map((row, idx) => {
+                  const rowRunningBal = row.runningBalance
+
+                  const isInvoiceRow = row.type === 'invoice'
+                  const isPaymentRow = row.type === 'payment'
+
+                  return (
+                    <tr 
+                      key={row.id} 
+                      className={`transition-colors group ${
+                        isPaymentRow 
+                          ? 'bg-green-50/40 hover:bg-green-50/80' 
+                          : isInvoiceRow 
+                            ? 'hover:bg-gray-50/80' 
+                            : 'hover:bg-gray-50/50'
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-xs text-gray-400 font-mono">{idx + 1}</td>
+                      
+                      {/* Description */}
+                      <td className="px-4 py-3">
+                        {isInvoiceRow && row.invoice ? (
+                          <Link href={row.link || '#'} className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700">
+                            <FileText className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate max-w-[160px]">{row.invoice.invoice_number}</span>
+                          </Link>
+                        ) : isPaymentRow ? (
+                          <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                            <ArrowUp className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                            <span className="truncate max-w-[200px]">{row.description}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-700">{row.description || '-'}</span>
+                        )}
+                      </td>
+                      
+                      {/* Date */}
+                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                        {formatDate(row.date)}
+                      </td>
+                      
+                      {/* Type */}
+                      <td className="px-4 py-3">
+                        {isInvoiceRow && row.invoice ? (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                            row.invoice.type === 'purchase'
+                              ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20'
+                              : 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'
+                          }`}>
+                            {row.invoice.type === 'purchase' ? <ShoppingCart className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
+                            {row.invoice.type === 'purchase' ? 'Purchase' : 'Sale'}
+                          </span>
+                        ) : isPaymentRow ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 ring-1 ring-green-600/20">
+                            <Banknote className="w-3 h-3" />
+                            {row.transaction?.transaction_type === 'receipt' ? 'Receipt' : 'Payment'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 capitalize">
+                            {row.transaction?.transaction_type || 'Other'}
+                          </span>
+                        )}
+                      </td>
+                      
+                      {/* Debit */}
+                      <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap">
+                        {row.debit > 0 ? (
+                          <span className="text-red-600 font-semibold">{formatCurrency(row.debit)}</span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      
+                      {/* Credit */}
+                      <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap">
+                        {row.credit > 0 ? (
+                          <span className="text-green-600 font-semibold">{formatCurrency(row.credit)}</span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      
+                      {/* Running Balance */}
+                      <td className="px-4 py-3 text-sm font-semibold text-right whitespace-nowrap border-l-2 border-gray-200">
+                        <span className={rowRunningBal > 0 ? 'text-gray-900' : rowRunningBal < 0 ? 'text-red-600' : 'text-green-600'}>
+                          {formatCurrency(rowRunningBal)}
+                        </span>
+                      </td>
+                      
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {isInvoiceRow && row.invoice && row.invoice.balance_due > 0 && (
+                            <button
+                              onClick={() => setPaymentDialogInvoice(row.invoice!)}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <Plus className="w-3 h-3" /> Pay
+                            </button>
+                          )}
+                          {isInvoiceRow && row.link && (
+                            <Link
+                              href={row.link}
+                              className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-all ml-1"
+                            >
+                              View <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate } from '@/lib/date'
-import { ArrowLeft, Edit3, Trash2 } from 'lucide-react'
+import { ArrowLeft, Edit3, Trash2, Banknote, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { deletePurchase } from '@/lib/api/purchases'
 import { toast } from 'sonner'
@@ -15,6 +15,8 @@ export default function PurchaseDetailPage() {
   const router = useRouter()
   const [purchase, setPurchase] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  const [transactions, setTransactions] = useState<any[]>([])
 
   useEffect(() => {
     if (params.id) fetchPurchase()
@@ -28,6 +30,17 @@ export default function PurchaseDetailPage() {
         .eq('id', params.id)
         .single()
       setPurchase(data)
+
+      // Fetch related payment transactions
+      if (data) {
+        const { data: txnData } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('reference_id', params.id)
+          .eq('reference_type', 'purchase')
+          .order('created_at', { ascending: true })
+        setTransactions(txnData || [])
+      }
     } catch (error) {
       console.error('Error:', error)
     } finally {
@@ -134,6 +147,52 @@ export default function PurchaseDetailPage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
           <p className="text-sm">{purchase.remarks}</p>
+        </div>
+      )}
+
+      {/* Payment History */}
+      {transactions.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+            <Banknote className="w-5 h-5 text-gray-500" />
+            Payment & Transaction History
+          </h3>
+          <div className="overflow-x-auto -mx-4 md:-mx-0">
+            <div className="inline-block min-w-full px-4 md:px-0">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left border-b">
+                    <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Date</th>
+                    <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Description</th>
+                    <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Type</th>
+                    <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 text-right whitespace-nowrap">Debit (₹)</th>
+                    <th className="pb-3 text-xs md:text-sm font-medium text-gray-500 text-right whitespace-nowrap">Credit (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((txn: any) => (
+                    <tr key={txn.id} className="border-t hover:bg-gray-50/50">
+                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
+                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm text-gray-800">{txn.description || '-'}</td>
+                      <td className="py-2 md:py-3 pr-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                          txn.transaction_type === 'purchase' ? 'bg-orange-50 text-orange-700' :
+                          txn.transaction_type === 'payment' ? 'bg-green-50 text-green-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {txn.transaction_type === 'purchase' && <ShoppingCart className="w-3 h-3" />}
+                          {txn.transaction_type === 'payment' && <Banknote className="w-3 h-3" />}
+                          {txn.transaction_type === 'purchase' ? 'Purchase' : 'Payment'}
+                        </span>
+                      </td>
+                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                      <td className="py-2 md:py-3 text-xs md:text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>

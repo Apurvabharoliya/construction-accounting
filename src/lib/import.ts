@@ -952,18 +952,36 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
     }
   }
 
-  // All entity types now use the unified template format.
-  // Transform using TRANSACTION_COLUMNS mapping since all types go through the same import flow
-  const transformed = transformToTemplate(headers, rows, 'transactions')
+  let result: ImportResult
 
-  // Build a column map from db fields to the canonical template headers
-  const columnMap = getFieldToTemplateHeader('transactions')
-
-  // Process through the unified import flow (creates purchases from debit rows)
-  const result = await importTransactions(transformed.rows, columnMap, defaultPartyName)
-
-  // Include transform warnings (e.g. unmapped columns, missing fields) in the result
-  result.warnings = [...transformed.warnings, ...result.warnings]
+  // Use the correct import function based on detected entity type
+  switch (entityType) {
+    case 'parties': {
+      const columnMap = buildColumnMap(headers, PARTY_COLUMNS)
+      result = await importParties(rows, columnMap)
+      break
+    }
+    case 'purchases': {
+      const columnMap = buildColumnMap(headers, PURCHASE_COLUMNS)
+      result = await importPurchases(rows, columnMap)
+      break
+    }
+    case 'sales': {
+      const columnMap = buildColumnMap(headers, SALE_COLUMNS)
+      result = await importSales(rows, columnMap)
+      break
+    }
+    case 'transactions':
+    default: {
+      // Transform to the unified template format for transactions
+      const transformed = transformToTemplate(headers, rows, 'transactions')
+      const columnMap = getFieldToTemplateHeader('transactions')
+      result = await importTransactions(transformed.rows, columnMap, defaultPartyName)
+      // Include transform warnings
+      result.warnings = [...transformed.warnings, ...result.warnings]
+      break
+    }
+  }
 
   return result
 }

@@ -28,9 +28,11 @@ export async function getPartyLedger(
   const { data, error } = await query
   if (error) throw error
 
-  // Calculate running balance
+  const transactions = data || []
+
+  // Calculate running balance from oldest to newest, so balance accumulates top-to-bottom
   let runningBalance = 0
-  const ledgerWithBalance = (data || []).map((txn) => {
+  const withRunningBalance = transactions.map((txn) => {
     runningBalance = runningBalance + Number(txn.debit) - Number(txn.credit)
     return {
       ...txn,
@@ -38,8 +40,9 @@ export async function getPartyLedger(
     }
   })
 
+  // Return oldest-first so running balance accumulates from top (start) to bottom (final total)
   return {
-    transactions: ledgerWithBalance,
+    transactions: withRunningBalance,
     currentBalance: runningBalance
   }
 }
