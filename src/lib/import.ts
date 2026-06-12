@@ -756,7 +756,12 @@ async function importTransactions(rows: Record<string, string>[], columnMap: Map
     const rowNum = i + 2
 
     try {
-      const date = getField(row, columnMap, 'date')
+      let date = getField(row, columnMap, 'date')
+      // Parse DD-MM-YYYY → YYYY-MM-DD for database compatibility
+      if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+        const [d, m, y] = date.split('-')
+        date = `${y}-${m}-${d}`
+      }
       const description = getField(row, columnMap, 'description')
       const debitStr = getField(row, columnMap, 'debit')
       const creditStr = getField(row, columnMap, 'credit')
