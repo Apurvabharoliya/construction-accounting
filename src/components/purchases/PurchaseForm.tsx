@@ -25,7 +25,7 @@ const formSchema = z.object({
   invoice_date: z.string().min(1, 'Date required'),
   supplier_invoice_number: z.string().optional().or(z.literal('')),
   payment_mode: z.string().optional().or(z.literal('')),
-  payment_status: z.enum(['paid', 'partial', 'unpaid']),
+  payment_status: z.enum(['paid', 'unpaid']),
   amount_paid: z.number().min(0),
   remarks: z.string().optional().or(z.literal('')),
   items: z.array(itemSchema).min(1, 'Add at least one item')
@@ -41,7 +41,7 @@ interface PurchaseFormProps {
     invoice_date: string
     supplier_invoice_number?: string
     payment_mode?: string
-    payment_status: 'paid' | 'partial' | 'unpaid'
+    payment_status: 'paid' | 'unpaid'
     amount_paid: number
     remarks?: string
     items?: Array<{
@@ -217,17 +217,16 @@ export default function PurchaseForm({ onSubmit, isLoading, initialData }: Purch
               <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status *</label>
               <select {...register('payment_status')} className="w-full px-4 py-2 border rounded-lg">
                 <option value="unpaid">Unpaid</option>
-                <option value="partial">Partial</option>
                 <option value="paid">Paid</option>
               </select>
             </div>
-            {(watchPaymentStatus === 'partial' || watchPaymentStatus === 'paid') && (
+            {(watchPaymentStatus === 'paid') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid (₹)</label>
                 <input type="number" step="0.01" {...register('amount_paid', { valueAsNumber: true })} className="w-full px-4 py-2 border rounded-lg" />
               </div>
             )}
-            {(watchPaymentStatus === 'partial' || watchPaymentStatus === 'unpaid') && (
+            {(watchPaymentStatus === 'unpaid') && (
               <div className="bg-orange-50 p-3 rounded-lg">
                 <div className="flex justify-between"><span className="text-gray-600">Balance Due</span><span className="font-bold text-orange-600">{formatCurrency(calculations.total - (watchAmountPaid || 0))}</span></div>
               </div>

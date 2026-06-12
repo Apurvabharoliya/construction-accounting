@@ -158,7 +158,7 @@ export interface InvoiceSummary {
   sgst_amount: number
   igst_amount: number
   payment_mode?: string
-  payment_status: 'paid' | 'partial' | 'unpaid'
+  payment_status: 'paid' | 'unpaid'
   amount_paid: number
   balance_due: number
   remarks?: string
@@ -268,7 +268,7 @@ export async function recordInvoicePayment(
     const newBalanceDue = Number(purchase.total_amount) - newAmountPaid
     
     // Determine new payment status
-    const newStatus = newBalanceDue <= 0 ? 'paid' : 'partial'
+    const newStatus = newBalanceDue <= 0 ? 'paid' : 'unpaid'
 
     // Update purchase record
     const { error: updateError } = await supabase
@@ -315,7 +315,7 @@ export async function recordInvoicePayment(
     const newBalanceDue = Number(sale.total_amount) - newAmountReceived
 
     // Determine new payment status
-    const newStatus = newBalanceDue <= 0 ? 'paid' : 'partial'
+    const newStatus = newBalanceDue <= 0 ? 'paid' : 'unpaid'
 
     // Update sale record
     const { error: updateError } = await supabase

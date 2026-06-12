@@ -15,13 +15,12 @@ import RecordPaymentDialog from '@/components/payments/RecordPaymentDialog'
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     paid: 'bg-green-100 text-green-700 ring-green-600/20',
-    partial: 'bg-yellow-100 text-yellow-700 ring-yellow-600/20',
     unpaid: 'bg-red-100 text-red-700 ring-red-600/20',
   }
   const s = styles[status] || styles.unpaid
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${s}`}>
-      {status === 'paid' ? 'Paid' : status === 'partial' ? 'Partial' : 'Unpaid'}
+      {status === 'paid' ? 'Paid' : 'Unpaid'}
     </span>
   )
 }

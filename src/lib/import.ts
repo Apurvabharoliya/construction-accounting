@@ -49,13 +49,11 @@ const PARTY_COLUMNS: ColumnDef[] = [
 
 const TRANSACTION_COLUMNS: ColumnDef[] = [
   { field: 'date', aliases: ['date', 'transaction date', 'txn date', 'entry date', 'posting date', 'value date', 'voucher date'], keywords: ['date'] },
-  { field: 'description', aliases: ['description', 'particulars', 'narration', 'details', 'remarks', 'notes', 'remark', 'note', 'transaction description'], keywords: ['description', 'particular', 'narration'] },
-  { field: 'debit', aliases: ['debit', 'debit amount', 'dr', 'debit/purchase', 'debit/ purchase', 'debit amount'], keywords: ['debit', 'dr'] },
-  { field: 'credit', aliases: ['credit', 'credit amount', 'cr', 'credit/purchase', 'credit/ purchase', 'credit/payment', 'credit/ payment', 'credit amount'], keywords: ['credit', 'cr'] },
+  { field: 'party', aliases: ['vendors name', 'vendor name', 'party', 'party name', 'name', 'account name', 'ledger name', 'account', 'supplier', 'vendor', 'client', 'customer', 'supplier name', 'client name'], keywords: ['vendors', 'party', 'account', 'ledger'] },
+  { field: 'description', aliases: ['description/particulars', 'description', 'particulars', 'narration', 'details', 'remarks', 'notes', 'remark', 'note', 'transaction description'], keywords: ['description', 'particular', 'narration'] },
+  { field: 'debit', aliases: ['debit/purchase', 'debit', 'purchase', 'amount due', 'debit amount', 'dr', 'debit/ purchase'], keywords: ['debit', 'dr', 'due'] },
+  { field: 'credit', aliases: ['credit/payment', 'credit', 'payment', 'amount paid', 'credit amount', 'cr', 'credit/ payment'], keywords: ['credit', 'cr', 'paid', 'payment'] },
   { field: 'balance', aliases: ['balance', 'running balance', 'closing balance', 'bal', 'balance amount', 'total amount'], keywords: ['balance', 'bal', 'total'] },
-  { field: 'party', aliases: ['party', 'party name', 'name', 'account name', 'ledger name', 'account', 'supplier', 'vendor', 'client', 'customer'], keywords: ['party', 'account', 'ledger'] },
-  { field: 'voucher_type', aliases: ['voucher type', 'type', 'transaction type', 'voucher', 'txn type', 'voucher_type'], keywords: ['voucher', 'transaction type'] },
-  { field: 'voucher_no', aliases: ['voucher no', 'voucher number', 'voucher no.', 'ref no', 'reference no', 'ref', 'cheque no', 'check no'], keywords: ['voucher', 'ref', 'cheque'] },
 ]
 
 const PURCHASE_COLUMNS: ColumnDef[] = [
@@ -491,7 +489,7 @@ async function importPurchases(rows: Record<string, string>[], columnMap: Map<st
       const totalGst = items.reduce((sum, item) => sum + item.gst_amount, 0)
       const totalWithGst = totalAmount + totalGst
       const paid = parseFloat(getField(firstRow, columnMap, 'amount_paid') || '0') || 0
-      const validStatus = ['paid', 'partial', 'unpaid'].includes(paymentStatus) ? paymentStatus : 'unpaid'
+      const validStatus = ['paid', 'unpaid'].includes(paymentStatus) ? paymentStatus : 'unpaid'
 
       // Create the purchase
       const purchaseNumber = await getNextPurchaseNumber()
@@ -663,7 +661,7 @@ async function importSales(rows: Record<string, string>[], columnMap: Map<string
       const totalGst = items.reduce((sum, item) => sum + item.gst_amount, 0)
       const totalWithGst = totalAmount + totalGst
       const received = parseFloat(getField(firstRow, columnMap, 'amount_received') || '0') || 0
-      const validStatus = ['paid', 'partial', 'unpaid'].includes(paymentStatus) ? paymentStatus : 'unpaid'
+      const validStatus = ['paid', 'unpaid'].includes(paymentStatus) ? paymentStatus : 'unpaid'
 
       // Create the sale
       const saleNumber = await getNextSaleNumber()
@@ -734,8 +732,10 @@ async function importSales(rows: Record<string, string>[], columnMap: Map<string
 }
 
 // =============================================
-// Import Transactions / Ledger
-// Each row: date, description, debit, credit, balance, optional party
+// Import Transactions / Ledger (Unified format)
+// Each row: date, party, description, debit, credit, balance
+// If debit > 0: creates both a purchase record and a transaction
+// If credit > 0 (no debit): creates a payment/receipt transaction
 // =============================================
 
 async function importTransactions(rows: Record<string, string>[], columnMap: Map<string, string>, defaultPartyName?: string): Promise<ImportResult> {
@@ -787,9 +787,11 @@ async function importTransactions(rows: Record<string, string>[], columnMap: Map
       }
 
       // Determine transaction type based on which amount is present
-      const txnType = debit > 0 ? 'payment' : 'receipt'
+      const isDebitTxn = debit > 0
+      const txnType = isDebitTxn ? 'purchase' : 'receipt'
 
-      // Resolve or create the party
+      // Resolve or create the party (debit = purchase = supplier, credit = receipt = client)
+      const partyType = isDebitTxn ? 'supplier' : 'client'
       const { data: existingParty } = await supabase
         .from('parties')
         .select('id')
@@ -802,25 +804,84 @@ async function importTransactions(rows: Record<string, string>[], columnMap: Map
       } else {
         const { data: newParty, error: createError } = await supabase
           .from('parties')
-          .insert([{ name: partyName, party_type: 'supplier' }])
+          .insert([{ name: partyName, party_type: partyType }])
           .select('id')
           .single()
         if (createError) throw createError
         partyId = newParty.id
       }
 
-      // Create the transaction record
-      const { error: txnError } = await supabase.from('transactions').insert([{
-        party_id: partyId,
-        transaction_type: txnType,
-        debit,
-        credit,
-        balance,
-        description: description || null,
-        transaction_date: date || new Date().toISOString().split('T')[0]
-      }])
+      if (isDebitTxn) {
+        // Debit/Purchase → Create a purchase record:
+        // Debit = Amount Due, Credit = Amount Paid, Balance = remaining balance
+        const purchaseNumber = await getNextPurchaseNumber()
+        const amountPaid = credit
+        const balanceDue = balance || (debit - amountPaid)
+        const paymentStatus = balanceDue <= 0 ? 'paid' : 'unpaid'
 
-      if (txnError) throw txnError
+        const { data: purchaseData, error: purchaseError } = await supabase
+          .from('purchases')
+          .insert([{
+            supplier_id: partyId,
+            invoice_date: date || new Date().toISOString().split('T')[0],
+            purchase_number: purchaseNumber,
+            subtotal: debit,
+            total_amount: debit,
+            gst_rate: 0,
+            cgst_amount: 0,
+            sgst_amount: 0,
+            igst_amount: 0,
+            payment_status: paymentStatus,
+            amount_paid: amountPaid,
+            balance_due: Math.max(0, balanceDue),
+            remarks: description || undefined
+          }])
+          .select()
+          .single()
+
+        if (purchaseError) throw purchaseError
+
+        // Create transaction for the purchase
+        await supabase.from('transactions').insert([{
+          party_id: partyId,
+          transaction_type: 'purchase',
+          reference_id: purchaseData.id,
+          reference_type: 'purchase',
+          debit,
+          credit: 0,
+          balance: 0,
+          description: `Purchase ${purchaseNumber}${description ? ` - ${description}` : ''}`,
+          transaction_date: date || new Date().toISOString().split('T')[0]
+        }])
+
+        // If payment was made (credit > 0), create a payment transaction
+        if (amountPaid > 0) {
+          await supabase.from('transactions').insert([{
+            party_id: partyId,
+            transaction_type: 'payment',
+            reference_id: purchaseData.id,
+            reference_type: 'purchase',
+            debit: 0,
+            credit: amountPaid,
+            balance: 0,
+            description: `Payment for ${purchaseNumber}`,
+            transaction_date: date || new Date().toISOString().split('T')[0]
+          }])
+        }
+      } else {
+        // Credit/Payment (no debit) → Create a receipt transaction
+        const { error: txnError } = await supabase.from('transactions').insert([{
+          party_id: partyId,
+          transaction_type: 'receipt',
+          debit: 0,
+          credit,
+          balance,
+          description: description || null,
+          transaction_date: date || new Date().toISOString().split('T')[0]
+        }])
+
+        if (txnError) throw txnError
+      }
 
       result.imported++
     } catch (error: any) {
@@ -861,32 +922,16 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
     }
   }
 
-  // Step 1: Transform the raw data to match the canonical template format
-  // This maps arbitrary file headers to the expected template columns
+  // All entity types now use the unified template format.
+  // Transform the raw data to match the canonical template format
   const transformed = transformToTemplate(headers, rows, entityType)
 
-  // Step 2: Build a column map from db fields to the canonical template headers
-  // (the transformed rows use template header names as keys, e.g. "Name", "Type")
-  const columnMap = getFieldToTemplateHeader(entityType)
+  // Build a column map from db fields to the canonical template headers
+  // Always use TRANSACTION_COLUMNS mapping since all types go through importTransactions
+  const columnMap = getFieldToTemplateHeader('transactions')
 
-  // Step 3: Import the transformed data
-  let result: ImportResult
-  switch (entityType) {
-    case 'parties':
-      result = await importParties(transformed.rows, columnMap)
-      break
-    case 'purchases':
-      result = await importPurchases(transformed.rows, columnMap)
-      break
-    case 'sales':
-      result = await importSales(transformed.rows, columnMap)
-      break
-    case 'transactions':
-      result = await importTransactions(transformed.rows, columnMap, defaultPartyName)
-      break
-    default:
-      return { success: false, imported: 0, errors: ['Could not detect data type from Excel columns.'], warnings: transformed.warnings, entityType: 'unknown' }
-  }
+  // Process through the unified import flow (creates purchases from debit rows)
+  const result = await importTransactions(transformed.rows, columnMap, defaultPartyName)
 
   // Include transform warnings (e.g. unmapped columns, missing fields) in the result
   result.warnings = [...transformed.warnings, ...result.warnings]
@@ -900,18 +945,8 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
 
 /** Canonical template headers for each entity type */
 export function getTemplateHeaders(type: EntityType): string[] {
-  switch (type) {
-    case 'parties':
-      return ['Name', 'Type', 'Phone', 'Email', 'GSTIN', 'PAN', 'Address', 'City', 'State', 'Pin Code', 'Opening Balance', 'GST Registered', 'Notes']
-    case 'purchases':
-      return ['Supplier Name', 'Invoice Date', 'Supplier Invoice No', 'Material', 'HSN', 'Quantity', 'Unit', 'Rate', 'GST %', 'Payment Status', 'Payment Mode', 'Amount Paid', 'Remarks']
-    case 'sales':
-      return ['Client Name', 'Invoice Date', 'Item', 'HSN/SAC', 'Quantity', 'Unit', 'Rate', 'GST %', 'Payment Status', 'Payment Mode', 'Amount Received', 'Remarks']
-    case 'transactions':
-      return ['Date', 'Party', 'Description', 'Debit', 'Credit', 'Balance']
-    default:
-      return []
-  }
+  // All entity types use the same unified template format
+  return ['Date', 'Vendors name', 'Description/Particulars', 'Debit/Purchase', 'Credit/Payment', 'Balance']
 }
 
 /** Map from database field name to the canonical template header for a given entity type */
@@ -1023,38 +1058,13 @@ export async function downloadTemplate(type: EntityType): Promise<void> {
   const templateHeaders = getTemplateHeaders(type)
   let sampleData: any[][]
 
-  switch (type) {
-    case 'parties':
-      sampleData = [
-        ['ABC Constructions', 'Supplier', '9876543210', '', '22AAAAA0000A1Z5', '', '123, Main Road', 'Mumbai', 'Maharashtra', '400001', '0', 'Yes', ''],
-        ['XYZ Builders', 'Client', '9876543211', 'info@xyz.com', '', '', '456, Park Street', 'Delhi', 'Delhi', '110001', '50000', 'No', 'Credit terms: 30 days'],
-        ['John Doe', 'Beneficiary', '9876543212', '', '', '', '', 'Village', 'Gujarat', '', '0', 'No', ''],
-      ]
-      break
-    case 'purchases':
-      sampleData = [
-        ['ABC Constructions', '2025-04-01', 'SUP-001', 'Cement', '2523.29', 100, 'Bag', 350, 18, 'unpaid', '', 0, 'Cement for foundation'],
-        ['ABC Constructions', '2025-04-01', 'SUP-001', 'Steel Rods', '7214.20', 50, 'Kg', 75, 18, 'unpaid', '', 0, ''],
-        ['XYZ Traders', '2025-04-05', '', 'Bricks', '6901.00', 5000, 'Nos', 8, 5, 'paid', 'NEFT', 42000, ''],
-      ]
-      break
-    case 'sales':
-      sampleData = [
-        ['PQR Developers', '2025-04-10', 'Construction Service', '9954', 1, 'Nos', 500000, 18, 'partial', 'Cheque', 200000, 'Floor construction'],
-        ['PQR Developers', '2025-04-10', 'Material Supply', '2523', 200, 'Bag', 380, 18, 'partial', 'Cheque', 0, ''],
-        ['LMN Group', '2025-04-15', 'Consulting', '9983', 1, 'Nos', 25000, 18, 'unpaid', '', 0, 'Architecture consulting'],
-      ]
-      break
-    case 'transactions':
-      sampleData = [
-        ['2025-04-01', 'ABC Constructions', 'Purchase INV-001', 59000, 0, 59000],
-        ['2025-04-05', 'ABC Constructions', 'Payment for INV-001', 0, 30000, 29000],
-        ['2025-04-10', 'PQR Developers', 'Sale INV-001', 0, 118000, 118000],
-      ]
-      break
-    default:
-      sampleData = [['Sample data']]
-  }
+  // All entity types use the same unified template format
+  sampleData = [
+    ['2025-04-01', 'ABC Constructions', 'Cement purchase - foundation work', 59000, 0, 59000],
+    ['2025-04-05', 'ABC Constructions', 'Payment for cement purchase', 0, 30000, 29000],
+    ['2025-04-10', 'PQR Developers', 'Construction service - floor', 0, 118000, 118000],
+    ['2025-04-15', 'XYZ Traders', 'Steel rods purchase', 45000, 45000, 0],
+  ]
 
   const ws = XLSX.utils.aoa_to_sheet([templateHeaders, ...sampleData])
   XLSX.utils.book_append_sheet(wb, ws, type)

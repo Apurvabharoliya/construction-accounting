@@ -340,9 +340,7 @@ export default function Dashboard() {
                         </td>
                         <td className="py-3 whitespace-nowrap" data-label="Status">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            txn.payment_status === 'paid' ? 'bg-green-100 text-green-700' :
-                            txn.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
+                            txn.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                           }`}>
                             {txn.payment_status.charAt(0).toUpperCase() + txn.payment_status.slice(1)}
                           </span>

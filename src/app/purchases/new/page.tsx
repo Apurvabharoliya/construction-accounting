@@ -35,7 +35,7 @@ export default function NewPurchasePage() {
     invoice_date: string
     supplier_invoice_number?: string
     payment_mode?: string
-    payment_status: 'paid' | 'partial' | 'unpaid'
+    payment_status: 'paid' | 'unpaid'
     amount_paid: number
     remarks?: string
     items: Array<{

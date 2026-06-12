@@ -88,21 +88,20 @@ export async function getPaymentStatusData(): Promise<PaymentStatusData[]> {
     supabase.from('sales').select('payment_status')
   ])
 
-  const counts = { paid: 0, partial: 0, unpaid: 0 }
+  const counts = { paid: 0, unpaid: 0 }
 
   purchasesRes.data?.forEach((p) => {
-    const status = p.payment_status as 'paid' | 'partial' | 'unpaid'
+    const status = p.payment_status as 'paid' | 'unpaid'
     if (status in counts) counts[status]++
   })
 
   salesRes.data?.forEach((s) => {
-    const status = s.payment_status as 'paid' | 'partial' | 'unpaid'
+    const status = s.payment_status as 'paid' | 'unpaid'
     if (status in counts) counts[status]++
   })
 
   return [
     { name: 'Paid', value: counts.paid, color: '#22c55e' },
-    { name: 'Partial', value: counts.partial, color: '#eab308' },
     { name: 'Unpaid', value: counts.unpaid, color: '#ef4444' }
   ]
 }

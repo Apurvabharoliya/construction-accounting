@@ -77,8 +77,7 @@ export default function PurchaseDetailPage() {
         <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 sm:col-span-2 md:col-span-1">
           <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Payment Status</h3>
           <span className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-medium ${
-            purchase.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-            purchase.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+            purchase.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}>
             {purchase.payment_status.charAt(0).toUpperCase() + purchase.payment_status.slice(1)}
           </span>

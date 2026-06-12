@@ -33,7 +33,7 @@ export interface Purchase {
   igst_amount: number
   total_amount: number
   payment_mode?: string
-  payment_status: 'paid' | 'partial' | 'unpaid'
+  payment_status: 'paid' | 'unpaid'
   amount_paid: number
   balance_due: number
   remarks?: string
@@ -66,7 +66,7 @@ export interface Sale {
   igst_amount: number
   total_amount: number
   payment_mode?: string
-  payment_status: 'paid' | 'partial' | 'unpaid'
+  payment_status: 'paid' | 'unpaid'
   amount_received: number
   balance_due: number
   remarks?: string

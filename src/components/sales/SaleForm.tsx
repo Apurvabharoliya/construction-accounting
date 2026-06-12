@@ -23,7 +23,7 @@ const formSchema = z.object({
   client_name: z.string().min(1, 'Enter client name'),
   invoice_date: z.string().min(1, 'Date required'),
   payment_mode: z.string().optional().or(z.literal('')),
-  payment_status: z.enum(['paid', 'partial', 'unpaid']),
+  payment_status: z.enum(['paid', 'unpaid']),
   amount_received: z.number().min(0),
   remarks: z.string().optional().or(z.literal('')),
   items: z.array(itemSchema).min(1, 'Add at least one item')
@@ -38,7 +38,7 @@ interface SaleFormProps {
     client_name: string
     invoice_date: string
     payment_mode?: string
-    payment_status: 'paid' | 'partial' | 'unpaid'
+    payment_status: 'paid' | 'unpaid'
     amount_received: number
     remarks?: string
     items?: Array<{
@@ -199,17 +199,16 @@ export default function SaleForm({ onSubmit, isLoading, initialData }: SaleFormP
               <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status *</label>
               <select {...register('payment_status')} className="w-full px-4 py-2 border rounded-lg">
                 <option value="unpaid">Unpaid</option>
-                <option value="partial">Partial</option>
                 <option value="paid">Paid</option>
               </select>
             </div>
-            {(watchPaymentStatus === 'partial' || watchPaymentStatus === 'paid') && (
+            {(watchPaymentStatus === 'paid') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount Received (₹)</label>
                 <input type="number" step="0.01" {...register('amount_received', { valueAsNumber: true })} className="w-full px-4 py-2 border rounded-lg" />
               </div>
             )}
-            {(watchPaymentStatus === 'partial' || watchPaymentStatus === 'unpaid') && (
+            {(watchPaymentStatus === 'unpaid') && (
               <div className="bg-orange-50 p-3 rounded-lg">
                 <div className="flex justify-between"><span className="text-gray-600">Balance Due</span><span className="font-bold text-orange-600">{formatCurrency(calculations.total - (watchAmountReceived || 0))}</span></div>
               </div>

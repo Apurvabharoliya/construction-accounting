@@ -136,8 +136,7 @@ export default function SaleDetailPage() {
                 <p className="text-xs md:text-sm"><span className="text-gray-500">Payment:</span> <span className="font-medium">{sale.payment_mode || 'N/A'}</span></p>
                 <p className="text-xs md:text-sm"><span className="text-gray-500">Status:</span> 
                   <span className={`ml-1 px-1.5 md:px-2 py-0.5 rounded-full text-xs font-medium ${
-                    sale.payment_status === 'paid' ? 'bg-green-100 text-green-700' :
-                    sale.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                    sale.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                   }`}>
                     {sale.payment_status.charAt(0).toUpperCase() + sale.payment_status.slice(1)}
                   </span>

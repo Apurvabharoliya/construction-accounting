@@ -32,7 +32,7 @@ export default function NewSalePage() {
     client_name: string
     invoice_date: string
     payment_mode?: string
-    payment_status: 'paid' | 'partial' | 'unpaid'
+    payment_status: 'paid' | 'unpaid'
     amount_received: number
     remarks?: string
     items: Array<{
