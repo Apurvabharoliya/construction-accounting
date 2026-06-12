@@ -33,18 +33,7 @@ export default function NewPartyPage() {
         notes: data.notes || undefined
       })
 
-      // If party is a client, auto-create a beneficiary record
-      if (data.party_type === 'client') {
-        await supabase.from('beneficiaries').insert([{
-          party_id: party.id,
-          aadhaar_number: undefined,
-          subsidy_status: 'pending',
-          construction_progress: 0,
-          total_amount_received: 0,
-          total_amount_due: 400000,
-          payment_installments: 1
-        }])
-      }
+
 
       toast.success('Party created successfully')
       router.push('/parties')
@@ -60,7 +49,7 @@ export default function NewPartyPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Add New Vendor</h1>
-        <p className="text-gray-500 text-sm mt-1">Add a new supplier, client, or beneficiary</p>
+        <p className="text-gray-500 text-sm mt-1">Add a new supplier or vendor</p>
       </div>
       <PartyForm onSubmit={handleSubmit} isLoading={isLoading} />
     </div>

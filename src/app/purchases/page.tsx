@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Search, Eye, Edit3, Trash2, ChevronDown, ChevronRight, ShoppingCart, Banknote, FileText } from 'lucide-react'
+import { Plus, Search, Eye, Edit3, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate, formatDateTime } from '@/lib/date'
 import DatePicker from '@/components/ui/DatePicker'
 import { deletePurchase } from '@/lib/api/purchases'
 import { toast } from 'sonner'
-import { getPartyLedger } from '@/lib/api/ledger'
 
 export default function TransactionsPage() {
   const [purchases, setPurchases] = useState<any[]>([])
@@ -17,8 +16,6 @@ export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
-  const [paymentTxns, setPaymentTxns] = useState<Record<string, any[]>>({})
 
   useEffect(() => {
     fetchPurchases()
@@ -48,25 +45,6 @@ export default function TransactionsPage() {
       const { data, error } = await query
       if (error) throw error
       setPurchases(data || [])
-      
-      // Fetch payment transactions for each purchase
-      if (data && data.length > 0) {
-        const ids = data.map(p => p.id)
-        const { data: txnData } = await supabase
-          .from('transactions')
-          .select('*')
-          .in('reference_id', ids)
-          .eq('reference_type', 'purchase')
-          .in('transaction_type', ['payment', 'purchase'])
-          .order('created_at', { ascending: true })
-        
-        const txnMap: Record<string, any[]> = {}
-        txnData?.forEach((t: any) => {
-          if (!txnMap[t.reference_id]) txnMap[t.reference_id] = []
-          txnMap[t.reference_id].push(t)
-        })
-        setPaymentTxns(txnMap)
-      }
     } catch (error) {
       console.error('Error fetching transactions:', error)
     } finally {
@@ -83,15 +61,6 @@ export default function TransactionsPage() {
     } catch (error: any) {
       toast.error(error.message)
     }
-  }
-
-  function toggleRow(id: string) {
-    setExpandedRows(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
   }
 
   return (
@@ -117,7 +86,7 @@ export default function TransactionsPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search by transaction number or supplier..."
+              placeholder="Search by supplier..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -132,9 +101,9 @@ export default function TransactionsPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-2 border rounded-lg text-sm"
           >
-            <option value="all">All Status</option>
-            <option value="paid">Paid</option>
-            <option value="unpaid">Unpaid</option>
+            <option value="all">All</option>
+            <option value="paid">Payment</option>
+            <option value="unpaid">Purchase</option>
           </select>
         </div>
       </div>
@@ -151,137 +120,69 @@ export default function TransactionsPage() {
             <Link href="/purchases/new" className="text-blue-600 hover:underline font-medium">Record your first transaction</Link>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {purchases.map((p) => {
-              const isExpanded = expandedRows.has(p.id)
-              const txns = paymentTxns[p.id] || []
-              const purchaseTxn = txns.find(t => t.transaction_type === 'purchase')
-              const paymentTxn = txns.find(t => t.transaction_type === 'payment')
-
-              return (
-                <div key={p.id} className="transition-colors hover:bg-gray-50/50">
-                  {/* Main Row (clickable) */}
-                  <button
-                    onClick={() => toggleRow(p.id)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-                  >
-                    <div className="flex-shrink-0">
-                      {isExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">{p.supplier?.name || 'N/A'}</span>
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          p.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {p.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left bg-gray-50">
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Date</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Supplier</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Description</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap text-right">Amount</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Type</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchases.map((p) => {
+                  const isDue = Number(p.balance_due) > 0
+                  const isSettled = !isDue && Number(p.total_amount) > 0
+                  
+                  return (
+                    <tr key={p.id} className="border-t hover:bg-gray-50 transition-colors">
+                      <td className="p-4 text-sm whitespace-nowrap" data-label="Date">
+                        {formatDate(p.invoice_date)}
+                        <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(p.created_at)}</div>
+                      </td>
+                      <td className="p-4 text-sm font-medium" data-label="Supplier">{p.supplier?.name || 'N/A'}</td>
+                      <td className="p-4 text-sm text-gray-500 max-w-[200px] truncate" data-label="Description">
+                        {p.remarks || <span className="text-gray-400">—</span>}
+                      </td>
+                      <td className="p-4 text-sm font-semibold text-right whitespace-nowrap" data-label="Amount">
+                        <span className={isDue ? 'text-red-600' : isSettled ? 'text-green-600' : 'text-gray-900'}>
+                          {formatCurrency(Number(p.total_amount))}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-gray-400">{formatDate(p.invoice_date)}</span>
-                        <span className="text-xs text-gray-300">•</span>
-                        <span className="text-xs text-gray-400">{formatDateTime(p.created_at)}</span>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(Number(p.total_amount))}</p>
-                      {Number(p.balance_due) > 0 && (
-                        <p className="text-xs text-orange-600 font-medium">Due: {formatCurrency(Number(p.balance_due))}</p>
-                      )}
-                      {Number(p.balance_due) <= 0 && Number(p.total_amount) > 0 && (
-                        <p className="text-xs text-green-600 font-medium">Settled</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <Link href={`/purchases/${p.id}`} className="p-1.5 text-blue-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition-colors" title="View">
-                        <Eye className="w-4 h-4" />
-                      </Link>
-                      <Link href={`/purchases/${p.id}/edit`} className="p-1.5 text-gray-600 hover:text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" title="Edit">
-                        <Edit3 className="w-4 h-4" />
-                      </Link>
-                      <button onClick={() => handleDelete(p.id, p.purchase_number)} className="p-1.5 text-red-600 hover:text-red-700 rounded-lg hover:bg-red-50 transition-colors" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </button>
-
-                  {/* Expanded Details */}
-                  {isExpanded && (
-                    <div className="bg-gray-50/70 border-t border-gray-100">
-                      <div className="p-4 space-y-3">
-                        {/* Purchase Entry */}
-                        {purchaseTxn && (
-                          <div className="bg-white rounded-lg border border-blue-100 p-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <ShoppingCart className="w-4 h-4 text-blue-600" />
-                              <span className="text-sm font-semibold text-blue-700">Purchase Entry</span>
-                              <span className="text-xs text-gray-400">({p.purchase_number})</span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-500">Amount:</span>
-                                <span className="ml-1 font-medium text-gray-900">{formatCurrency(Number(p.total_amount))}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Debit:</span>
-                                <span className="ml-1 font-medium text-red-600">{formatCurrency(Number(purchaseTxn.debit))}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Date:</span>
-                                <span className="ml-1 font-medium text-gray-900">{formatDate(p.invoice_date)}</span>
-                              </div>
-                            </div>
-
-                          </div>
+                        {isDue && (
+                          <div className="text-xs text-red-500 font-medium mt-0.5">Due: {formatCurrency(Number(p.balance_due))}</div>
                         )}
-
-                        {/* Payment Entry */}
-                        {paymentTxn ? (
-                          <div className="bg-white rounded-lg border border-green-100 p-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Banknote className="w-4 h-4 text-green-600" />
-                              <span className="text-sm font-semibold text-green-700">Payment Entry</span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-500">Amount:</span>
-                                <span className="ml-1 font-medium text-gray-900">{formatCurrency(Number(paymentTxn.credit))}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Credit:</span>
-                                <span className="ml-1 font-medium text-green-600">{formatCurrency(Number(paymentTxn.credit))}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Date:</span>
-                                <span className="ml-1 font-medium text-gray-900">{formatDate(paymentTxn.transaction_date)}</span>
-                              </div>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">{paymentTxn.description || ''}</p>
-                          </div>
-                        ) : p.payment_status === 'unpaid' && Number(p.balance_due) > 0 ? (
-                          <div className="bg-white rounded-lg border border-orange-100 p-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Banknote className="w-4 h-4 text-orange-500" />
-                              <span className="text-sm font-semibold text-orange-700">Payment Pending</span>
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              Balance due: <span className="font-medium text-orange-600">{formatCurrency(Number(p.balance_due))}</span>
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                        {isSettled && (
+                          <div className="text-xs text-green-600 font-medium mt-0.5">Settled</div>
+                        )}
+                      </td>
+                      <td className="p-4" data-label="Type">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          isDue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          {isDue ? 'Purchase' : 'Payment'}
+                        </span>
+                      </td>
+                      <td className="p-4" data-label="">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <Link href={`/purchases/${p.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
+                            <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
+                          </Link>
+                          <Link href={`/purchases/${p.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
+                            <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
+                          </Link>
+                          <button onClick={() => handleDelete(p.id, p.purchase_number)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
+                            <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

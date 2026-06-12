@@ -9,8 +9,7 @@ import { formatCurrency } from '@/lib/gst'
 import { deleteParty } from '@/lib/api/parties'
 import { toast } from 'sonner'
 const partyTypeColors: Record<string, string> = {
-  supplier: 'bg-blue-100 text-blue-800',
-  client: 'bg-green-100 text-green-800'
+  supplier: 'bg-blue-100 text-blue-800'
 }
 
 export default function PartiesPage() {
@@ -30,7 +29,7 @@ export default function PartiesPage() {
       let query = supabase.from('parties').select('*').order('created_at', { ascending: false })
 
       // Only filter by party_type for valid types; 'paid'/'unpaid' are client-side filters
-      if (filterType === 'supplier' || filterType === 'client') {
+      if (filterType === 'supplier') {
         query = query.eq('party_type', filterType)
       }
 

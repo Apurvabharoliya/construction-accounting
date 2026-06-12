@@ -36,15 +36,18 @@ function PaymentProgress({ paid, total }: { paid: number; total: number }) {
   )
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, type }: { status: string; type?: string }) {
   const styles = {
     paid: 'bg-green-100 text-green-700 ring-green-600/20',
     unpaid: 'bg-red-100 text-red-700 ring-red-600/20',
   }
   const s = styles[status as keyof typeof styles] || styles.unpaid
+  const label = type === 'purchase'
+    ? (status === 'paid' ? 'Payment' : 'Purchase')
+    : (status === 'paid' ? 'Paid' : 'Unpaid')
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${s}`}>
-      {status === 'paid' ? 'Paid' : 'Unpaid'}
+      {label}
     </span>
   )
 }
@@ -134,15 +137,10 @@ export default function PartyDetailPage() {
   const statementRows: StatementRow[] = []
   let runningBal = 0
 
-  // Filter ledger to only show purchase and payment transactions
-  const filteredLedger = ledger.filter((txn: any) => 
-    txn.transaction_type === 'purchase' || txn.transaction_type === 'payment'
-  )
-
   // Ledger is already sorted oldest-first from getPartyLedger
-  filteredLedger.forEach((txn: any) => {
-    const isPurchase = txn.transaction_type === 'purchase'
-    const isPayment = txn.transaction_type === 'payment'
+  ledger.forEach((txn: any) => {
+    const isPurchase = txn.transaction_type === 'purchase' || txn.transaction_type === 'sale'
+    const isPayment = txn.transaction_type === 'payment' || txn.transaction_type === 'receipt'
 
     if (isPurchase && txn.reference_id && invoiceById.has(txn.reference_id)) {
       const inv = invoiceById.get(txn.reference_id)!
@@ -459,20 +457,7 @@ export default function PartyDetailPage() {
         if (groups['unlinked'].transactions.length === 0) delete groups['unlinked']
 
         const isSupplier = party?.party_type === 'supplier'
-        // Filter groups to only show purchase & payment
-        const filteredGroups: Record<string, any> = {}
-        Object.entries(groups).forEach(([key, group]: [string, any]) => {
-          filteredGroups[key] = {
-            ...group,
-            transactions: group.transactions.filter((t: any) => 
-              t.transaction_type === 'purchase' || t.transaction_type === 'payment'
-            )
-          }
-          if (filteredGroups[key].transactions.length === 0 && key !== 'unlinked') {
-            delete filteredGroups[key]
-          }
-        })
-        const groupEntries = Object.entries(filteredGroups)
+        const groupEntries = Object.entries(groups)
 
         if (groupEntries.length === 0) {
           return <div className="bg-white rounded-xl shadow-sm p-6"><p className="text-center text-gray-500 py-8">No transactions yet</p></div>
@@ -485,13 +470,13 @@ export default function PartyDetailPage() {
               <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg p-4 border border-blue-100">
                 <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">{isSupplier ? 'Total Purchases' : 'Total Sales'}</p>
                 <p className="text-lg font-bold text-blue-700 mt-1">
-                  {formatCurrency(filteredLedger.filter((t: any) => isSupplier ? t.transaction_type === 'purchase' : t.transaction_type === 'purchase').reduce((s: number, t: any) => s + Number(t.debit || t.credit), 0))}
+                  {formatCurrency(ledger.filter((t: any) => t.transaction_type === 'purchase' || t.transaction_type === 'sale').reduce((s: number, t: any) => s + Number(t.debit || t.credit), 0))}
                 </p>
               </div>
               <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg p-4 border border-green-100">
                 <p className="text-xs font-medium text-green-600 uppercase tracking-wider">{isSupplier ? 'Total Paid' : 'Total Received'}</p>
                 <p className="text-lg font-bold text-green-700 mt-1">
-                  {formatCurrency(filteredLedger.filter((t: any) => t.transaction_type === 'payment').reduce((s: number, t: any) => s + Number(t.debit || t.credit), 0))}
+                  {formatCurrency(ledger.filter((t: any) => t.transaction_type === 'payment' || t.transaction_type === 'receipt').reduce((s: number, t: any) => s + Number(t.debit || t.credit), 0))}
                 </p>
               </div>
               <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-lg p-4 border border-orange-100">
@@ -559,7 +544,7 @@ export default function PartyDetailPage() {
                   {inv.balance_due > 0 && (
                     <span className="text-xs text-orange-600 font-semibold">Pending: {formatCurrency(inv.balance_due)}</span>
                   )}
-                  <StatusBadge status={inv.payment_status} />
+                  <StatusBadge status={inv.payment_status} type={inv.type} />
                   {inv.balance_due > 0 && (
                     <button
                       onClick={() => setPaymentDialogInvoice(inv)}

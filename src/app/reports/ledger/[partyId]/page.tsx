@@ -12,15 +12,18 @@ import Link from 'next/link'
 import type { Party } from '@/types/database'
 import RecordPaymentDialog from '@/components/payments/RecordPaymentDialog'
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, type }: { status: string; type?: string }) {
   const styles: Record<string, string> = {
     paid: 'bg-green-100 text-green-700 ring-green-600/20',
     unpaid: 'bg-red-100 text-red-700 ring-red-600/20',
   }
   const s = styles[status] || styles.unpaid
+  const label = type === 'purchase'
+    ? (status === 'paid' ? 'Payment' : 'Purchase')
+    : (status === 'paid' ? 'Paid' : 'Unpaid')
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${s}`}>
-      {status === 'paid' ? 'Paid' : 'Unpaid'}
+      {label}
     </span>
   )
 }
@@ -92,13 +95,6 @@ export default function LedgerReportPage() {
     }
   }
 
-  // Filter transactions to only show purchase and payment
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter(txn => 
-      txn.transaction_type === 'purchase' || txn.transaction_type === 'payment'
-    )
-  }, [transactions])
-
   // Group transactions by reference_id for invoice-wise view
   const groupedTransactions = useMemo(() => {
     const groups: Record<string, { invoice?: InvoiceSummary; transactions: any[] }> = {
@@ -109,7 +105,7 @@ export default function LedgerReportPage() {
     const invoiceMap = new Map<string, InvoiceSummary>()
     invoices.forEach(inv => invoiceMap.set(inv.id, inv))
 
-    filteredTransactions.forEach(txn => {
+    transactions.forEach(txn => {
       const refId = txn.reference_id
       if (refId && invoiceMap.has(refId)) {
         if (!groups[refId]) {
@@ -127,18 +123,18 @@ export default function LedgerReportPage() {
     }
 
     return groups
-  }, [filteredTransactions, invoices])
+  }, [transactions, invoices])
 
-  // Calculate summary stats using filtered transactions
+  // Calculate summary stats
   const summary = useMemo(() => {
     let totalDebits = 0
     let totalCredits = 0
-    filteredTransactions.forEach(txn => {
+    transactions.forEach(txn => {
       totalDebits += Number(txn.debit)
       totalCredits += Number(txn.credit)
     })
     return { totalDebits, totalCredits }
-  }, [filteredTransactions])
+  }, [transactions])
 
   const isSupplier = party?.party_type === 'supplier'
 
@@ -191,7 +187,7 @@ export default function LedgerReportPage() {
             {formatCurrency(isSupplier ? summary.totalDebits : summary.totalCredits)}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            {filteredTransactions.filter(t => t.transaction_type === 'purchase').length} invoices
+            {transactions.filter(t => t.transaction_type === 'purchase' || t.transaction_type === 'sale').length} invoices
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-500">
@@ -202,7 +198,7 @@ export default function LedgerReportPage() {
             {formatCurrency(isSupplier ? summary.totalCredits : summary.totalDebits)}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            {filteredTransactions.filter(t => t.transaction_type === 'payment').length} payments
+            {transactions.filter(t => t.transaction_type === 'payment' || t.transaction_type === 'receipt').length} payments
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-orange-500">
@@ -235,7 +231,7 @@ export default function LedgerReportPage() {
         <div className="bg-white rounded-xl shadow-sm p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
         </div>
-      ) : filteredTransactions.length === 0 ? (
+      ) : transactions.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
           <Receipt className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500">No transactions found for this period</p>
@@ -271,7 +267,7 @@ export default function LedgerReportPage() {
                     )}
                   </div>
                   <PaymentProgress paid={inv.amount_paid} total={inv.total_amount} />
-                  <StatusBadge status={inv.payment_status} />
+                  <StatusBadge status={inv.payment_status} type={inv.type} />
                   {inv.balance_due > 0 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setPaymentDialogInvoice(inv) }}
@@ -401,7 +397,7 @@ export default function LedgerReportPage() {
           <details className="bg-white rounded-xl shadow-sm overflow-hidden">
             <summary className="px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors text-sm font-semibold text-gray-700 flex items-center gap-2">
               <Receipt className="w-4 h-4 text-gray-400" />
-              Complete Transaction Log ({filteredTransactions.length} entries)
+              Complete Transaction Log ({transactions.length} entries)
             </summary>
             <div className="overflow-x-auto border-t border-gray-100">
               <table className="w-full">
@@ -416,7 +412,7 @@ export default function LedgerReportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTransactions.map((txn: any, i: number) => (
+                  {transactions.map((txn: any, i: number) => (
                     <tr key={txn.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} hover:bg-gray-100/50 transition-colors`}>
                       <td className="p-3 pl-5 text-sm">
                         {formatDate(txn.transaction_date)}

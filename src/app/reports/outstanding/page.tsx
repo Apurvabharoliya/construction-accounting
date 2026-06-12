@@ -279,7 +279,10 @@ export default function OutstandingReportPage() {
                                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${
                                         inv.payment_status === 'paid' ? 'bg-green-100 text-green-700 ring-green-600/20' : 'bg-red-100 text-red-700 ring-red-600/20'
                                       }`}>
-                                        {inv.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
+                                        {inv.type === 'purchase'
+                                          ? (inv.payment_status === 'paid' ? 'Payment' : 'Purchase')
+                                          : (inv.payment_status === 'paid' ? 'Paid' : 'Unpaid')
+                                        }
                                       </span>
                                     </div>
                                   </div>

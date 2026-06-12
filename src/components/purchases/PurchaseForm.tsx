@@ -25,7 +25,7 @@ const formSchema = z.object({
   invoice_date: z.string().min(1, 'Date required'),
   supplier_invoice_number: z.string().optional().or(z.literal('')),
   payment_mode: z.string().optional().or(z.literal('')),
-  payment_status: z.enum(['paid', 'unpaid']),
+  payment_status: z.enum(['unpaid', 'paid']),
   amount_paid: z.number().min(0),
   remarks: z.string().optional().or(z.literal('')),
   items: z.array(itemSchema).min(1, 'Add at least one item')
@@ -215,10 +215,10 @@ export default function PurchaseForm({ onSubmit, isLoading, isEditing, initialDa
           </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
               <select {...register('payment_status')} className="w-full px-4 py-2 border rounded-lg">
-                <option value="unpaid">Unpaid</option>
-                <option value="paid">Paid</option>
+                <option value="unpaid">Purchase</option>
+                <option value="paid">Payment</option>
               </select>
             </div>
             {(watchPaymentStatus === 'paid') && (

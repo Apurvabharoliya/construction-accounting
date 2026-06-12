@@ -278,10 +278,12 @@ export default function Dashboard() {
                         </td>
                         <td className="py-3 whitespace-nowrap" data-label="Status">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            // Paid (completed) = green, Unpaid (due) = red
                             txn.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                           }`}>
-                            {txn.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
+                            {txn.type === 'purchase'
+                              ? (txn.payment_status === 'paid' ? 'Payment' : 'Purchase')
+                              : (txn.payment_status === 'paid' ? 'Paid' : 'Unpaid')
+                            }
                           </span>
                         </td>
                       </tr>

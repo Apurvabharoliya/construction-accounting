@@ -24,7 +24,7 @@ interface TransactionEntry {
   invoice_date: string
   supplier_invoice_number: string
   payment_mode: string
-  payment_status: 'paid' | 'unpaid'
+  payment_status: 'unpaid' | 'paid'
   amount_paid: number
   remarks: string
   items: TransactionItem[]
@@ -297,7 +297,7 @@ export default function NewTransactionPage() {
                   </p>
                   <p className="text-xs text-gray-400">
                     {itemCount} item{itemCount !== 1 ? 's' : ''} • {formatCurrency(total)}
-                    {entry.payment_status === 'paid' ? ' • Paid' : ' • Unpaid'}
+                    {entry.payment_status === 'paid' ? ' • Payment' : ' • Purchase'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -480,14 +480,14 @@ export default function NewTransactionPage() {
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Payment Status</label>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
                           <select
                             value={entry.payment_status}
                             onChange={(e) => updateEntry(entryIdx, 'payment_status', e.target.value)}
                             className="w-full px-3 py-2 border rounded-lg text-sm"
                           >
-                            <option value="unpaid">Unpaid</option>
-                            <option value="paid">Paid</option>
+                            <option value="unpaid">Purchase</option>
+                            <option value="paid">Payment</option>
                           </select>
                         </div>
                         <div>

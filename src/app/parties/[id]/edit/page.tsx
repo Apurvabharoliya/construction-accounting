@@ -54,26 +54,7 @@ export default function EditPartyPage() {
         notes: data.notes || undefined
       })
 
-      // If updated to client, ensure a beneficiary record exists
-      if (data.party_type === 'client') {
-        const { data: existing } = await supabase
-          .from('beneficiaries')
-          .select('id')
-          .eq('party_id', params.id)
-          .maybeSingle()
 
-        if (!existing) {
-          await supabase.from('beneficiaries').insert([{
-            party_id: params.id,
-            aadhaar_number: undefined,
-            subsidy_status: 'pending',
-            construction_progress: 0,
-            total_amount_received: 0,
-            total_amount_due: 400000,
-            payment_installments: 1
-          }])
-        }
-      }
 
       toast.success('Party updated successfully')
       router.push(`/parties/${params.id}`)
