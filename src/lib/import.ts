@@ -923,11 +923,10 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
   }
 
   // All entity types now use the unified template format.
-  // Transform the raw data to match the canonical template format
-  const transformed = transformToTemplate(headers, rows, entityType)
+  // Transform using TRANSACTION_COLUMNS mapping since all types go through the same import flow
+  const transformed = transformToTemplate(headers, rows, 'transactions')
 
   // Build a column map from db fields to the canonical template headers
-  // Always use TRANSACTION_COLUMNS mapping since all types go through importTransactions
   const columnMap = getFieldToTemplateHeader('transactions')
 
   // Process through the unified import flow (creates purchases from debit rows)
