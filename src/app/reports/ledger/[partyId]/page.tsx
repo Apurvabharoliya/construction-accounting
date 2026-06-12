@@ -92,6 +92,13 @@ export default function LedgerReportPage() {
     }
   }
 
+  // Filter transactions to only show purchase and payment
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(txn => 
+      txn.transaction_type === 'purchase' || txn.transaction_type === 'payment'
+    )
+  }, [transactions])
+
   // Group transactions by reference_id for invoice-wise view
   const groupedTransactions = useMemo(() => {
     const groups: Record<string, { invoice?: InvoiceSummary; transactions: any[] }> = {
@@ -102,7 +109,7 @@ export default function LedgerReportPage() {
     const invoiceMap = new Map<string, InvoiceSummary>()
     invoices.forEach(inv => invoiceMap.set(inv.id, inv))
 
-    transactions.forEach(txn => {
+    filteredTransactions.forEach(txn => {
       const refId = txn.reference_id
       if (refId && invoiceMap.has(refId)) {
         if (!groups[refId]) {
@@ -120,18 +127,18 @@ export default function LedgerReportPage() {
     }
 
     return groups
-  }, [transactions, invoices])
+  }, [filteredTransactions, invoices])
 
-  // Calculate summary stats
+  // Calculate summary stats using filtered transactions
   const summary = useMemo(() => {
     let totalDebits = 0
     let totalCredits = 0
-    transactions.forEach(txn => {
+    filteredTransactions.forEach(txn => {
       totalDebits += Number(txn.debit)
       totalCredits += Number(txn.credit)
     })
     return { totalDebits, totalCredits }
-  }, [transactions])
+  }, [filteredTransactions])
 
   const isSupplier = party?.party_type === 'supplier'
 
@@ -184,7 +191,7 @@ export default function LedgerReportPage() {
             {formatCurrency(isSupplier ? summary.totalDebits : summary.totalCredits)}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            {transactions.filter(t => isSupplier ? t.transaction_type === 'purchase' : t.transaction_type === 'sale').length} invoices
+            {filteredTransactions.filter(t => t.transaction_type === 'purchase').length} invoices
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-500">
@@ -195,7 +202,7 @@ export default function LedgerReportPage() {
             {formatCurrency(isSupplier ? summary.totalCredits : summary.totalDebits)}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            {transactions.filter(t => isSupplier ? t.transaction_type === 'payment' : t.transaction_type === 'receipt').length} payments
+            {filteredTransactions.filter(t => t.transaction_type === 'payment').length} payments
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-orange-500">
@@ -228,7 +235,7 @@ export default function LedgerReportPage() {
         <div className="bg-white rounded-xl shadow-sm p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
         </div>
-      ) : transactions.length === 0 ? (
+      ) : filteredTransactions.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
           <Receipt className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500">No transactions found for this period</p>
@@ -394,7 +401,7 @@ export default function LedgerReportPage() {
           <details className="bg-white rounded-xl shadow-sm overflow-hidden">
             <summary className="px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors text-sm font-semibold text-gray-700 flex items-center gap-2">
               <Receipt className="w-4 h-4 text-gray-400" />
-              Complete Transaction Log ({transactions.length} entries)
+              Complete Transaction Log ({filteredTransactions.length} entries)
             </summary>
             <div className="overflow-x-auto border-t border-gray-100">
               <table className="w-full">
@@ -409,7 +416,7 @@ export default function LedgerReportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((txn: any, i: number) => (
+                  {filteredTransactions.map((txn: any, i: number) => (
                     <tr key={txn.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} hover:bg-gray-100/50 transition-colors`}>
                       <td className="p-3 pl-5 text-sm">
                         {formatDate(txn.transaction_date)}

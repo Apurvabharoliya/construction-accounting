@@ -99,5 +99,4 @@ export const PAYMENT_MODES = [
 export const PARTY_TYPES = [
   { value: 'supplier', label: 'Supplier' },
   { value: 'client', label: 'Client' },
-  { value: 'beneficiary', label: 'Beneficiary' },
 ] as const

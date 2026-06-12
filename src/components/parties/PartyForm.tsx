@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { PARTY_TYPES } from '@/lib/gst'
+
 
 const partySchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -15,7 +15,7 @@ const partySchema = z.object({
   city: z.string().optional().or(z.literal('')),
   state: z.string().optional().or(z.literal('')),
   pin_code: z.string().optional().or(z.literal('')),
-  party_type: z.enum(['supplier', 'client', 'beneficiary']),
+  party_type: z.enum(['supplier', 'client']),
   opening_balance: z.string().optional().or(z.literal('')),
   gst_registered: z.boolean(),
   bank_name: z.string().optional().or(z.literal('')),
@@ -85,9 +85,8 @@ export default function PartyForm({ initialData, onSubmit, isLoading }: PartyFor
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Type *</label>
             <select {...register('party_type')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-              {PARTY_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
+              <option value="supplier">Supplier</option>
+              <option value="client">Client</option>
             </select>
           </div>
           <div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   ShoppingCart, 
@@ -14,11 +14,6 @@ import {
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate, formatDateTime } from '@/lib/date'
-import TrendChart from '@/components/dashboard/TrendChart'
-import ProfitLineChart from '@/components/dashboard/ProfitLineChart'
-import PaymentStatusChart from '@/components/dashboard/PaymentStatusChart'
-import OutstandingChart from '@/components/dashboard/OutstandingChart'
-import TopPartiesChart from '@/components/dashboard/TopPartiesChart'
 
 interface DashboardStats {
   totalSales: number
@@ -40,26 +35,28 @@ export default function Dashboard() {
   })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchDashboardStats()
-  }, [])
-
-  async function fetchDashboardStats() {
+  const fetchDashboardStats = useCallback(async () => {
     try {
-      const [salesRes, purchasesRes, partiesRes, outstandingRes, recentSalesRes, recentPurchasesRes, beneficiariesRes] = await Promise.all([
+      // Run all queries in parallel - reduced to 5 efficient queries
+      const [salesRes, purchasesRes, outstandingRes, recentTxnsRes, partiesCountRes] = await Promise.all([
         supabase.from('sales').select('total_amount'),
         supabase.from('purchases').select('total_amount'),
-        supabase.from('parties').select('*', { count: 'exact', head: true }),
         supabase.from('sales').select('balance_due').gt('balance_due', 0),
-        supabase.from('sales')
-          .select('*, client:parties!client_id(name)')
-          .order('created_at', { ascending: false })
-          .limit(5),
-        supabase.from('purchases')
-          .select('*, supplier:parties!supplier_id(name)')
-          .order('created_at', { ascending: false })
-          .limit(5),
-        supabase.from('beneficiaries').select('*', { count: 'exact', head: true })
+        // Single combined query for recent transactions (both sales and purchases)
+        (async () => {
+          const [sales, purchases] = await Promise.all([
+            supabase.from('sales')
+              .select('id, sale_number, invoice_date, created_at, total_amount, payment_status, client:parties!client_id(name)')
+              .order('created_at', { ascending: false })
+              .limit(5),
+            supabase.from('purchases')
+              .select('id, purchase_number, invoice_date, created_at, total_amount, payment_status, supplier:parties!supplier_id(name)')
+              .order('created_at', { ascending: false })
+              .limit(5)
+          ])
+          return { sales: sales.data || [], purchases: purchases.data || [] }
+        })(),
+        supabase.from('parties').select('*', { count: 'exact', head: true })
       ])
 
       const totalSales = salesRes.data?.reduce((sum, s) => sum + Number(s.total_amount), 0) || 0
@@ -67,17 +64,25 @@ export default function Dashboard() {
       const totalOutstanding = outstandingRes.data?.reduce((sum, o) => sum + Number(o.balance_due), 0) || 0
 
       // Merge recent sales and purchases, sort by date descending, take top 5
-      const sales = (recentSalesRes.data || []).map((s: any) => ({
-        ...s,
+      const sales = recentTxnsRes.sales.map((s: any) => ({
+        id: s.id,
+        invoice_date: s.invoice_date,
+        created_at: s.created_at,
+        total_amount: s.total_amount,
+        payment_status: s.payment_status,
         party_name: s.client?.name,
-        type: 'sale'
+        invoice_number: s.sale_number,
+        type: 'sale' as const
       }))
-      const purchases = (recentPurchasesRes.data || []).map((p: any) => ({
-        ...p,
-        party_name: p.supplier?.name,
+      const purchases = recentTxnsRes.purchases.map((p: any) => ({
+        id: p.id,
+        invoice_date: p.invoice_date,
+        created_at: p.created_at,
         total_amount: p.total_amount,
         payment_status: p.payment_status,
-        type: 'purchase'
+        party_name: p.supplier?.name,
+        invoice_number: p.purchase_number,
+        type: 'purchase' as const
       }))
       const merged = [...sales, ...purchases]
         .sort((a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime())
@@ -86,24 +91,27 @@ export default function Dashboard() {
       setStats({
         totalSales,
         totalPurchases,
-        totalParties: partiesRes.count || 0,
+        totalParties: partiesCountRes.count || 0,
         outstandingAmount: totalOutstanding,
         recentTransactions: merged,
-        totalBeneficiaries: beneficiariesRes.count || 0
+        totalBeneficiaries: 0
       })
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchDashboardStats()
+  }, [fetchDashboardStats])
 
   const statCards = [
     {
       title: 'Total Sales',
       value: formatCurrency(stats.totalSales),
       icon: TrendingUp,
-      bgColor: 'bg-gradient-to-br from-green-50 to-emerald-50',
       iconColor: 'text-green-600',
       iconBg: 'bg-gradient-to-br from-green-100 to-green-200',
       href: '/sales',
@@ -113,7 +121,6 @@ export default function Dashboard() {
       title: 'Total Purchases',
       value: formatCurrency(stats.totalPurchases),
       icon: ShoppingCart,
-      bgColor: 'bg-gradient-to-br from-blue-50 to-indigo-50',
       iconColor: 'text-blue-600',
       iconBg: 'bg-gradient-to-br from-blue-100 to-blue-200',
       href: '/purchases',
@@ -123,7 +130,6 @@ export default function Dashboard() {
       title: 'Net Profit',
       value: formatCurrency(stats.totalSales - stats.totalPurchases),
       icon: IndianRupee,
-      bgColor: 'bg-gradient-to-br from-purple-50 to-violet-50',
       iconColor: 'text-purple-600',
       iconBg: 'bg-gradient-to-br from-purple-100 to-purple-200',
       href: '/reports',
@@ -133,7 +139,6 @@ export default function Dashboard() {
       title: 'Outstanding',
       value: formatCurrency(stats.outstandingAmount),
       icon: CreditCard,
-      bgColor: 'bg-gradient-to-br from-orange-50 to-amber-50',
       iconColor: 'text-orange-600',
       iconBg: 'bg-gradient-to-br from-orange-100 to-amber-200',
       href: '/reports/outstanding',
@@ -157,7 +162,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 animate-in fade-in slide-in-from-top-1 duration-500">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-0.5">Welcome to your Construction Accounting App</p>
@@ -177,10 +182,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Link key={card.title} href={card.href}>
-            <div 
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-200 group cursor-pointer animate-in fade-in slide-in-from-bottom-2"
-              style={{ animationDelay: `${card.delay}ms`, animationFillMode: 'both' }}
-            >
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-200 group cursor-pointer">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-500">{card.title}</p>
@@ -195,81 +197,18 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '150ms', animationFillMode: 'both' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-base md:text-lg font-semibold text-gray-900">Purchases vs Sales</h2>
-              <p className="text-xs md:text-sm text-gray-500 mt-0.5">Monthly comparison</p>
-            </div>
-            <div className="hidden sm:flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="text-xs text-gray-500">Purchases</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-xs text-gray-500">Sales</span>
-              </div>
-            </div>
-          </div>
-          <TrendChart />
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '250ms', animationFillMode: 'both' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-base md:text-lg font-semibold text-gray-900">Net Profit Trend</h2>
-              <p className="text-xs md:text-sm text-gray-500 mt-0.5">Monthly profit (Sales - Purchases)</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-              <span className="text-xs text-gray-500">Profit</span>
-            </div>
-          </div>
-          <ProfitLineChart />
-        </div>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
-          <div className="mb-4">
-            <h2 className="text-base md:text-lg font-semibold text-gray-900">Payment Status</h2>
-            <p className="text-xs md:text-sm text-gray-500 mt-0.5">Transaction breakdown</p>
-          </div>
-          <PaymentStatusChart />
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
-          <div className="mb-4">
-            <h2 className="text-base md:text-lg font-semibold text-gray-900">Outstanding Balances</h2>              <p className="text-xs md:text-sm text-gray-500 mt-0.5">Pending by vendor</p>
-          </div>
-          <OutstandingChart />
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500 md:col-span-2 lg:col-span-1" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
-          <div className="mb-4">
-            <h2 className="text-base md:text-lg font-semibold text-gray-900">Top Vendors</h2>
-            <p className="text-xs md:text-sm text-gray-500 mt-0.5">By transaction volume</p>
-          </div>
-          <TopPartiesChart />
-        </div>
-      </div>
-
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '350ms', animationFillMode: 'both' }}>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
           <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { href: '/purchases/new', icon: ShoppingCart, color: 'blue', label: 'New Purchase' },
+              { href: '/purchases/new', icon: ShoppingCart, color: 'blue', label: 'New Transaction' },
               { href: '/sales/new', icon: TrendingUp, color: 'green', label: 'New Sale' },
               { href: '/parties/new', icon: Users, color: 'purple', label: 'Add Vendor' },
               { href: '/beneficiaries/new', icon: HandHeart, color: 'orange', label: 'Beneficiary' },
-            ].map((action, i) => (
+            ].map((action) => (
               <Link key={action.label} href={action.href}>
                 <div className="flex flex-col items-center p-3 md:p-4 border-2 border-dashed border-gray-200 rounded-xl hover:border-blue-500/50 hover:bg-blue-50/50 transition-all duration-200 group cursor-pointer active:scale-95">
                   <div className={`bg-${action.color}-100 p-2.5 md:p-3 rounded-xl group-hover:scale-110 group-hover:-rotate-6 transition-all duration-300`}>
@@ -286,15 +225,11 @@ export default function Dashboard() {
               <span className="text-gray-500">Total Vendors</span>
               <span className="font-semibold text-gray-900">{stats.totalParties}</span>
             </div>
-            <div className="flex items-center justify-between text-sm mt-2">
-              <span className="text-gray-500">Beneficiaries</span>
-              <span className="font-semibold text-gray-900">{stats.totalBeneficiaries}</span>
-            </div>
           </div>
         </div>
 
         {/* Recent Transactions */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '450ms', animationFillMode: 'both' }}>
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base md:text-lg font-semibold text-gray-900">Recent Transactions</h2>
             <Link href="/reports" className="text-xs md:text-sm text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors">
@@ -322,8 +257,8 @@ export default function Dashboard() {
                       </td>
                     </tr>
                   ) : (
-                    stats.recentTransactions.map((txn: any, i: number) => (
-                      <tr key={txn.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors animate-in fade-in" style={{ animationDelay: `${500 + i * 80}ms`, animationFillMode: 'both' }}>
+                    stats.recentTransactions.map((txn: any) => (
+                      <tr key={txn.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="py-3 text-sm text-gray-600 whitespace-nowrap pr-4" data-label="Date">
                           {formatDate(txn.invoice_date)}
                           <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
@@ -343,9 +278,10 @@ export default function Dashboard() {
                         </td>
                         <td className="py-3 whitespace-nowrap" data-label="Status">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            // Paid (completed) = green, Unpaid (due) = red
                             txn.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                           }`}>
-                            {txn.payment_status.charAt(0).toUpperCase() + txn.payment_status.slice(1)}
+                            {txn.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
                           </span>
                         </td>
                       </tr>

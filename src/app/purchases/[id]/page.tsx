@@ -49,21 +49,21 @@ export default function PurchaseDetailPage() {
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
-  if (!purchase) return <div className="text-center py-12"><p className="text-gray-500">Purchase not found</p></div>
+  if (!purchase) return <div className="text-center py-12"><p className="text-gray-500">Transaction not found</p></div>
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <button onClick={() => router.push('/purchases')} className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="w-5 h-5 text-gray-600" /></button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{purchase.purchase_number}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Transaction • {purchase.purchase_number}</h1>
           <p className="text-gray-500 text-sm">{purchase.supplier?.name}</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => {
             if (confirm(`Are you sure you want to delete ${purchase.purchase_number}?`)) {
               deletePurchase(purchase.id).then(() => {
-                toast.success('Purchase deleted')
+                toast.success('Transaction deleted')
                 router.push('/purchases')
               }).catch((e: any) => toast.error(e.message))
             }

@@ -10,8 +10,7 @@ import { deleteParty } from '@/lib/api/parties'
 import { toast } from 'sonner'
 const partyTypeColors: Record<string, string> = {
   supplier: 'bg-blue-100 text-blue-800',
-  client: 'bg-green-100 text-green-800',
-  beneficiary: 'bg-purple-100 text-purple-800'
+  client: 'bg-green-100 text-green-800'
 }
 
 export default function PartiesPage() {
@@ -30,7 +29,8 @@ export default function PartiesPage() {
     try {
       let query = supabase.from('parties').select('*').order('created_at', { ascending: false })
 
-      if (filterType !== 'all') {
+      // Only filter by party_type for valid types; 'paid'/'unpaid' are client-side filters
+      if (filterType === 'supplier' || filterType === 'client') {
         query = query.eq('party_type', filterType)
       }
 
@@ -67,6 +67,19 @@ export default function PartiesPage() {
     }
   }
 
+  // Filter parties by balance status
+  const filteredParties = parties.filter(party => {
+    if (filterType === 'paid') {
+      const mainBalance = (party.opening_balance || 0) + (balanceMap[party.id] || 0)
+      return mainBalance === 0
+    }
+    if (filterType === 'unpaid') {
+      const mainBalance = (party.opening_balance || 0) + (balanceMap[party.id] || 0)
+      return mainBalance !== 0
+    }
+    return true
+  })
+
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return
     try {
@@ -83,7 +96,7 @@ export default function PartiesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage vendors (suppliers, clients, and beneficiaries)</p>
+          <p className="text-gray-500 text-sm mt-1">Manage suppliers and vendors</p>
         </div>
         <Link
           href="/parties/new"
@@ -108,17 +121,22 @@ export default function PartiesPage() {
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {['all', 'supplier', 'client', 'beneficiary'].map((type) => (
+            {[
+              { value: 'all', label: 'All' },
+              { value: 'supplier', label: 'Supplier' },
+              { value: 'paid', label: 'Settled' },
+              { value: 'unpaid', label: 'Outstanding' }
+            ].map(({ value, label }) => (
               <button
-                key={type}
-                onClick={() => setFilterType(type)}
+                key={value}
+                onClick={() => setFilterType(value)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filterType === type
+                  filterType === value
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {label}
               </button>
             ))}
           </div>
@@ -131,9 +149,9 @@ export default function PartiesPage() {
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
-        ) : parties.length === 0 ? (
+        ) : filteredParties.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-gray-500 mb-4">No vendors found</p>
+            <p className="text-gray-500 mb-4">{parties.length > 0 ? 'No vendors match the selected filter' : 'No vendors found'}</p>
             <Link href="/parties/new" className="text-blue-600 hover:underline font-medium">Add your first vendor</Link>
           </div>
         ) : (
@@ -150,7 +168,7 @@ export default function PartiesPage() {
                 </tr>
               </thead>
               <tbody>
-                {parties.map((party) => {
+                {filteredParties.map((party) => {
                   const mainBalance = (party.opening_balance || 0) + (balanceMap[party.id] || 0)
                   return (
                   <tr key={party.id} className="border-t hover:bg-gray-50 transition-colors">

@@ -9,6 +9,7 @@ import {
   TrendingUp,
   HandHeart,
   FileText,
+  Receipt,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -21,7 +22,7 @@ import { cn } from '@/lib/utils'
 const menuItems = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Vendors', href: '/parties', icon: Users },
-  { name: 'Purchases', href: '/purchases', icon: ShoppingCart },
+  { name: 'Transactions', href: '/purchases', icon: Receipt },
   { name: 'Sales', href: '/sales', icon: TrendingUp },
   { name: 'Beneficiaries', href: '/beneficiaries', icon: HandHeart },
   { name: 'Reports', href: '/reports', icon: FileText },
@@ -56,25 +57,27 @@ export default function Sidebar() {
         "relative p-4 border-b border-white/5",
         collapsed && "p-3"
       )}>
-        {collapsed ? (
-          <div className="flex items-center justify-center">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-in fade-in zoom-in-95 duration-300">
-              <span className="text-white font-bold text-sm">C</span>
-            </div>
-          </div>
-        ) : (
-          <div className="animate-in fade-in slide-in-from-left-2 duration-300">
-            <h1 className="text-xl font-bold flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
-                <span className="text-white font-bold">C</span>
+        <button onClick={() => setCollapsed(!collapsed)} className="w-full text-left" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          {collapsed ? (
+            <div className="flex items-center justify-center">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-in fade-in zoom-in-95 duration-300 hover:from-blue-400 hover:to-purple-500 transition-all cursor-pointer active:scale-95">
+                <span className="text-white font-bold text-sm">C</span>
               </div>
-              <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                Construction
-              </span>
-            </h1>
-            <p className="text-gray-500 text-xs mt-1.5 pl-[46px]">Accounting App</p>
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-left-2 duration-300 cursor-pointer active:scale-[0.98] transition-transform">
+              <h1 className="text-xl font-bold flex items-center gap-2.5">
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0 hover:from-blue-400 hover:to-purple-500 transition-all">
+                  <span className="text-white font-bold">C</span>
+                </div>
+                <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  Construction
+                </span>
+              </h1>
+              <p className="text-gray-500 text-xs mt-1.5 pl-[46px]">Accounting App</p>
+            </div>
+          )}
+        </button>
       </div>
 
       {/* Mobile close button */}

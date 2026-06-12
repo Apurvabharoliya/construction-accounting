@@ -124,8 +124,8 @@ export default function EditPurchasePage() {
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Purchase</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{purchase.purchase_number}</p>
+          <h1 className="text-2xl font-bold text-gray-900">Edit Transaction</h1>
+          <p className="text-gray-500 text-sm mt-0.5">{purchase.purchase_number} • {purchase.supplier?.name}</p>
         </div>
       </div>
       <PurchaseForm

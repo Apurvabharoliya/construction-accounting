@@ -33,8 +33,8 @@ export default function NewPartyPage() {
         notes: data.notes || undefined
       })
 
-      // If party is a beneficiary, auto-create a beneficiary record
-      if (data.party_type === 'beneficiary') {
+      // If party is a client, auto-create a beneficiary record
+      if (data.party_type === 'client') {
         await supabase.from('beneficiaries').insert([{
           party_id: party.id,
           aadhaar_number: undefined,

@@ -54,8 +54,8 @@ export default function EditPartyPage() {
         notes: data.notes || undefined
       })
 
-      // If updated to beneficiary, ensure a beneficiary record exists
-      if (data.party_type === 'beneficiary') {
+      // If updated to client, ensure a beneficiary record exists
+      if (data.party_type === 'client') {
         const { data: existing } = await supabase
           .from('beneficiaries')
           .select('id')
