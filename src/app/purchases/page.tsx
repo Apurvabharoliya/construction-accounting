@@ -1,50 +1,80 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Search, Eye, Edit3, Trash2 } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Receipt, ShoppingCart, DollarSign, Banknote, ArrowUp, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate, formatDateTime } from '@/lib/date'
 import DatePicker from '@/components/ui/DatePicker'
-import { deletePurchase } from '@/lib/api/purchases'
 import { toast } from 'sonner'
 
-export default function TransactionsPage() {
-  const [purchases, setPurchases] = useState<any[]>([])
+interface TransactionRow {
+  id: string
+  party_id: string
+  party_name: string
+  transaction_type: 'purchase' | 'sale' | 'payment' | 'receipt' | 'subsidy'
+  reference_id?: string
+  reference_type?: string
+  debit: number
+  credit: number
+  description?: string
+  transaction_date: string
+  created_at: string
+  running_balance: number
+}
+
+export default function CashbookPage() {
+  const [transactions, setTransactions] = useState<TransactionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
 
   useEffect(() => {
-    fetchPurchases()
-  }, [searchQuery, statusFilter, dateRange])
+    fetchTransactions()
+  }, [dateRange])
 
-  async function fetchPurchases() {
+  async function fetchTransactions() {
     setLoading(true)
     try {
       let query = supabase
-        .from('purchases')
-        .select('*, supplier:parties!supplier_id(name, phone), remarks')
-        .order('invoice_date', { ascending: false })
+        .from('transactions')
+        .select('*, party:parties!party_id(name)')
+        .order('transaction_date', { ascending: true })
+        .order('created_at', { ascending: true })
 
-      if (statusFilter !== 'all') {
-        query = query.eq('payment_status', statusFilter)
-      }
       if (dateRange.start) {
-        query = query.gte('invoice_date', dateRange.start)
+        query = query.gte('transaction_date', dateRange.start)
       }
       if (dateRange.end) {
-        query = query.lte('invoice_date', dateRange.end)
-      }
-      if (searchQuery) {
-        query = query.ilike('purchase_number', `%${searchQuery}%`)
+        query = query.lte('transaction_date', dateRange.end)
       }
 
       const { data, error } = await query
       if (error) throw error
-      setPurchases(data || [])
+
+      // Calculate running balance from oldest to newest
+      let runningBalance = 0
+      const withBalance: TransactionRow[] = (data || []).map((txn: any) => {
+        runningBalance = runningBalance + Number(txn.debit) - Number(txn.credit)
+        return {
+          id: txn.id,
+          party_id: txn.party_id,
+          party_name: txn.party?.name || 'Unknown',
+          transaction_type: txn.transaction_type,
+          reference_id: txn.reference_id,
+          reference_type: txn.reference_type,
+          debit: Number(txn.debit) || 0,
+          credit: Number(txn.credit) || 0,
+          description: txn.description || '',
+          transaction_date: txn.transaction_date,
+          created_at: txn.created_at,
+          running_balance: runningBalance
+        }
+      })
+
+      setTransactions(withBalance)
     } catch (error) {
       console.error('Error fetching transactions:', error)
     } finally {
@@ -52,31 +82,170 @@ export default function TransactionsPage() {
     }
   }
 
-  async function handleDelete(id: string, invoice: string) {
-    if (!confirm(`Are you sure you want to delete transaction ${invoice}?`)) return
-    try {
-      await deletePurchase(id)
-      toast.success('Transaction deleted')
-      fetchPurchases()
-    } catch (error: any) {
-      toast.error(error.message)
+  // Apply client-side filters for search and type
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(txn => {
+      // Type filter
+      if (typeFilter !== 'all' && txn.transaction_type !== typeFilter) return false
+
+      // Search filter - search by party name or description
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase()
+        const matchesParty = txn.party_name.toLowerCase().includes(q)
+        const matchesDesc = (txn.description || '').toLowerCase().includes(q)
+        const matchesType = txn.transaction_type.toLowerCase().includes(q)
+        if (!matchesParty && !matchesDesc && !matchesType) return false
+      }
+
+      return true
+    })
+  }, [transactions, typeFilter, searchQuery])
+
+  // Calculate running balance on filtered set + summary stats
+  const { displayTransactions, summary } = useMemo(() => {
+    let runningBal = 0
+    const withRunningBalance = filteredTransactions.map(txn => {
+      runningBal = runningBal + txn.debit - txn.credit
+      return { ...txn, running_balance: runningBal }
+    })
+
+    let totalDebits = 0
+    let totalCredits = 0
+    withRunningBalance.forEach(txn => {
+      totalDebits += txn.debit
+      totalCredits += txn.credit
+    })
+
+    return {
+      displayTransactions: withRunningBalance,
+      summary: {
+        totalDebits,
+        totalCredits,
+        netBalance: totalDebits - totalCredits,
+        count: withRunningBalance.length
+      }
     }
+  }, [filteredTransactions])
+
+  async function handleDelete(txn: TransactionRow) {
+    const label = `${txn.transaction_type} entry${txn.description ? ` — ${txn.description}` : ''}`
+
+    // For invoice-type entries (purchase/sale), warn about cascading delete
+    if (txn.transaction_type === 'purchase' || txn.transaction_type === 'sale') {
+      if (!txn.reference_id) {
+        toast.error('Cannot delete: no linked invoice found')
+        return
+      }
+      if (!confirm(`Delete this ${txn.transaction_type} and its associated invoice entirely?\n\nThis will remove the invoice, all items, and related payment entries.\n\nTransaction: ${label}`)) return
+      try {
+        if (txn.transaction_type === 'purchase') {
+          const { deletePurchase } = await import('@/lib/api/purchases')
+          await deletePurchase(txn.reference_id)
+        } else {
+          const { deleteSale } = await import('@/lib/api/sales')
+          await deleteSale(txn.reference_id)
+        }
+        toast.success(`${txn.transaction_type === 'purchase' ? 'Purchase' : 'Sale'} deleted`)
+        fetchTransactions()
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to delete')
+      }
+      return
+    }
+
+    // For payment/receipt entries, just remove the transaction row
+    if (!confirm(`Delete this ${txn.transaction_type} entry?\n\n${label}`)) return
+    try {
+      const { error } = await supabase.from('transactions').delete().eq('id', txn.id)
+      if (error) throw error
+      toast.success('Transaction entry deleted')
+      fetchTransactions()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete transaction')
+    }
+  }
+
+  function getTransactionLink(txn: TransactionRow): string | null {
+    if (txn.reference_id && txn.reference_type === 'purchase') return `/purchases/${txn.reference_id}`
+    if (txn.reference_id && txn.reference_type === 'sale') return `/sales/${txn.reference_id}`
+    return null
+  }
+
+  function getTypeBadge(type: string) {
+    const styles: Record<string, string> = {
+      purchase: 'bg-orange-50 text-orange-700 ring-orange-600/20',
+      sale: 'bg-blue-50 text-blue-700 ring-blue-600/20',
+      payment: 'bg-green-50 text-green-700 ring-green-600/20',
+      receipt: 'bg-teal-50 text-teal-700 ring-teal-600/20',
+      subsidy: 'bg-purple-50 text-purple-700 ring-purple-600/20',
+    }
+    const icons: Record<string, React.ReactNode> = {
+      purchase: <ShoppingCart className="w-3 h-3" />,
+      sale: <DollarSign className="w-3 h-3" />,
+      payment: <Banknote className="w-3 h-3" />,
+      receipt: <Banknote className="w-3 h-3" />,
+      subsidy: <DollarSign className="w-3 h-3" />,
+    }
+    const labels: Record<string, string> = {
+      purchase: 'Purchase',
+      sale: 'Sale',
+      payment: 'Payment',
+      receipt: 'Receipt',
+      subsidy: 'Subsidy',
+    }
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ring-1 ring-inset ${styles[type] || 'bg-gray-100 text-gray-700'}`}>
+        {icons[type] || null}
+        {labels[type] || type}
+      </span>
+    )
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage all purchase transactions and payments</p>
+          <h1 className="text-2xl font-bold text-gray-900">Cashbook / Ledger</h1>
+          <p className="text-gray-500 text-sm mt-1">Complete transaction log with debit/credit entries and running balance</p>
         </div>
         <Link
           href="/purchases/new"
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
         >
           <Plus className="w-5 h-5" />
-          New Transaction
+          New Purchase
         </Link>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-5 border-l-4 border-blue-500">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Debits</p>
+          <p className="text-lg md:text-xl font-bold text-blue-700 mt-1">{formatCurrency(summary.totalDebits)}</p>
+          <p className="text-xs text-gray-400 mt-1">{summary.count} entries</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-5 border-l-4 border-green-500">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Credits</p>
+          <p className="text-lg md:text-xl font-bold text-green-600 mt-1">{formatCurrency(summary.totalCredits)}</p>
+          <p className="text-xs text-gray-400 mt-1">{summary.count} entries</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-5 border-l-4 border-orange-500">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Net Balance</p>
+          <p className={`text-lg md:text-xl font-bold mt-1 ${summary.netBalance > 0 ? 'text-orange-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+            {formatCurrency(Math.abs(summary.netBalance))}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            {summary.netBalance > 0 ? 'Net Payable (Dr)' : summary.netBalance < 0 ? 'Net Receivable (Cr)' : 'Settled'}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-5 border-l-4 border-purple-500">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</p>
+          <p className="text-lg md:text-xl font-bold text-gray-900 mt-1">{transactions.length}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {transactions.filter(t => t.transaction_type === 'purchase' || t.transaction_type === 'sale').length} invoices
+          </p>
+        </div>
       </div>
 
       {/* Filters */}
@@ -86,95 +255,204 @@ export default function TransactionsPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search by supplier..."
+              placeholder="Search by party name, description, or type..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-sm"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <DatePicker value={dateRange.start} onChange={(v) => setDateRange(prev => ({ ...prev, start: v }))} />
             <DatePicker value={dateRange.end} onChange={(v) => setDateRange(prev => ({ ...prev, end: v }))} />
           </div>
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border rounded-lg text-sm"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-4 py-2 border rounded-lg text-sm bg-white min-w-[140px]"
           >
-            <option value="all">All</option>
-            <option value="paid">Payment</option>
-            <option value="unpaid">Purchase</option>
+            <option value="all">All Types</option>
+            <option value="purchase">Purchases</option>
+            <option value="sale">Sales</option>
+            <option value="payment">Payments</option>
+            <option value="receipt">Receipts</option>
+            <option value="subsidy">Subsidies</option>
           </select>
         </div>
       </div>
 
-      {/* List */}
+      {/* Cashbook Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-gray-700" />
+              <h2 className="text-lg font-semibold">Cashbook Statement</h2>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <span className="text-gray-400">
+                {filteredTransactions.length !== transactions.length
+                  ? `${filteredTransactions.length} of ${transactions.length} entries`
+                  : `${transactions.length} entries`}
+              </span>
+              <span className={`font-semibold ${summary.netBalance > 0 ? 'text-orange-600' : summary.netBalance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                Bal: {formatCurrency(Math.abs(summary.netBalance))} {summary.netBalance > 0 ? 'Dr' : summary.netBalance < 0 ? 'Cr' : ''}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
-        ) : purchases.length === 0 ? (
+        ) : filteredTransactions.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-gray-500 mb-4">No transactions found</p>
-            <Link href="/purchases/new" className="text-blue-600 hover:underline font-medium">Record your first transaction</Link>
+            <Receipt className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 mb-1">
+              {transactions.length === 0 ? 'No transactions found' : 'No transactions match your filters'}
+            </p>
+            <p className="text-gray-400 text-sm">
+              {transactions.length === 0
+                ? 'Record a purchase or sale to see entries here'
+                : 'Try adjusting your search or filter criteria'}
+            </p>
+            {transactions.length === 0 && (
+              <Link href="/purchases/new" className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium text-sm mt-3">
+                <Plus className="w-4 h-4" /> Record your first transaction
+              </Link>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left bg-gray-50">
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Date</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Supplier</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Description</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap text-right">Amount</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Type</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Actions</th>
+                <tr className="bg-gray-50">
+                  <th className="p-3 pl-5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
+                  <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Party</th>
+                  <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="p-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Debit (₹)</th>
+                  <th className="p-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Credit (₹)</th>
+                  <th className="p-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider pr-5">Running Balance</th>
+                  <th className="p-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
                 </tr>
               </thead>
-              <tbody>
-                {purchases.map((p) => {
-                  const isDue = Number(p.balance_due) > 0
-                  const isSettled = !isDue && Number(p.total_amount) > 0
-                  
+              <tbody className="divide-y divide-gray-100">
+                {displayTransactions.map((txn, idx) => {
+                  const isInvoiceType = txn.transaction_type === 'purchase' || txn.transaction_type === 'sale'
+                  const isPaymentType = txn.transaction_type === 'payment' || txn.transaction_type === 'receipt'
+                  const link = getTransactionLink(txn)
+
                   return (
-                    <tr key={p.id} className="border-t hover:bg-gray-50 transition-colors">
-                      <td className="p-4 text-sm whitespace-nowrap" data-label="Date">
-                        {formatDate(p.invoice_date)}
-                        <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(p.created_at)}</div>
-                      </td>
-                      <td className="p-4 text-sm font-medium" data-label="Supplier">{p.supplier?.name || 'N/A'}</td>
-                      <td className="p-4 text-sm text-gray-500 max-w-[200px] truncate" data-label="Description">
-                        {p.remarks || <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="p-4 text-sm font-semibold text-right whitespace-nowrap" data-label="Amount">
-                        <span className={isDue ? 'text-red-600' : isSettled ? 'text-green-600' : 'text-gray-900'}>
-                          {formatCurrency(Number(p.total_amount))}
-                        </span>
-                        {isDue && (
-                          <div className="text-xs text-red-500 font-medium mt-0.5">Due: {formatCurrency(Number(p.balance_due))}</div>
+                    <tr
+                      key={txn.id}
+                      className={`transition-colors group ${
+                        isPaymentType
+                          ? 'bg-green-50/30 hover:bg-green-50/70'
+                          : isInvoiceType
+                            ? 'hover:bg-gray-50/80'
+                            : 'hover:bg-gray-50/50'
+                      }`}
+                    >
+                      {/* Row number */}
+                      <td className="p-3 pl-5 text-xs text-gray-400 font-mono w-10">{idx + 1}</td>
+
+                      {/* Date */}
+                      <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
+                        {formatDate(txn.transaction_date)}
+                        {txn.created_at && (
+                          <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
                         )}
-                        {isSettled && (
-                          <div className="text-xs text-green-600 font-medium mt-0.5">Settled</div>
+                      </td>
+
+                      {/* Description */}
+                      <td className="p-3">
+                        {link && isInvoiceType ? (
+                          <Link
+                            href={link}
+                            className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate max-w-[180px]">{txn.description || 'View Invoice'}</span>
+                          </Link>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                            {isPaymentType && <ArrowUp className="w-3.5 h-3.5 text-green-600 shrink-0" />}
+                            <span className="truncate max-w-[200px]">{txn.description || '—'}</span>
+                          </div>
                         )}
                       </td>
-                      <td className="p-4" data-label="Type">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                          isDue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                        }`}>
-                          {isDue ? 'Purchase' : 'Payment'}
+
+                      {/* Party */}
+                      <td className="p-3">
+                        <Link
+                          href={`/parties/${txn.party_id}`}
+                          className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors"
+                        >
+                          {txn.party_name}
+                        </Link>
+                      </td>
+
+                      {/* Type Badge */}
+                      <td className="p-3">
+                        {getTypeBadge(txn.transaction_type)}
+                      </td>
+
+                      {/* Debit */}
+                      <td className="p-3 text-sm font-medium text-right whitespace-nowrap">
+                        {txn.debit > 0 ? (
+                          <span className="text-red-600 font-semibold">{formatCurrency(txn.debit)}</span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+
+                      {/* Credit */}
+                      <td className="p-3 text-sm font-medium text-right whitespace-nowrap">
+                        {txn.credit > 0 ? (
+                          <span className="text-green-600 font-semibold">{formatCurrency(txn.credit)}</span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+
+                      {/* Running Balance */}
+                      <td className="p-3 pr-5 text-sm font-semibold text-right whitespace-nowrap border-l-2 border-gray-200">
+                        <span className={txn.running_balance > 0 ? 'text-gray-900' : txn.running_balance < 0 ? 'text-red-600' : 'text-green-600'}>
+                          {txn.running_balance === 0 ? '—' : (
+                            <>
+                              {formatCurrency(Math.abs(txn.running_balance))}
+                              <span className="text-xs ml-0.5 font-normal">
+                                {txn.running_balance > 0 ? 'Dr' : 'Cr'}
+                              </span>
+                            </>
+                          )}
                         </span>
                       </td>
-                      <td className="p-4" data-label="">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <Link href={`/purchases/${p.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
-                            <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
-                          </Link>
-                          <Link href={`/purchases/${p.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
-                            <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
-                          </Link>
-                          <button onClick={() => handleDelete(p.id, p.purchase_number)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
-                            <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Delete</span>
+
+                      {/* Actions */}
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {link && (
+                            <Link
+                              href={link}
+                              className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="View invoice"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                          )}
+                          <button
+                            onClick={() => handleDelete(txn)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              txn.transaction_type === 'purchase' || txn.transaction_type === 'sale'
+                                ? 'text-red-500 hover:text-red-700 hover:bg-red-50'
+                                : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                            }`}
+                            title={txn.transaction_type === 'purchase' || txn.transaction_type === 'sale' ? 'Delete invoice and all related entries' : 'Delete this entry'}
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
