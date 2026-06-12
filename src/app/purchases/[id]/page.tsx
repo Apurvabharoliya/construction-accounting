@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/gst'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatDateTime } from '@/lib/date'
 import { ArrowLeft, Edit3, Trash2, Banknote, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { deletePurchase } from '@/lib/api/purchases'
@@ -85,6 +85,7 @@ export default function PurchaseDetailPage() {
         <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
           <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Date & Invoice</h3>
           <p className="font-medium text-sm md:text-base">{formatDate(purchase.invoice_date)}</p>
+          {purchase.created_at && <p className="text-xs md:text-sm text-gray-400">Recorded: {formatDateTime(purchase.created_at)}</p>}
           {purchase.supplier_invoice_number && <p className="text-xs md:text-sm text-gray-500">Supplier Inv: {purchase.supplier_invoice_number}</p>}
         </div>
         <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 sm:col-span-2 md:col-span-1">

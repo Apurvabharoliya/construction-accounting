@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getPartyLedger, getPartyInvoices, type InvoiceSummary } from '@/lib/api/ledger'
 import { formatCurrency } from '@/lib/gst'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatDateTime } from '@/lib/date'
 import DatePicker from '@/components/ui/DatePicker'
 import { ArrowLeft, ShoppingCart, DollarSign, Banknote, Receipt, AlertCircle, ChevronDown, ChevronRight, FileText } from 'lucide-react'
 import Link from 'next/link'
@@ -292,7 +292,10 @@ export default function LedgerReportPage() {
                       <tbody>
                         {group.transactions.map((txn: any, i: number) => (
                           <tr key={txn.id} className={`${i < group.transactions.length - 1 ? 'border-b border-gray-50' : ''}`}>
-                            <td className="p-3 pl-5 text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
+                            <td className="p-3 pl-5 text-sm text-gray-600">
+                            {formatDate(txn.transaction_date)}
+                            <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
+                          </td>
                             <td className="p-3 text-sm text-gray-800">{txn.description || '-'}</td>
                             <td className="p-3">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
@@ -366,7 +369,10 @@ export default function LedgerReportPage() {
                   <tbody>
                     {groupedTransactions['unlinked'].transactions.map((txn: any, i: number) => (
                       <tr key={txn.id} className={i < groupedTransactions['unlinked'].transactions.length - 1 ? 'border-b border-gray-50' : ''}>
-                        <td className="p-3 pl-5 text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
+                        <td className="p-3 pl-5 text-sm text-gray-600">
+                          {formatDate(txn.transaction_date)}
+                          <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
+                        </td>
                         <td className="p-3 text-sm text-gray-800">{txn.description || '-'}</td>
                         <td className="p-3">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 capitalize">
@@ -405,7 +411,10 @@ export default function LedgerReportPage() {
                 <tbody>
                   {transactions.map((txn: any, i: number) => (
                     <tr key={txn.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} hover:bg-gray-100/50 transition-colors`}>
-                      <td className="p-3 pl-5 text-sm">{formatDate(txn.transaction_date)}</td>
+                      <td className="p-3 pl-5 text-sm">
+                        {formatDate(txn.transaction_date)}
+                        <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
+                      </td>
                       <td className="p-3 text-sm text-gray-800">{txn.description || '-'}</td>
                       <td className="p-3">
                         <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${

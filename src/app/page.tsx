@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatDateTime } from '@/lib/date'
 import TrendChart from '@/components/dashboard/TrendChart'
 import ProfitLineChart from '@/components/dashboard/ProfitLineChart'
 import PaymentStatusChart from '@/components/dashboard/PaymentStatusChart'
@@ -324,7 +324,10 @@ export default function Dashboard() {
                   ) : (
                     stats.recentTransactions.map((txn: any, i: number) => (
                       <tr key={txn.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors animate-in fade-in" style={{ animationDelay: `${500 + i * 80}ms`, animationFillMode: 'both' }}>
-                        <td className="py-3 text-sm text-gray-600 whitespace-nowrap pr-4" data-label="Date">{formatDate(txn.invoice_date)}</td>
+                        <td className="py-3 text-sm text-gray-600 whitespace-nowrap pr-4" data-label="Date">
+                          {formatDate(txn.invoice_date)}
+                          <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
+                        </td>
                         <td className="py-3 text-sm font-medium text-gray-900 whitespace-nowrap pr-4 truncate max-w-[120px] md:max-w-none" data-label="Vendor">
                           <span className="flex items-center gap-1.5">
                             {txn.party_name || 'N/A'}

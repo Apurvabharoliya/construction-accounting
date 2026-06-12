@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getOutstandingReport, type OutstandingParty, type OutstandingInvoice } from '@/lib/api/ledger'
 import { formatCurrency } from '@/lib/gst'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatDateTime } from '@/lib/date'
 import { exportToExcel, exportToPDF, getOutstandingExportData } from '@/lib/export'
 import { ArrowLeft, IndianRupee, Users, ChevronDown, ChevronRight, ShoppingCart, DollarSign, FileText, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
@@ -214,7 +214,7 @@ export default function OutstandingReportPage() {
                               <div className="px-4 py-2 bg-blue-50/50 border-b border-blue-100">
                                 <div className="flex items-center gap-3 pl-8 text-xs font-medium text-gray-500 uppercase tracking-wider">
                                   <span className="w-[170px]">Invoice</span>
-                                  <span className="w-[95px]">Date</span>
+                                  <span className="w-[120px]">Date</span>
                                   <span className="w-[80px]">Type</span>
                                   <span className="w-[90px] text-right">Total</span>
                                   <span className="w-[110px]">Progress</span>
@@ -238,7 +238,10 @@ export default function OutstandingReportPage() {
                                     </Link>
 
                                     {/* Date */}
-                                    <span className="w-[95px] text-sm text-gray-500 shrink-0">{formatDate(inv.invoice_date)}</span>
+                                    <span className="w-[120px] shrink-0">
+                                      <div className="text-sm text-gray-500">{formatDate(inv.invoice_date)}</div>
+                                      <div className="text-xs text-gray-400">{formatDateTime(inv.created_at)}</div>
+                                    </span>
 
                                     {/* Type */}
                                     <span className={`w-[80px] inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium shrink-0 ${

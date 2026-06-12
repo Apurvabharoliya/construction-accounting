@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Party } from '@/types/database'
 import { formatCurrency } from '@/lib/gst'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatDateTime } from '@/lib/date'
 import { getPartyLedger, getPartyInvoices, type InvoiceSummary } from '@/lib/api/ledger'
 import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2, ExternalLink, ShoppingCart, DollarSign, Banknote, FileText, Receipt, Plus, ArrowDown, ArrowUp } from 'lucide-react'
 import Link from 'next/link'
@@ -120,6 +120,7 @@ export default function PartyDetailPage() {
     id: string
     type: 'invoice' | 'payment' | 'other'
     date: string
+    createdAt?: string
     invoice?: InvoiceSummary
     transaction?: any
     debit: number
@@ -145,6 +146,7 @@ export default function PartyDetailPage() {
         id: `inv-${inv.id}`,
         type: 'invoice',
         date: txn.transaction_date,
+        createdAt: txn.created_at,
         invoice: inv,
         debit: inv.total_amount,
         credit: 0,
@@ -160,6 +162,7 @@ export default function PartyDetailPage() {
         id: `pay-${txn.id}`,
         type: 'payment',
         date: txn.transaction_date,
+        createdAt: txn.created_at,
         transaction: txn,
         debit: 0,
         credit: amount,
@@ -173,6 +176,7 @@ export default function PartyDetailPage() {
         id: `txn-${txn.id}`,
         type: 'other',
         date: txn.transaction_date,
+        createdAt: txn.created_at,
         transaction: txn,
         debit: Number(txn.debit) || 0,
         credit: Number(txn.credit) || 0,
@@ -346,6 +350,7 @@ export default function PartyDetailPage() {
                       {/* Date */}
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                         {formatDate(row.date)}
+                        <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(row.createdAt || row.date)}</div>
                       </td>
                       
                       {/* Type */}
@@ -501,9 +506,12 @@ export default function PartyDetailPage() {
                         <tbody className="divide-y divide-gray-50">
                           {group.transactions.map((txn: any) => (
                             <tr key={txn.id} className="hover:bg-gray-50/50">
-                              <td className="p-2.5 pl-4 text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
-                              <td className="p-2.5 text-sm text-gray-800">{txn.description || '-'}</td>
-                              <td className="p-2.5"><span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded capitalize">{txn.transaction_type}</span></td>
+                            <td className="p-2.5 pl-4 text-sm text-gray-600">
+                              {formatDate(txn.transaction_date)}
+                              <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
+                            </td>
+                            <td className="p-2.5 text-sm text-gray-800">{txn.description || '-'}</td>
+                            <td className="p-2.5"><span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded capitalize">{txn.transaction_type}</span></td>
                               <td className="p-2.5 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
                               <td className="p-2.5 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
                               <td className="p-2.5 pr-4 text-sm font-medium text-right">{formatCurrency(txn.running_balance)}</td>
@@ -561,7 +569,10 @@ export default function PartyDetailPage() {
                       <tbody className="divide-y divide-gray-50">
                         {group.transactions.map((txn: any) => (
                           <tr key={txn.id} className="hover:bg-gray-50/50">
-                            <td className="p-2.5 pl-4 text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
+                            <td className="p-2.5 pl-4 text-sm text-gray-600">
+                              {formatDate(txn.transaction_date)}
+                              <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
+                            </td>
                             <td className="p-2.5 text-sm text-gray-800">{txn.description || '-'}</td>
                             <td className="p-2.5">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${

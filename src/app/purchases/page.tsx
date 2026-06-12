@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Plus, Search, Eye, Edit3, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatDateTime } from '@/lib/date'
 import DatePicker from '@/components/ui/DatePicker'
 import { deletePurchase } from '@/lib/api/purchases'
 import { toast } from 'sonner'
@@ -136,7 +136,10 @@ export default function PurchasesPage() {
               <tbody>
                 {purchases.map((p) => (
                   <tr key={p.id} className="border-t hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-sm" data-label="Date">{formatDate(p.invoice_date)}</td>
+                    <td className="p-4 text-sm" data-label="Date">
+                      {formatDate(p.invoice_date)}
+                      <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(p.created_at)}</div>
+                    </td>
                     <td className="p-4 text-sm font-medium" data-label="Invoice #">{p.purchase_number}</td>
                     <td className="p-4 text-sm" data-label="Supplier">{p.supplier?.name || 'N/A'}</td>
                     <td className="p-4 text-sm font-medium" data-label="Amount">{formatCurrency(Number(p.total_amount))}</td>

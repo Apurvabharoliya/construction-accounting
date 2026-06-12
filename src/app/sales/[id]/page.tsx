@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/gst'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatDateTime } from '@/lib/date'
 import { ArrowLeft, Printer, Edit3, Trash2, FileText, Banknote, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { deleteSale } from '@/lib/api/sales'
@@ -146,6 +146,7 @@ export default function SaleDetailPage() {
               <div className="space-y-0.5 md:space-y-1">
                 <p className="text-xs md:text-sm"><span className="text-gray-500">Invoice No:</span> <span className="font-medium">{sale.sale_number}</span></p>
                 <p className="text-xs md:text-sm"><span className="text-gray-500">Date:</span> <span className="font-medium">{formatDate(sale.invoice_date)}</span></p>
+                <p className="text-xs md:text-sm"><span className="text-gray-500">Recorded:</span> <span className="font-medium">{formatDateTime(sale.created_at)}</span></p>
                 <p className="text-xs md:text-sm"><span className="text-gray-500">Payment:</span> <span className="font-medium">{sale.payment_mode || 'N/A'}</span></p>
                 <p className="text-xs md:text-sm"><span className="text-gray-500">Status:</span> 
                   <span className={`ml-1 px-1.5 md:px-2 py-0.5 rounded-full text-xs font-medium ${

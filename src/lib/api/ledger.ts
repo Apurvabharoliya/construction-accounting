@@ -51,6 +51,7 @@ export interface OutstandingInvoice {
   invoice_id: string
   invoice_number: string
   invoice_date: string
+  created_at: string
   type: 'purchase' | 'sale'
   total_amount: number
   amount_paid: number
@@ -72,7 +73,7 @@ export async function getOutstandingReport(): Promise<OutstandingParty[]> {
   // Get all purchases with outstanding balances
   const { data: purchases, error: purchasesError } = await supabase
     .from('purchases')
-    .select('id, purchase_number, invoice_date, total_amount, amount_paid, balance_due, payment_status, supplier_id, supplier:parties!supplier_id(name, phone)')
+    .select('id, purchase_number, invoice_date, created_at, total_amount, amount_paid, balance_due, payment_status, supplier_id, supplier:parties!supplier_id(name, phone)')
     .gt('balance_due', 0)
     .order('invoice_date', { ascending: false })
 
@@ -81,7 +82,7 @@ export async function getOutstandingReport(): Promise<OutstandingParty[]> {
   // Get all sales with outstanding balances
   const { data: sales, error: salesError } = await supabase
     .from('sales')
-    .select('id, sale_number, invoice_date, total_amount, amount_received, balance_due, payment_status, client_id, client:parties!client_id(name, phone)')
+    .select('id, sale_number, invoice_date, created_at, total_amount, amount_received, balance_due, payment_status, client_id, client:parties!client_id(name, phone)')
     .gt('balance_due', 0)
     .order('invoice_date', { ascending: false })
 
@@ -106,6 +107,7 @@ export async function getOutstandingReport(): Promise<OutstandingParty[]> {
       invoice_id: p.id,
       invoice_number: p.purchase_number,
       invoice_date: p.invoice_date,
+      created_at: p.created_at,
       type: 'purchase',
       total_amount: Number(p.total_amount),
       amount_paid: Number(p.amount_paid),
@@ -130,6 +132,7 @@ export async function getOutstandingReport(): Promise<OutstandingParty[]> {
       invoice_id: s.id,
       invoice_number: s.sale_number,
       invoice_date: s.invoice_date,
+      created_at: s.created_at,
       type: 'sale',
       total_amount: Number(s.total_amount),
       amount_paid: Number(s.amount_received),
