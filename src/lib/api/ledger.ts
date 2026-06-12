@@ -47,49 +47,129 @@ export async function getPartyLedger(
   }
 }
 
-export async function getOutstandingReport() {
-  // Get all parties with outstanding purchase balances
+export interface OutstandingInvoice {
+  invoice_id: string
+  invoice_number: string
+  invoice_date: string
+  type: 'purchase' | 'sale'
+  total_amount: number
+  amount_paid: number
+  balance_due: number
+  payment_status: 'paid' | 'unpaid'
+  last_payment_date?: string
+}
+
+export interface OutstandingParty {
+  partyId: string
+  name: string
+  phone: string
+  payable: number
+  receivable: number
+  invoices: OutstandingInvoice[]
+}
+
+export async function getOutstandingReport(): Promise<OutstandingParty[]> {
+  // Get all purchases with outstanding balances
   const { data: purchases, error: purchasesError } = await supabase
     .from('purchases')
-    .select('supplier_id, balance_due, supplier:parties!supplier_id(name, phone)')
+    .select('id, purchase_number, invoice_date, total_amount, amount_paid, balance_due, payment_status, supplier_id, supplier:parties!supplier_id(name, phone)')
     .gt('balance_due', 0)
+    .order('invoice_date', { ascending: false })
 
   if (purchasesError) throw purchasesError
 
-  // Get all parties with outstanding sales balances
+  // Get all sales with outstanding balances
   const { data: sales, error: salesError } = await supabase
     .from('sales')
-    .select('client_id, balance_due, client:parties!client_id(name, phone)')
+    .select('id, sale_number, invoice_date, total_amount, amount_received, balance_due, payment_status, client_id, client:parties!client_id(name, phone)')
     .gt('balance_due', 0)
+    .order('invoice_date', { ascending: false })
 
   if (salesError) throw salesError
 
-  // Calculate totals per party
-  const partyBalances: Record<string, { 
-    payable: number; 
-    receivable: number; 
-    name: string; 
-    phone: string 
-  }> = {}
+  // Group by party with invoice-level details
+  const partyMap: Record<string, OutstandingParty> = {}
 
   purchases?.forEach((p: any) => {
-    if (!partyBalances[p.supplier_id]) {
-      partyBalances[p.supplier_id] = { payable: 0, receivable: 0, name: p.supplier?.name || 'Unknown', phone: p.supplier?.phone || '' }
+    if (!partyMap[p.supplier_id]) {
+      partyMap[p.supplier_id] = {
+        partyId: p.supplier_id,
+        name: p.supplier?.name || 'Unknown',
+        phone: p.supplier?.phone || '',
+        payable: 0,
+        receivable: 0,
+        invoices: []
+      }
     }
-    partyBalances[p.supplier_id].payable += Number(p.balance_due)
+    partyMap[p.supplier_id].payable += Number(p.balance_due)
+    partyMap[p.supplier_id].invoices.push({
+      invoice_id: p.id,
+      invoice_number: p.purchase_number,
+      invoice_date: p.invoice_date,
+      type: 'purchase',
+      total_amount: Number(p.total_amount),
+      amount_paid: Number(p.amount_paid),
+      balance_due: Number(p.balance_due),
+      payment_status: p.payment_status
+    })
   })
 
   sales?.forEach((s: any) => {
-    if (!partyBalances[s.client_id]) {
-      partyBalances[s.client_id] = { payable: 0, receivable: 0, name: s.client?.name || 'Unknown', phone: s.client?.phone || '' }
+    if (!partyMap[s.client_id]) {
+      partyMap[s.client_id] = {
+        partyId: s.client_id,
+        name: s.client?.name || 'Unknown',
+        phone: s.client?.phone || '',
+        payable: 0,
+        receivable: 0,
+        invoices: []
+      }
     }
-    partyBalances[s.client_id].receivable += Number(s.balance_due)
+    partyMap[s.client_id].receivable += Number(s.balance_due)
+    partyMap[s.client_id].invoices.push({
+      invoice_id: s.id,
+      invoice_number: s.sale_number,
+      invoice_date: s.invoice_date,
+      type: 'sale',
+      total_amount: Number(s.total_amount),
+      amount_paid: Number(s.amount_received),
+      balance_due: Number(s.balance_due),
+      payment_status: s.payment_status
+    })
   })
 
-  return Object.entries(partyBalances).map(([partyId, data]) => ({
-    partyId,
-    ...data
-  }))
+  // Fetch last payment date for each invoice from transactions
+  const allInvoiceIds = Object.values(partyMap).flatMap(p => p.invoices.map(i => i.invoice_id))
+  if (allInvoiceIds.length > 0) {
+    const { data: txns, error: txnError } = await supabase
+      .from('transactions')
+      .select('reference_id, transaction_date')
+      .in('reference_id', allInvoiceIds)
+      .in('transaction_type', ['payment', 'receipt'])
+      .order('transaction_date', { ascending: false })
+
+    if (!txnError && txns) {
+      // Build a map of the most recent payment date per invoice
+      const lastPaymentMap: Record<string, string> = {}
+      txns.forEach((t: any) => {
+        if (!lastPaymentMap[t.reference_id] || t.transaction_date > lastPaymentMap[t.reference_id]) {
+          lastPaymentMap[t.reference_id] = t.transaction_date
+        }
+      })
+
+      // Assign last payment date to each invoice
+      Object.values(partyMap).forEach(p => {
+        p.invoices.forEach(inv => {
+          if (lastPaymentMap[inv.invoice_id]) {
+            inv.last_payment_date = lastPaymentMap[inv.invoice_id]
+          }
+        })
+      })
+    }
+  }
+
+  // Sort parties by name and convert to array
+  return Object.values(partyMap).sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function getDailySummary(date: string) {

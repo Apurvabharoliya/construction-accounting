@@ -9,7 +9,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import { Label } from '@/components/ui/label'
 import { formatCurrency, PAYMENT_MODES } from '@/lib/gst'
 import { recordInvoicePayment } from '@/lib/api/ledger'
-import { Banknote, FileText, Loader2 } from 'lucide-react'
+import { Banknote, FileText, Loader2, CheckCircle2, ArrowUp } from 'lucide-react'
 import type { InvoiceSummary } from '@/lib/api/ledger'
 
 interface RecordPaymentDialogProps {
@@ -19,6 +19,12 @@ interface RecordPaymentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+}
+
+interface PaymentResult {
+  invoice_number: string
+  newStatus: string
+  newBalanceDue: number
 }
 
 export default function RecordPaymentDialog({
@@ -34,6 +40,8 @@ export default function RecordPaymentDialog({
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null)
+  const [paidAmount, setPaidAmount] = useState<number>(0)
 
   // Reset form when dialog opens
   function handleOpenChange(open: boolean) {
@@ -42,6 +50,8 @@ export default function RecordPaymentDialog({
       setPaymentMode(invoice.payment_mode || '')
       setPaymentDate(new Date().toISOString().split('T')[0])
       setError(null)
+      setPaymentResult(null)
+      setPaidAmount(0)
     }
     onOpenChange(open)
   }
@@ -72,8 +82,9 @@ export default function RecordPaymentDialog({
         payment_date: paymentDate
       }, partyId)
 
+      setPaidAmount(paymentAmount)
+      setPaymentResult(result)
       toast.success(`Payment of ${formatCurrency(paymentAmount)} recorded for ${result.invoice_number}`)
-      onOpenChange(false)
       onSuccess()
     } catch (err: any) {
       setError(err.message || 'Failed to record payment')
@@ -82,8 +93,139 @@ export default function RecordPaymentDialog({
     }
   }
 
-  const isPurchase = invoice.type === 'purchase'
+  function handleClose() {
+    onOpenChange(false)
+    // Reset result after dialog closes
+    setTimeout(() => setPaymentResult(null), 200)
+  }
 
+  const isPurchase = invoice.type === 'purchase'
+  const isFullyPaid = paymentResult?.newStatus === 'paid'
+
+  // --- SUCCESS STATE ---
+  if (paymentResult) {
+    return (
+      <Dialog open={open} onOpenChange={(open) => { if (!open) handleClose() }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              Payment Recorded
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            {/* Success banner */}
+            <div className={`rounded-xl p-4 text-center ${
+              isFullyPaid
+                ? 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'
+                : 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200'
+            }`}>
+              <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-3 ${
+                isFullyPaid ? 'bg-green-100' : 'bg-blue-100'
+              }`}>
+                <CheckCircle2 className={`w-6 h-6 ${isFullyPaid ? 'text-green-600' : 'text-blue-600'}`} />
+              </div>
+              <p className={`text-lg font-bold ${isFullyPaid ? 'text-green-700' : 'text-blue-700'}`}>
+                {formatCurrency(paidAmount)} {isPurchase ? 'Paid' : 'Received'}!
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {isFullyPaid 
+                  ? `${paymentResult.invoice_number} is now fully settled`
+                  : `Partial payment for ${paymentResult.invoice_number}`
+                }
+              </p>
+            </div>
+
+            {/* Updated amounts breakdown */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Updated Balance</p>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Invoice</span>
+                <span className="font-semibold text-gray-900">{paymentResult.invoice_number}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Party</span>
+                <span className="font-semibold text-gray-900">{partyName}</span>
+              </div>
+
+              <div className="border-t border-gray-200 pt-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Total Amount</span>
+                  <span className="font-semibold text-gray-800">{formatCurrency(invoice.total_amount)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1.5 text-gray-500">
+                    <ArrowUp className="w-3.5 h-3.5 text-green-500" />
+                    <span>Previously Paid</span>
+                  </div>
+                  <span className="font-semibold text-green-600">{formatCurrency(invoice.amount_paid)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1.5 text-green-600">
+                    <ArrowUp className="w-3.5 h-3.5" />
+                    <span className="font-medium">Just {isPurchase ? 'Paid' : 'Received'}</span>
+                  </div>
+                  <span className="font-bold text-green-700 text-base">{formatCurrency(paidAmount)}</span>
+                </div>
+
+                <div className="border-t border-gray-200 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      {isFullyPaid ? 'Status' : 'Remaining Balance'}
+                    </span>
+                    {isFullyPaid ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 ring-1 ring-green-600/20">
+                        <CheckCircle2 className="w-3 h-3" /> Fully Paid
+                      </span>
+                    ) : (
+                      <span className="text-base font-bold text-orange-600">
+                        {formatCurrency(paymentResult.newBalanceDue)}
+                      </span>
+                    )}
+                  </div>
+                  {!isFullyPaid && (
+                    <p className="text-xs text-gray-400 mt-1 text-right">
+                      {((paidAmount / invoice.total_amount) * 100).toFixed(0)}% of invoice paid so far
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              {!isFullyPaid && (
+                <div className="pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-green-500 transition-all duration-700"
+                        style={{
+                          width: `${Math.min(((invoice.amount_paid + paidAmount) / invoice.total_amount) * 100, 100)}%`
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-gray-500 min-w-[36px] text-right">
+                      {Math.round(((invoice.amount_paid + paidAmount) / invoice.total_amount) * 100)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <DialogFooter className="!mt-4">
+              <Button onClick={handleClose} className="w-full">
+                {isFullyPaid ? 'Done' : 'Close'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  // --- FORM STATE ---
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
