@@ -9,6 +9,8 @@ import { ArrowLeft, Edit3, Trash2, Banknote, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { deletePurchase } from '@/lib/api/purchases'
 import { toast } from 'sonner'
+import RecordPaymentDialog from '@/components/payments/RecordPaymentDialog'
+import type { InvoiceSummary } from '@/lib/api/ledger'
 
 export default function PurchaseDetailPage() {
   const params = useParams()
@@ -17,6 +19,7 @@ export default function PurchaseDetailPage() {
   const [loading, setLoading] = useState(true)
 
   const [transactions, setTransactions] = useState<any[]>([])
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
 
   useEffect(() => {
     if (params.id) fetchPurchase()
@@ -60,6 +63,14 @@ export default function PurchaseDetailPage() {
           <p className="text-gray-500 text-sm">{purchase.supplier?.name}</p>
         </div>
         <div className="flex items-center gap-3">
+          {Number(purchase.balance_due) > 0 && (
+            <button
+              onClick={() => setPaymentDialogOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <Banknote className="w-4 h-4" /> Record Payment
+            </button>
+          )}
           <button onClick={() => {
             if (confirm(`Are you sure you want to delete ${purchase.purchase_number}?`)) {
               deletePurchase(purchase.id).then(() => {
@@ -150,6 +161,34 @@ export default function PurchaseDetailPage() {
           <p className="text-sm">{purchase.remarks}</p>
         </div>
       )}
+
+      {/* Record Payment Dialog */}
+      <RecordPaymentDialog
+        invoice={{
+          id: purchase.id,
+          invoice_number: purchase.purchase_number,
+          invoice_date: purchase.invoice_date,
+          type: 'purchase',
+          subtotal: Number(purchase.subtotal),
+          total_amount: Number(purchase.total_amount),
+          gst_rate: Number(purchase.gst_rate),
+          cgst_amount: Number(purchase.cgst_amount),
+          sgst_amount: Number(purchase.sgst_amount),
+          igst_amount: Number(purchase.igst_amount),
+          payment_mode: purchase.payment_mode,
+          payment_status: purchase.payment_status as 'paid' | 'unpaid',
+          amount_paid: Number(purchase.amount_paid),
+          balance_due: Number(purchase.balance_due),
+          remarks: purchase.remarks,
+          items_count: purchase.items?.length || 0,
+          link: `/purchases/${purchase.id}`
+        } as InvoiceSummary}
+        partyName={purchase.supplier?.name || ''}
+        partyId={purchase.supplier_id}
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        onSuccess={() => fetchPurchase()}
+      />
 
       {/* Payment History */}
       {transactions.length > 0 && (

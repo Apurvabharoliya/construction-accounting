@@ -2,18 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Eye, Edit3, Trash2 } from 'lucide-react'
+import { Plus, Eye, Edit3, Trash2, Banknote } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate, formatDateTime } from '@/lib/date'
 import DatePicker from '@/components/ui/DatePicker'
 import { deleteSale } from '@/lib/api/sales'
 import { toast } from 'sonner'
+import RecordPaymentDialog from '@/components/payments/RecordPaymentDialog'
+import type { InvoiceSummary } from '@/lib/api/ledger'
+
 export default function SalesPage() {
   const [sales, setSales] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [paymentDialogInvoice, setPaymentDialogInvoice] = useState<InvoiceSummary | null>(null)
+  const [paymentDialogParty, setPaymentDialogParty] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     fetchSales()
@@ -126,6 +131,35 @@ export default function SalesPage() {
                     </td>
                     <td className="p-4" data-label="">
                       <div className="flex items-center gap-2 sm:gap-3">
+                        {Number(s.balance_due) > 0 && (
+                          <button
+                            onClick={() => {
+                              setPaymentDialogParty({ id: s.client_id, name: s.client?.name || 'Unknown' })
+                              setPaymentDialogInvoice({
+                                id: s.id,
+                                invoice_number: s.sale_number,
+                                invoice_date: s.invoice_date,
+                                type: 'sale',
+                                subtotal: Number(s.subtotal),
+                                total_amount: Number(s.total_amount),
+                                gst_rate: Number(s.gst_rate),
+                                cgst_amount: Number(s.cgst_amount),
+                                sgst_amount: Number(s.sgst_amount),
+                                igst_amount: Number(s.igst_amount),
+                                payment_mode: s.payment_mode,
+                                payment_status: s.payment_status as 'paid' | 'unpaid',
+                                amount_paid: Number(s.amount_received),
+                                balance_due: Number(s.balance_due),
+                                items_count: 0,
+                                link: `/sales/${s.id}`
+                              })
+                            }}
+                            className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-green-600 hover:text-green-700 rounded-lg sm:rounded-none hover:bg-green-50 sm:hover:bg-transparent transition-colors"
+                            title="Record Payment"
+                          >
+                            <Banknote className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> Pay</span>
+                          </button>
+                        )}
                         <Link href={`/sales/${s.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
                           <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
                         </Link>
@@ -144,6 +178,18 @@ export default function SalesPage() {
           </div>
         )}
       </div>
+
+      {/* Record Payment Dialog */}
+      {paymentDialogInvoice && paymentDialogParty && (
+        <RecordPaymentDialog
+          invoice={paymentDialogInvoice}
+          partyName={paymentDialogParty.name}
+          partyId={paymentDialogParty.id}
+          open={!!paymentDialogInvoice}
+          onOpenChange={(open) => { if (!open) { setPaymentDialogInvoice(null); setPaymentDialogParty(null) } }}
+          onSuccess={() => fetchSales()}
+        />
+      )}
     </div>
   )
 }

@@ -8,6 +8,8 @@ import { formatCurrency } from '@/lib/gst'
 import { formatDate, formatDateTime } from '@/lib/date'
 import DatePicker from '@/components/ui/DatePicker'
 import { toast } from 'sonner'
+import RecordPaymentDialog from '@/components/payments/RecordPaymentDialog'
+import type { InvoiceSummary } from '@/lib/api/ledger'
 
 interface TransactionRow {
   id: string
@@ -30,6 +32,9 @@ export default function CashbookPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [linkedInvoices, setLinkedInvoices] = useState<Map<string, any>>(new Map())
+  const [paymentDialogInvoice, setPaymentDialogInvoice] = useState<InvoiceSummary | null>(null)
+  const [paymentDialogParty, setPaymentDialogParty] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     fetchTransactions()
@@ -75,6 +80,44 @@ export default function CashbookPage() {
       })
 
       setTransactions(withBalance)
+
+      // Fetch linked purchase/sale records for payment status
+      const invoiceIds = new Set<string>()
+      withBalance.forEach(txn => {
+        if (txn.reference_id && (txn.reference_type === 'purchase' || txn.reference_type === 'sale')) {
+          invoiceIds.add(txn.reference_id)
+        }
+      })
+
+      const invoiceMap = new Map<string, any>()
+      if (invoiceIds.size > 0) {
+        const ids = Array.from(invoiceIds)
+
+        // Fetch purchase records
+        const { data: purchases } = await supabase
+          .from('purchases')
+          .select('id, purchase_number, invoice_date, total_amount, amount_paid, balance_due, payment_status, supplier_id, subtotal, cgst_amount, sgst_amount, igst_amount, gst_rate, payment_mode')
+          .in('id', ids)
+
+        purchases?.forEach(p => {
+          invoiceMap.set(p.id, { ...p, type: 'purchase', invoice_number: p.purchase_number })
+        })
+
+        // Fetch sale records for remaining IDs
+        const remainingIds = ids.filter(id => !invoiceMap.has(id))
+        if (remainingIds.length > 0) {
+          const { data: sales } = await supabase
+            .from('sales')
+            .select('id, sale_number, invoice_date, total_amount, amount_received, balance_due, payment_status, client_id, subtotal, cgst_amount, sgst_amount, igst_amount, gst_rate, payment_mode')
+            .in('id', remainingIds)
+
+          sales?.forEach(s => {
+            invoiceMap.set(s.id, { ...s, type: 'sale', invoice_number: s.sale_number, amount_paid: s.amount_received })
+          })
+        }
+      }
+
+      setLinkedInvoices(invoiceMap)
     } catch (error) {
       console.error('Error fetching transactions:', error)
     } finally {
@@ -434,6 +477,42 @@ export default function CashbookPage() {
                       {/* Actions */}
                       <td className="p-3 text-center" data-label="">
                         <div className="flex items-center justify-center sm:justify-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                          {isInvoiceType && txn.reference_id && linkedInvoices.has(txn.reference_id) && (() => {
+                            const inv = linkedInvoices.get(txn.reference_id)!
+                            if (Number(inv.balance_due) > 0) {
+                              return (
+                                <button
+                                  onClick={() => {
+                                    const isPurchase = inv.type === 'purchase'
+                                    setPaymentDialogParty({ id: isPurchase ? inv.supplier_id : inv.client_id, name: txn.party_name })
+                                    setPaymentDialogInvoice({
+                                      id: inv.id,
+                                      invoice_number: inv.invoice_number,
+                                      invoice_date: inv.invoice_date,
+                                      type: isPurchase ? 'purchase' : 'sale',
+                                      subtotal: Number(inv.subtotal),
+                                      total_amount: Number(inv.total_amount),
+                                      gst_rate: Number(inv.gst_rate),
+                                      cgst_amount: Number(inv.cgst_amount),
+                                      sgst_amount: Number(inv.sgst_amount),
+                                      igst_amount: Number(inv.igst_amount),
+                                      payment_mode: inv.payment_mode,
+                                      payment_status: inv.payment_status,
+                                      amount_paid: Number(inv.amount_paid),
+                                      balance_due: Number(inv.balance_due),
+                                      items_count: 0,
+                                      link: link || '#'
+                                    })
+                                  }}
+                                  className="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                                  title="Record Payment"
+                                >
+                                  <Banknote className="w-4 h-4" />
+                                </button>
+                              )
+                            }
+                            return null
+                          })()}
                           {link && (
                             <Link
                               href={link}
@@ -491,6 +570,18 @@ export default function CashbookPage() {
           </div>
         )}
       </div>
+
+      {/* Record Payment Dialog */}
+      {paymentDialogInvoice && paymentDialogParty && (
+        <RecordPaymentDialog
+          invoice={paymentDialogInvoice}
+          partyName={paymentDialogParty.name}
+          partyId={paymentDialogParty.id}
+          open={!!paymentDialogInvoice}
+          onOpenChange={(open) => { if (!open) { setPaymentDialogInvoice(null); setPaymentDialogParty(null) } }}
+          onSuccess={() => fetchTransactions()}
+        />
+      )}
     </div>
   )
 }

@@ -9,6 +9,8 @@ import { ArrowLeft, Printer, Edit3, Trash2, FileText, Banknote, DollarSign } fro
 import Link from 'next/link'
 import { deleteSale } from '@/lib/api/sales'
 import { toast } from 'sonner'
+import RecordPaymentDialog from '@/components/payments/RecordPaymentDialog'
+import type { InvoiceSummary } from '@/lib/api/ledger'
 
 export default function SaleDetailPage() {
   const params = useParams()
@@ -17,6 +19,7 @@ export default function SaleDetailPage() {
   const [loading, setLoading] = useState(true)
 
   const [transactions, setTransactions] = useState<any[]>([])
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
 
   useEffect(() => {
     if (params.id) fetchSale()
@@ -92,6 +95,15 @@ export default function SaleDetailPage() {
             <p className="text-gray-500 text-xs md:text-sm truncate">Sale to {sale.client?.name}</p>
           </div>
           <div className="flex items-center gap-1.5 md:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+            {Number(sale.balance_due) > 0 && (
+              <button
+                onClick={() => setPaymentDialogOpen(true)}
+                className="flex items-center gap-1 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all text-xs md:text-sm font-medium shadow-sm"
+              >
+                <Banknote className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>Pay</span>
+              </button>
+            )}
             <button onClick={() => {
               if (confirm(`Are you sure you want to delete ${sale.sale_number}?`)) {
                 deleteSale(sale.id).then(() => {
@@ -234,6 +246,34 @@ export default function SaleDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Record Payment Dialog */}
+          <RecordPaymentDialog
+            invoice={{
+              id: sale.id,
+              invoice_number: sale.sale_number,
+              invoice_date: sale.invoice_date,
+              type: 'sale',
+              subtotal: Number(sale.subtotal),
+              total_amount: Number(sale.total_amount),
+              gst_rate: Number(sale.gst_rate),
+              cgst_amount: Number(sale.cgst_amount),
+              sgst_amount: Number(sale.sgst_amount),
+              igst_amount: Number(sale.igst_amount),
+              payment_mode: sale.payment_mode,
+              payment_status: sale.payment_status as 'paid' | 'unpaid',
+              amount_paid: Number(sale.amount_received),
+              balance_due: Number(sale.balance_due),
+              remarks: sale.remarks,
+              items_count: sale.items?.length || 0,
+              link: `/sales/${sale.id}`
+            } as InvoiceSummary}
+            partyName={sale.client?.name || ''}
+            partyId={sale.client_id}
+            open={paymentDialogOpen}
+            onOpenChange={setPaymentDialogOpen}
+            onSuccess={() => fetchSale()}
+          />
 
           {/* Payment / Transaction History */}
           {transactions.length > 1 && (
