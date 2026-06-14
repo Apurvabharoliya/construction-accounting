@@ -172,7 +172,49 @@ CREATE TABLE business_settings (
 );
 
 -- =============================================
--- 10. AUDIT LOG TABLE
+-- 10. VILLAGES TABLE
+-- =============================================
+CREATE TABLE villages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL UNIQUE,
+  location TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =============================================
+-- 11. VILLAGE MATERIALS TABLE (Current Stock)
+-- =============================================
+CREATE TABLE village_materials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  village_id UUID REFERENCES villages(id) ON DELETE CASCADE,
+  material_name VARCHAR(100) NOT NULL,
+  quantity_received DECIMAL(15,3) DEFAULT 0,
+  quantity_used DECIMAL(15,3) DEFAULT 0,
+  quantity_remaining DECIMAL(15,3) DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(village_id, material_name)
+);
+
+-- =============================================
+-- 12. MATERIAL TRANSACTIONS TABLE (Receipt/Usage Log)
+-- =============================================
+CREATE TABLE material_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  village_name VARCHAR(100) NOT NULL,
+  material_name VARCHAR(100) NOT NULL,
+  transaction_type VARCHAR(20) CHECK (transaction_type IN ('receipt', 'usage')),
+  quantity DECIMAL(15,3) NOT NULL,
+  contractor_name VARCHAR(255),
+  reference_purchase_id UUID REFERENCES purchases(id) ON DELETE SET NULL,
+  notes TEXT,
+  transaction_date DATE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =============================================
+-- 13. AUDIT LOG TABLE
 -- =============================================
 CREATE TABLE audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -189,6 +231,8 @@ CREATE TABLE audit_log (
 -- INDEXES
 -- =============================================
 CREATE INDEX idx_parties_name ON parties(name);
+CREATE INDEX idx_village_materials_village ON village_materials(village_id);
+CREATE INDEX idx_material_transactions_village ON material_transactions(village_name);
 CREATE INDEX idx_parties_type ON parties(party_type);
 CREATE INDEX idx_parties_gstin ON parties(gstin);
 CREATE INDEX idx_purchases_supplier ON purchases(supplier_id);
@@ -211,6 +255,9 @@ ALTER TABLE beneficiaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gst_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE villages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE village_materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE material_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all on parties" ON parties FOR ALL USING (true);
@@ -222,6 +269,9 @@ CREATE POLICY "Allow all on beneficiaries" ON beneficiaries FOR ALL USING (true)
 CREATE POLICY "Allow all on transactions" ON transactions FOR ALL USING (true);
 CREATE POLICY "Allow all on gst_config" ON gst_config FOR ALL USING (true);
 CREATE POLICY "Allow all on business_settings" ON business_settings FOR ALL USING (true);
+CREATE POLICY "Allow all on villages" ON villages FOR ALL USING (true);
+CREATE POLICY "Allow all on village_materials" ON village_materials FOR ALL USING (true);
+CREATE POLICY "Allow all on material_transactions" ON material_transactions FOR ALL USING (true);
 CREATE POLICY "Allow all on audit_log" ON audit_log FOR ALL USING (true);
 
 -- =============================================
@@ -253,6 +303,25 @@ INSERT INTO gst_config (hsn_code, description, gst_rate, category) VALUES
 ('9403', 'Furniture', 18, 'Furniture');
 
 -- =============================================
+-- =============================================
+-- SEED VILLAGES & MATERIALS
+-- =============================================
+INSERT INTO villages (name) VALUES
+('Varnama'),
+('Dharapura'),
+('Dodhka'),
+('Rayka'),
+('Talsad');
+
+-- Initialize material records for each village
+INSERT INTO village_materials (village_id, material_name, quantity_received, quantity_used, quantity_remaining)
+SELECT v.id, m.material_name, 0, 0, 0
+FROM villages v
+CROSS JOIN (
+  VALUES ('Bricks'), ('Sand/Reti'), ('Kapchi'), ('Cement'), ('Steel'), ('Door Frame')
+) AS m(material_name);
+
+-- =============================================
 -- SETTINGS (Default values)
 -- =============================================
 INSERT INTO business_settings (setting_key, setting_value) VALUES
@@ -260,9 +329,12 @@ INSERT INTO business_settings (setting_key, setting_value) VALUES
 ('state_code', '27'),
 ('financial_year_start', 'April');
 
+
 -- =============================================
 -- VERIFICATION QUERY
 -- =============================================
 -- Run this to verify everything was created:
 -- SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 -- SELECT COUNT(*) as gst_rates FROM gst_config;
+-- SELECT COUNT(*) as village_count FROM villages;
+-- SELECT COUNT(*) as material_records FROM village_materials;

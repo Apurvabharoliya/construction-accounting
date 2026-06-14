@@ -76,48 +76,62 @@ export default function BeneficiariesPage() {
             <Link href="/beneficiaries/new" className="text-blue-600 hover:underline font-medium">Add your first beneficiary</Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full responsive-table-card">
+          <div className="overflow-x-auto">                    <table className="w-full responsive-table-card">
               <thead>
                 <tr className="text-left bg-gray-50">
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Phone</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Name</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Aadhaar</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Amount (₹)</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Description</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Amount (-4 Lakhs)</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Payments</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Balance</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Aadhaar</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {beneficiaries.map((b: any) => (
-                  <tr key={b.id} className="border-t hover:bg-gray-50">
-                    <td className="p-4" data-label="Name">
-                      <p className="font-medium text-gray-900">{b.party?.name || 'N/A'}</p>
-                    </td>
-                    <td className="p-4 text-sm text-gray-600" data-label="Aadhaar">{b.aadhaar_number || '-'}</td>
-                    <td className="p-4" data-label="Amount">
-                      <div className="flex items-center gap-1">
-                        <IndianRupee className="w-3.5 h-3.5 text-orange-500" />
-                        <span className="font-semibold text-orange-600">{formatCurrency(b.total_amount_due || 0)}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate hidden md:table-cell" data-label="Description">
-                      {b.notes || <span className="text-gray-400">—</span>}
-                    </td>
-                    <td className="p-4" data-label="">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <Link href={`/beneficiaries/${b.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
-                          <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
-                        </Link>
-                        <Link href={`/beneficiaries/${b.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
-                          <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
-                        </Link>
-                        <button onClick={() => handleDelete(b.id, b.party?.name)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> Delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {beneficiaries.map((b: any) => {
+                  const amountDue = Number(b.total_amount_due) || 0
+                  const amountPaid = Number(b.total_amount_received) || 0
+                  const balance = amountDue - amountPaid
+                  return (
+                    <tr key={b.id} className="border-t hover:bg-gray-50">
+                      <td className="p-4 text-sm" data-label="Phone">
+                        <span className="font-mono text-gray-600">{b.party?.phone || '-'}</span>
+                      </td>
+                      <td className="p-4" data-label="Name">
+                        <p className="font-medium text-gray-900">{b.party?.name || 'N/A'}</p>
+                      </td>
+                      <td className="p-4" data-label="Amount">
+                        <div className="flex items-center gap-1">
+                          <IndianRupee className="w-3.5 h-3.5 text-red-500" />
+                          <span className="font-semibold text-red-600">{formatCurrency(amountDue)}</span>
+                        </div>
+                      </td>
+                      <td className="p-4" data-label="Payments">
+                        <span className="font-semibold text-green-600">{formatCurrency(amountPaid)}</span>
+                      </td>
+                      <td className="p-4" data-label="Balance">
+                        <span className={`font-bold ${balance > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                          {formatCurrency(balance)}
+                        </span>
+                      </td>
+                      <td className="p-4 text-sm text-gray-600 hidden md:table-cell" data-label="Aadhaar">{b.aadhaar_number || '-'}</td>
+                      <td className="p-4" data-label="">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <Link href={`/beneficiaries/${b.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
+                            <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
+                          </Link>
+                          <Link href={`/beneficiaries/${b.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
+                            <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
+                          </Link>
+                          <button onClick={() => handleDelete(b.id, b.party?.name)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
+                            <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

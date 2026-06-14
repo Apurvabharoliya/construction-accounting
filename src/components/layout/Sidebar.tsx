@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  X
+  X,
+  Building2
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
@@ -23,7 +24,7 @@ const menuItems = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Vendors', href: '/parties', icon: Users },
   { name: 'Transactions', href: '/purchases', icon: Receipt },
-  { name: 'Sales', href: '/sales', icon: TrendingUp },
+  { name: 'Villages', href: '/villages', icon: Building2 },
   { name: 'Beneficiaries', href: '/beneficiaries', icon: HandHeart },
   { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Settings', href: '/settings', icon: Settings },

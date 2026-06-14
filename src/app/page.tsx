@@ -114,7 +114,7 @@ export default function Dashboard() {
       icon: TrendingUp,
       iconColor: 'text-green-600',
       iconBg: 'bg-gradient-to-br from-green-100 to-green-200',
-      href: '/sales',
+      href: '/villages',
       delay: 0
     },
     {
@@ -205,7 +205,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-3">
             {[
               { href: '/purchases/new', icon: ShoppingCart, color: 'blue', label: 'New Transaction' },
-              { href: '/sales/new', icon: TrendingUp, color: 'green', label: 'New Sale' },
+              { href: '/villages', icon: TrendingUp, color: 'green', label: 'Villages' },
               { href: '/parties/new', icon: Users, color: 'purple', label: 'Add Vendor' },
               { href: '/beneficiaries/new', icon: HandHeart, color: 'orange', label: 'Beneficiary' },
             ].map((action) => (
@@ -253,7 +253,7 @@ export default function Dashboard() {
                       <td colSpan={4} className="py-12 text-center text-gray-500">
                         <FileText className="w-10 h-10 md:w-12 md:h-12 text-gray-300 mx-auto mb-3" />
                         <p className="font-medium">No transactions yet</p>
-                        <p className="text-sm mt-1">Start by adding a purchase or sale</p>
+                        <p className="text-sm mt-1">Start by adding a purchase or visiting villages</p>
                       </td>
                     </tr>
                   ) : (

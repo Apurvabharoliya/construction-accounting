@@ -4,10 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { createPurchase } from '@/lib/api/purchases'
+import { addMaterialReceipt } from '@/lib/api/villages'
 import { toast } from 'sonner'
-import { Plus, Trash2, ChevronDown, ChevronRight, Copy, ShoppingCart } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronRight, Copy, ShoppingCart, Check, X } from 'lucide-react'
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import DatePicker from '@/components/ui/DatePicker'
+import { VILLAGES, MATERIALS, getContractorsForMaterial } from '@/lib/village-constants'
 
 interface TransactionItem {
   material_name: string
@@ -23,6 +25,7 @@ interface TransactionEntry {
   supplier_name: string
   invoice_date: string
   supplier_invoice_number: string
+  village_name: string
   payment_mode: string
   payment_status: 'unpaid' | 'paid'
   amount_paid: number
@@ -39,6 +42,7 @@ function emptyEntry(): TransactionEntry {
     supplier_name: '',
     invoice_date: new Date().toISOString().split('T')[0],
     supplier_invoice_number: '',
+    village_name: '',
     payment_mode: '',
     payment_status: 'unpaid',
     amount_paid: 0,
@@ -47,11 +51,18 @@ function emptyEntry(): TransactionEntry {
   }
 }
 
+// Material display names for the autocomplete suggestions
+const materialSuggestions = [...MATERIALS]
+
 export default function NewTransactionPage() {
   const router = useRouter()
   const [entries, setEntries] = useState<TransactionEntry[]>([emptyEntry()])
   const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set([0]))
   const [isLoading, setIsLoading] = useState(false)
+  // Track which items are showing contractor suggestions
+  const [contractorSelections, setContractorSelections] = useState<Record<string, { contractor: string; otherName: string }>>({})
+  // Show material suggestions dropdown
+  const [materialSuggestionsOpen, setMaterialSuggestionsOpen] = useState<Record<string, boolean>>({})
 
   function updateEntry(index: number, field: keyof TransactionEntry, value: any) {
     setEntries(prev => {
@@ -142,6 +153,72 @@ export default function NewTransactionPage() {
     return { subtotal, totalGst, total: subtotal + totalGst }
   }
 
+  function getItemKey(entryIdx: number, itemIdx: number): string {
+    return `${entryIdx}-${itemIdx}`
+  }
+
+  function handleMaterialFocus(entryIdx: number, itemIdx: number) {
+    const item = entries[entryIdx].items[itemIdx]
+    const key = getItemKey(entryIdx, itemIdx)
+    // Show suggestions if the material name partially matches a known material
+    if (item.material_name && materialSuggestions.some(m => m.toLowerCase().startsWith(item.material_name.toLowerCase()))) {
+      setMaterialSuggestionsOpen(prev => ({ ...prev, [key]: true }))
+    }
+  }
+
+  function handleMaterialChange(entryIdx: number, itemIdx: number, value: string) {
+    updateItem(entryIdx, itemIdx, 'material_name', value)
+    const key = getItemKey(entryIdx, itemIdx)
+    
+    // Show suggestions if we have a match
+    if (value && materialSuggestions.some(m => m.toLowerCase().startsWith(value.toLowerCase()))) {
+      setMaterialSuggestionsOpen(prev => ({ ...prev, [key]: true }))
+    } else {
+      setMaterialSuggestionsOpen(prev => ({ ...prev, [key]: false }))
+    }
+
+    // Clear contractor selection if material changes
+    if (contractorSelections[key]) {
+      setContractorSelections(prev => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
+
+  function selectMaterialSuggestion(entryIdx: number, itemIdx: number, material: string) {
+    updateItem(entryIdx, itemIdx, 'material_name', material)
+    const key = getItemKey(entryIdx, itemIdx)
+    setMaterialSuggestionsOpen(prev => ({ ...prev, [key]: false }))
+  }
+
+  function getMatchedMaterials(entryIdx: number, itemIdx: number): string[] {
+    const item = entries[entryIdx].items[itemIdx]
+    if (!item.material_name) return materialSuggestions
+    return materialSuggestions.filter(m => m.toLowerCase().includes(item.material_name.toLowerCase()))
+  }
+
+  function setContractor(entryIdx: number, itemIdx: number, contractor: string) {
+    const key = getItemKey(entryIdx, itemIdx)
+    // Set the supplier name to the contractor if the user selected one
+    if (contractor !== '__other__') {
+      updateEntry(entryIdx, 'supplier_name', contractor)
+    }
+    setContractorSelections(prev => ({
+      ...prev,
+      [key]: { contractor, otherName: contractor === '__other__' ? prev[key]?.otherName || '' : '' }
+    }))
+  }
+
+  function setOtherContractorName(entryIdx: number, itemIdx: number, name: string) {
+    const key = getItemKey(entryIdx, itemIdx)
+    setContractorSelections(prev => ({
+      ...prev,
+      [key]: { contractor: '__other__', otherName: name }
+    }))
+  }
+
   async function resolveOrCreateSupplier(name: string): Promise<string> {
     const { data: existing } = await supabase
       .from('parties')
@@ -211,7 +288,7 @@ export default function NewTransactionPage() {
 
         const supplier_id = await resolveOrCreateSupplier(entry.supplier_name)
 
-        await createPurchase({
+        const purchaseData = await createPurchase({
           supplier_id,
           invoice_date: entry.invoice_date,
           supplier_invoice_number: entry.supplier_invoice_number || undefined,
@@ -227,6 +304,27 @@ export default function NewTransactionPage() {
           balance_due: totalWithGst - entry.amount_paid,
           remarks: entry.remarks || undefined
         }, itemsWithGst)
+
+        // Also update village material stock if a village is selected
+        if (entry.village_name) {
+          for (const item of validItems) {
+            if (item.material_name.trim() && item.quantity > 0) {
+              try {
+                await addMaterialReceipt({
+                  village_name: entry.village_name,
+                  material_name: item.material_name,
+                  quantity: item.quantity,
+                  contractor_name: entry.supplier_name,
+                  reference_purchase_id: purchaseData.id,
+                  notes: `Purchase ${purchaseData.purchase_number}`,
+                  transaction_date: entry.invoice_date
+                })
+              } catch (err) {
+                console.error(`Failed to update village stock for ${item.material_name}:`, err)
+              }
+            }
+          }
+        }
 
         successCount++
       } catch (error: any) {
@@ -297,6 +395,7 @@ export default function NewTransactionPage() {
                   </p>
                   <p className="text-xs text-gray-400">
                     {itemCount} item{itemCount !== 1 ? 's' : ''} • {formatCurrency(total)}
+                    {entry.village_name && ` • ${entry.village_name}`}
                     {entry.payment_status === 'paid' ? ' • Payment' : ' • Purchase'}
                   </p>
                 </div>
@@ -314,7 +413,7 @@ export default function NewTransactionPage() {
               {isExpanded && (
                 <div className="border-t border-gray-100 p-5 space-y-5">
                   {/* Basic Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label>
                       <input
@@ -331,6 +430,19 @@ export default function NewTransactionPage() {
                         value={entry.invoice_date}
                         onChange={(v) => updateEntry(entryIdx, 'invoice_date', v)}
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Village</label>
+                      <select
+                        value={entry.village_name}
+                        onChange={(e) => updateEntry(entryIdx, 'village_name', e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                      >
+                        <option value="">Select village</option>
+                        {VILLAGES.map(v => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Inv No.</label>
@@ -372,93 +484,192 @@ export default function NewTransactionPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {entry.items.map((item, itemIdx) => (
-                            <tr key={itemIdx} className="border-b">
-                              <td className="py-1.5 pr-2">
-                                <input
-                                  type="text"
-                                  value={item.material_name}
-                                  onChange={(e) => updateItem(entryIdx, itemIdx, 'material_name', e.target.value)}
-                                  className="w-24 md:w-28 px-1.5 py-1 border rounded text-xs md:text-sm"
-                                  placeholder="Material"
-                                />
-                              </td>
-                              <td className="py-1.5 pr-2 hidden sm:table-cell">
-                                <input
-                                  type="text"
-                                  value={item.hsn_code}
-                                  onChange={(e) => updateItem(entryIdx, itemIdx, 'hsn_code', e.target.value)}
-                                  className="w-14 md:w-16 px-1.5 py-1 border rounded text-xs md:text-sm"
-                                  placeholder="HSN"
-                                />
-                              </td>
-                              <td className="py-1.5 pr-2">
-                                <input
-                                  type="number"
-                                  step="0.001"
-                                  value={item.quantity || ''}
-                                  onChange={(e) => updateItem(entryIdx, itemIdx, 'quantity', Number(e.target.value))}
-                                  className="w-14 md:w-16 px-1.5 py-1 border rounded text-xs md:text-sm"
-                                  placeholder="0"
-                                />
-                              </td>
-                              <td className="py-1.5 pr-2 hidden sm:table-cell">
-                                <select
-                                  value={item.unit}
-                                  onChange={(e) => updateItem(entryIdx, itemIdx, 'unit', e.target.value)}
-                                  className="w-14 md:w-16 px-1 py-1 border rounded text-xs md:text-sm"
-                                >
-                                  {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                                </select>
-                              </td>
-                              <td className="py-1.5 pr-2">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={item.rate || ''}
-                                  onChange={(e) => updateItem(entryIdx, itemIdx, 'rate', Number(e.target.value))}
-                                  className="w-16 md:w-20 px-1.5 py-1 border rounded text-xs md:text-sm"
-                                  placeholder="0"
-                                />
-                              </td>
-                              <td className="py-1.5 pr-2">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={item.amount || ''}
-                                  onChange={(e) => updateItem(entryIdx, itemIdx, 'amount', Number(e.target.value))}
-                                  className="w-16 md:w-20 px-1.5 py-1 border rounded text-xs md:text-sm"
-                                  placeholder="Or enter"
-                                />
-                              </td>
-                              <td className="py-1.5 pr-2">
-                                <select
-                                  value={item.gst_rate}
-                                  onChange={(e) => updateItem(entryIdx, itemIdx, 'gst_rate', Number(e.target.value))}
-                                  className="w-14 md:w-16 px-1 py-1 border rounded text-xs md:text-sm"
-                                >
-                                  {[0, 3, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
-                                </select>
-                              </td>
-                              <td className="py-1.5 pr-2 text-xs md:text-sm font-medium hidden md:table-cell">
-                                {formatCurrency(calcItemTotal(item))}
-                              </td>
-                              <td className="py-1.5">
-                                {entry.items.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeItem(entryIdx, itemIdx)}
-                                    className="p-1 text-red-500 hover:text-red-700"
+                          {entry.items.map((item, itemIdx) => {
+                            const key = getItemKey(entryIdx, itemIdx)
+                            const matchedMaterials = getMatchedMaterials(entryIdx, itemIdx)
+                            const showSuggestions = materialSuggestionsOpen[key] && matchedMaterials.length > 0
+                            const contractors = getContractorsForMaterial(item.material_name)
+                            const selectedContractor = contractorSelections[key]
+
+                            return (
+                              <tr key={itemIdx} className="border-b">
+                                <td className="py-1.5 pr-2 relative">
+                                  <input
+                                    type="text"
+                                    value={item.material_name}
+                                    onChange={(e) => handleMaterialChange(entryIdx, itemIdx, e.target.value)}
+                                    onFocus={() => handleMaterialFocus(entryIdx, itemIdx)}
+                                    onBlur={() => {
+                                      // Delay hiding so click on suggestion works
+                                      setTimeout(() => setMaterialSuggestionsOpen(prev => ({ ...prev, [key]: false })), 200)
+                                    }}
+                                    className="w-24 md:w-28 px-1.5 py-1 border rounded text-xs md:text-sm"
+                                    placeholder="Material"
+                                  />
+                                  {/* Material suggestions dropdown */}
+                                  {showSuggestions && (
+                                    <div className="absolute z-50 mt-1 left-0 bg-white border rounded-lg shadow-lg min-w-[160px]">
+                                      {matchedMaterials.map(m => (
+                                        <button
+                                          key={m}
+                                          type="button"
+                                          onMouseDown={() => selectMaterialSuggestion(entryIdx, itemIdx, m)}
+                                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors"
+                                        >
+                                          {m}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-1.5 pr-2 hidden sm:table-cell">
+                                  <input
+                                    type="text"
+                                    value={item.hsn_code}
+                                    onChange={(e) => updateItem(entryIdx, itemIdx, 'hsn_code', e.target.value)}
+                                    className="w-14 md:w-16 px-1.5 py-1 border rounded text-xs md:text-sm"
+                                    placeholder="HSN"
+                                  />
+                                </td>
+                                <td className="py-1.5 pr-2">
+                                  <input
+                                    type="number"
+                                    step="0.001"
+                                    value={item.quantity || ''}
+                                    onChange={(e) => updateItem(entryIdx, itemIdx, 'quantity', Number(e.target.value))}
+                                    className="w-14 md:w-16 px-1.5 py-1 border rounded text-xs md:text-sm"
+                                    placeholder="0"
+                                  />
+                                </td>
+                                <td className="py-1.5 pr-2 hidden sm:table-cell">
+                                  <select
+                                    value={item.unit}
+                                    onChange={(e) => updateItem(entryIdx, itemIdx, 'unit', e.target.value)}
+                                    className="w-14 md:w-16 px-1 py-1 border rounded text-xs md:text-sm"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
+                                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                  </select>
+                                </td>
+                                <td className="py-1.5 pr-2">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={item.rate || ''}
+                                    onChange={(e) => updateItem(entryIdx, itemIdx, 'rate', Number(e.target.value))}
+                                    className="w-16 md:w-20 px-1.5 py-1 border rounded text-xs md:text-sm"
+                                    placeholder="0"
+                                  />
+                                </td>
+                                <td className="py-1.5 pr-2">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={item.amount || ''}
+                                    onChange={(e) => updateItem(entryIdx, itemIdx, 'amount', Number(e.target.value))}
+                                    className="w-16 md:w-20 px-1.5 py-1 border rounded text-xs md:text-sm"
+                                    placeholder="Or enter"
+                                  />
+                                </td>
+                                <td className="py-1.5 pr-2">
+                                  <select
+                                    value={item.gst_rate}
+                                    onChange={(e) => updateItem(entryIdx, itemIdx, 'gst_rate', Number(e.target.value))}
+                                    className="w-14 md:w-16 px-1 py-1 border rounded text-xs md:text-sm"
+                                  >
+                                    {[0, 3, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
+                                  </select>
+                                </td>
+                                <td className="py-1.5 pr-2 text-xs md:text-sm font-medium hidden md:table-cell">
+                                  {formatCurrency(calcItemTotal(item))}
+                                </td>
+                                <td className="py-1.5">
+                                  {entry.items.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeItem(entryIdx, itemIdx)}
+                                      className="p-1 text-red-500 hover:text-red-700"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Contractor Suggestions - show when a known material is entered */}
+                    {entry.items.map((item, itemIdx) => {
+                      const contractors = getContractorsForMaterial(item.material_name)
+                      if (contractors.length === 0) return null
+                      const key = getItemKey(entryIdx, itemIdx)
+                      const selectedContractor = contractorSelections[key]
+
+                      return (
+                        <div key={`contractor-${itemIdx}`} className="mt-2 pl-2 border-l-2 border-blue-200">
+                          <p className="text-xs text-gray-500 mb-1">
+                            Suppliers for <span className="font-semibold text-gray-700">{item.material_name}</span>:
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {contractors.map((c) => {
+                              if (c === '__other__') {
+                                return (
+                                  <div key="other" className="flex items-center gap-1">
+                                    {selectedContractor?.contractor === '__other__' ? (
+                                      <div className="flex items-center gap-1">
+                                        <input
+                                          type="text"
+                                          value={selectedContractor?.otherName || ''}
+                                          onChange={(e) => {
+                                            setOtherContractorName(entryIdx, itemIdx, e.target.value)
+                                            if (e.target.value) updateEntry(entryIdx, 'supplier_name', e.target.value)
+                                          }}
+                                          placeholder="Enter name..."
+                                          className="px-2 py-1 text-xs border rounded w-32"
+                                          autoFocus
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => setContractor(entryIdx, itemIdx, '')}
+                                          className="p-1 text-gray-400 hover:text-gray-600"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => setContractor(entryIdx, itemIdx, '__other__')}
+                                        className="px-2 py-1 text-xs border border-dashed border-gray-300 rounded hover:border-blue-300 hover:text-blue-600 transition-colors"
+                                      >
+                                        + Other
+                                      </button>
+                                    )}
+                                  </div>
+                                )
+                              }
+                              return (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setContractor(entryIdx, itemIdx, c)}
+                                  className={`px-2 py-1 text-xs rounded border transition-colors ${
+                                    selectedContractor?.contractor === c
+                                      ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                      : 'border-gray-200 text-gray-500 hover:border-blue-200 hover:text-blue-600'
+                                  }`}
+                                >
+                                  {selectedContractor?.contractor === c && <Check className="w-3 h-3 inline mr-0.5" />}
+                                  {c}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
 
                   {/* Summary & Payment */}
