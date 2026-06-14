@@ -8,7 +8,8 @@ import { supabase } from '@/lib/supabase'
 
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import DatePicker from '@/components/ui/DatePicker'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Check, X } from 'lucide-react'
+import { VILLAGES, MATERIALS, getContractorsForMaterial } from '@/lib/village-constants'
 
 const itemSchema = z.object({
   material_name: z.string().min(1, 'Required'),
@@ -24,6 +25,7 @@ const formSchema = z.object({
   supplier_name: z.string().min(1, 'Enter supplier name'),
   invoice_date: z.string().min(1, 'Date required'),
   supplier_invoice_number: z.string().optional().or(z.literal('')),
+  village_name: z.string().optional().or(z.literal('')),
   payment_mode: z.string().optional().or(z.literal('')),
   payment_status: z.enum(['unpaid', 'paid']),
   amount_paid: z.number().min(0),
@@ -41,6 +43,7 @@ interface PurchaseFormProps {
     supplier_name: string
     invoice_date: string
     supplier_invoice_number?: string
+    village_name?: string
     payment_mode?: string
     payment_status: 'paid' | 'unpaid'
     amount_paid: number
@@ -59,13 +62,16 @@ interface PurchaseFormProps {
 
 export default function PurchaseForm({ onSubmit, isLoading, isEditing, initialData }: PurchaseFormProps) {
   const [calculations, setCalculations] = useState({ subtotal: 0, totalGst: 0, total: 0 })
+  const [contractorSelections, setContractorSelections] = useState<Record<string, { contractor: string; otherName: string }>>({})
+  const [materialSuggestionsOpen, setMaterialSuggestionsOpen] = useState<Record<string, boolean>>({})
 
-  const { register, control, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
+  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       supplier_name: initialData?.supplier_name || '',
       invoice_date: initialData?.invoice_date || new Date().toISOString().split('T')[0],
       supplier_invoice_number: initialData?.supplier_invoice_number || '',
+      village_name: initialData?.village_name || '',
       payment_mode: initialData?.payment_mode || '',
       payment_status: initialData?.payment_status || 'unpaid',
       amount_paid: initialData?.amount_paid || 0,
@@ -129,6 +135,15 @@ export default function PurchaseForm({ onSubmit, isLoading, isEditing, initialDa
             {errors.invoice_date && <p className="text-red-500 text-sm mt-1">{errors.invoice_date.message}</p>}
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Village</label>
+            <select {...register('village_name')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+              <option value="">Select village</option>
+              {VILLAGES.map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Invoice No.</label>
             <input type="text" {...register('supplier_invoice_number')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter supplier's invoice number" />
           </div>
@@ -173,9 +188,57 @@ export default function PurchaseForm({ onSubmit, isLoading, isEditing, initialDa
                   const directAmt = Number(item?.amount) || 0
                   const amount = directAmt > 0 ? directAmt : ((item?.quantity || 0) * (item?.rate || 0))
                   const gstAmount = amount * (item?.gst_rate || 0) / 100
+                  const materialName = item?.material_name || ''
+                  const matchedMaterials = MATERIALS.filter(m => m.toLowerCase().includes(materialName.toLowerCase()))
+                  const showSuggestions = materialSuggestionsOpen[`${index}`] && matchedMaterials.length > 0 && matchedMaterials.length < MATERIALS.length
+                  const contractors = getContractorsForMaterial(materialName)
+                  const selectedContractor = contractorSelections[`${index}`]
+
                   return (
                     <tr key={field.id} className="border-b">
-                      <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input {...register(`items.${index}.material_name`)} className="w-20 md:w-28 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="Matrl" /></td>
+                      <td className="py-1.5 md:py-2 pr-1 md:pr-2 relative">
+                        <Controller
+                          name={`items.${index}.material_name`}
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              value={field.value}
+                              onChange={(e) => {
+                                field.onChange(e)
+                                const val = e.target.value
+                                if (val && MATERIALS.some(m => m.toLowerCase().startsWith(val.toLowerCase()))) {
+                                  setMaterialSuggestionsOpen(prev => ({ ...prev, [`${index}`]: true }))
+                                }
+                              }}
+                              onFocus={() => {
+                                if (materialName && MATERIALS.some(m => m.toLowerCase().startsWith(materialName.toLowerCase()))) {
+                                  setMaterialSuggestionsOpen(prev => ({ ...prev, [`${index}`]: true }))
+                                }
+                              }}
+                              onBlur={() => setTimeout(() => setMaterialSuggestionsOpen(prev => ({ ...prev, [`${index}`]: false })), 200)}
+                              className="w-20 md:w-28 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm"
+                              placeholder="Material"
+                            />
+                          )}
+                        />
+                        {showSuggestions && (
+                          <div className="absolute z-50 mt-1 left-0 bg-white border rounded-lg shadow-lg min-w-[160px]">
+                            {matchedMaterials.map(m => (
+                              <button
+                                key={m}
+                                type="button"
+                                onMouseDown={() => {
+                                  setValue(`items.${index}.material_name`, m)
+                                  setMaterialSuggestionsOpen(prev => ({ ...prev, [`${index}`]: false }))
+                                }}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors"
+                              >
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </td>
                       <td className="py-1.5 md:py-2 pr-1 md:pr-2 hidden sm:table-cell"><input {...register(`items.${index}.hsn_code`)} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="HSN" /></td>
                       <td className="py-1.5 md:py-2 pr-1 md:pr-2"><input type="number" step="0.001" {...register(`items.${index}.quantity`, { valueAsNumber: true })} className="w-14 md:w-16 px-1.5 md:px-2 py-1 border rounded text-xs md:text-sm" placeholder="0" /></td>
                       <td className="py-1.5 md:py-2 pr-1 md:pr-2 hidden sm:table-cell">
@@ -202,6 +265,81 @@ export default function PurchaseForm({ onSubmit, isLoading, isEditing, initialDa
           </div>
         </div>
         {errors.items && <p className="text-red-500 text-sm mt-2">{errors.items.message || 'Add at least one item'}</p>}
+
+        {/* Contractor Suggestions */}
+        {fields.map((field, index) => {
+          const item = watchItems?.[index]
+          const materialName = item?.material_name || ''
+          const contractors = getContractorsForMaterial(materialName)
+          if (contractors.length === 0) return null
+          const selectedContractor = contractorSelections[`${index}`]
+
+          return (
+            <div key={`contractor-${field.id}`} className="mt-2 pl-2 border-l-2 border-blue-200">
+              <p className="text-xs text-gray-500 mb-1">
+                Suppliers for <span className="font-semibold text-gray-700">{materialName}</span>:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {contractors.map((c) => {
+                  if (c === '__other__') {
+                    return (
+                      <div key="other" className="flex items-center gap-1">
+                        {selectedContractor?.contractor === '__other__' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={selectedContractor?.otherName || ''}
+                              onChange={(e) => {
+                                setContractorSelections(prev => ({ ...prev, [`${index}`]: { contractor: '__other__', otherName: e.target.value } }))
+                              }}
+                              placeholder="Enter name..."
+                              className="px-2 py-1 text-xs border rounded w-32"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setContractorSelections(prev => {
+                                const next = { ...prev }
+                                delete next[`${index}`]
+                                return next
+                              })}
+                              className="p-1 text-gray-400 hover:text-gray-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setContractorSelections(prev => ({ ...prev, [`${index}`]: { contractor: '__other__', otherName: '' } }))}
+                            className="px-2 py-1 text-xs border border-dashed border-gray-300 rounded hover:border-blue-300 hover:text-blue-600 transition-colors"
+                          >
+                            + Other
+                          </button>
+                        )}
+                      </div>
+                    )
+                  }
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setContractorSelections(prev => ({ ...prev, [`${index}`]: { contractor: c, otherName: '' } }))}
+                      className={`px-2 py-1 text-xs rounded border transition-colors ${
+                        selectedContractor?.contractor === c
+                          ? 'bg-blue-50 border-blue-300 text-blue-700'
+                          : 'border-gray-200 text-gray-500 hover:border-blue-200 hover:text-blue-600'
+                      }`}
+                    >
+                      {selectedContractor?.contractor === c && <Check className="w-3 h-3 inline mr-0.5" />}
+                      {c}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Summary */}

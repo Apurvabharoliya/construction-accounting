@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { updatePurchase } from '@/lib/api/purchases'
+import { addMaterialReceipt } from '@/lib/api/villages'
 import { toast } from 'sonner'
 import PurchaseForm from '@/components/purchases/PurchaseForm'
 import type { Purchase, PurchaseItem } from '@/types/database'
@@ -70,7 +71,7 @@ export default function EditPurchasePage() {
 
       const supplier_id = await resolveOrCreateSupplier(data.supplier_name)
 
-      await updatePurchase(params.id as string, {
+      const purchaseData = await updatePurchase(params.id as string, {
         supplier_id,
         invoice_date: data.invoice_date,
         supplier_invoice_number: data.supplier_invoice_number || undefined,
@@ -98,6 +99,32 @@ export default function EditPurchasePage() {
           gst_amount: amt * item.gst_rate / 100
         }
       }))
+
+      // Delete existing village stock entries for this purchase before re-adding
+      await supabase
+        .from('material_transactions')
+        .delete()
+        .eq('reference_purchase_id', params.id)
+
+      // Update village stock if village is set
+      if (data.village_name) {
+        const validItems = data.items.filter((item: any) => item.material_name.trim() && item.quantity > 0)
+        for (const item of validItems) {
+          try {
+            await addMaterialReceipt({
+              village_name: data.village_name,
+              material_name: item.material_name,
+              quantity: item.quantity,
+              contractor_name: data.supplier_name,
+              reference_purchase_id: params.id as string,
+              notes: `Purchase ${purchaseData.purchase_number}`,
+              transaction_date: data.invoice_date
+            })
+          } catch (err) {
+            console.error(`Failed to update village stock for ${item.material_name}:`, err)
+          }
+        }
+      }
 
       toast.success('Purchase updated successfully')
       router.push(`/purchases/${params.id}`)
@@ -136,6 +163,7 @@ export default function EditPurchasePage() {
           supplier_name: purchase.supplier?.name || '',
           invoice_date: purchase.invoice_date,
           supplier_invoice_number: purchase.supplier_invoice_number,
+          village_name: purchase.village_name || '',
           payment_mode: purchase.payment_mode,
           payment_status: purchase.payment_status,
           amount_paid: purchase.amount_paid,

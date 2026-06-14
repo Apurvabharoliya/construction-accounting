@@ -7,7 +7,8 @@ import type { Party } from '@/types/database'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate, formatDateTime } from '@/lib/date'
 import { getPartyLedger, getPartyInvoices, type InvoiceSummary } from '@/lib/api/ledger'
-import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2, ExternalLink, ShoppingCart, DollarSign, Banknote, FileText, Receipt, Plus, ArrowDown, ArrowUp } from 'lucide-react'
+import { getMaterialTransactions } from '@/lib/api/villages'
+import { ArrowLeft, Phone, Mail, MapPin, Edit3, Trash2, ExternalLink, ShoppingCart, DollarSign, Banknote, FileText, Receipt, Plus, ArrowDown, ArrowUp, Building2, Truck, Package } from 'lucide-react'
 import Link from 'next/link'
 import { deleteParty } from '@/lib/api/parties'
 import { toast } from 'sonner'
@@ -61,6 +62,7 @@ export default function PartyDetailPage() {
   const [invoices, setInvoices] = useState<InvoiceSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [paymentDialogInvoice, setPaymentDialogInvoice] = useState<InvoiceSummary | null>(null)
+  const [villageSupplies, setVillageSupplies] = useState<any[]>([])
 
   useEffect(() => {
     if (params.id) {
@@ -79,13 +81,19 @@ export default function PartyDetailPage() {
       if (error) throw error
       setParty(data)
 
-      const [ledgerData, invoiceData] = await Promise.all([
+      const [ledgerData, invoiceData, villageData] = await Promise.all([
         getPartyLedger(params.id as string),
-        getPartyInvoices(params.id as string, data.party_type)
+        getPartyInvoices(params.id as string, data.party_type),
+        supabase
+          .from('material_transactions')
+          .select('*')
+          .eq('contractor_name', data.name)
+          .order('transaction_date', { ascending: false })
       ])
       setLedger(ledgerData.transactions)
       setCurrentBalance(ledgerData.currentBalance)
       setInvoices(invoiceData)
+      setVillageSupplies(villageData.data || [])
     } catch (error) {
       console.error('Error fetching party:', error)
     } finally {
@@ -606,6 +614,51 @@ export default function PartyDetailPage() {
           </div>
         )
       })()}
+
+      {/* Village Supply Overview */}
+      {villageSupplies.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-gray-700" />
+              <h2 className="text-lg font-semibold">Village Supply History</h2>
+              <span className="text-xs text-gray-400 ml-2">{villageSupplies.length} entries</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Village</th>
+                  <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Material</th>
+                  <th className="p-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity</th>
+                  <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {villageSupplies.map((s: any) => (
+                  <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-3 text-sm text-gray-600">{formatDate(s.transaction_date)}</td>
+                    <td className="p-3">
+                      <Link
+                        href={`/villages/${s.village_name.toLowerCase()}`}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+                      >
+                        <Building2 className="w-3.5 h-3.5" />
+                        {s.village_name}
+                      </Link>
+                    </td>
+                    <td className="p-3 text-sm font-medium text-gray-900">{s.material_name}</td>
+                    <td className="p-3 text-sm font-semibold text-green-600 text-right">+{s.quantity}</td>
+                    <td className="p-3 text-sm text-gray-500 max-w-[200px] truncate">{s.notes || <span className="text-gray-300">—</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Record Payment Dialog */}
       {paymentDialogInvoice && (

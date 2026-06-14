@@ -108,10 +108,6 @@ export default function VillagesPage() {
                             <span className="text-gray-500">Total In</span>
                             <span className="font-semibold text-green-600">{summary.totalReceived.toFixed(0)}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-500">Used</span>
-                            <span className="font-semibold text-orange-600">{summary.totalUsed.toFixed(0)}</span>
-                          </div>
                           <div className="flex items-center justify-between text-sm border-t pt-2 mt-1">
                             <span className="text-gray-500 font-medium">Remaining</span>
                             <span className="font-bold text-blue-600">{summary.totalRemaining.toFixed(0)}</span>

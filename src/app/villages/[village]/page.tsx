@@ -173,7 +173,6 @@ export default function VillageDetailPage() {
 
   // Calculate totals
   const totalReceived = materials.reduce((s, m) => s + m.quantity_received, 0)
-  const totalUsed = materials.reduce((s, m) => s + m.quantity_used, 0)
   const totalRemaining = materials.reduce((s, m) => s + m.quantity_remaining, 0)
 
   return (
@@ -209,14 +208,10 @@ export default function VillageDetailPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 divide-x divide-gray-100">
+        <div className="grid grid-cols-2 divide-x divide-gray-100">
           <div className="p-4 text-center">
             <p className="text-xs text-gray-500 uppercase tracking-wider">Total Received</p>
             <p className="text-xl font-bold text-green-600 mt-1">{totalReceived.toFixed(0)}</p>
-          </div>
-          <div className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Total Used</p>
-            <p className="text-xl font-bold text-orange-600 mt-1">{totalUsed.toFixed(0)}</p>
           </div>
           <div className="p-4 text-center">
             <p className="text-xs text-gray-500 uppercase tracking-wider">Remaining</p>
@@ -245,9 +240,7 @@ export default function VillageDetailPage() {
                 <tr className="bg-gray-50">
                   <th className="p-4 text-left text-sm font-medium text-gray-500">Material</th>
                   <th className="p-4 text-right text-sm font-medium text-gray-500">Received</th>
-                  <th className="p-4 text-right text-sm font-medium text-gray-500">Used</th>
                   <th className="p-4 text-right text-sm font-medium text-gray-500">Remaining</th>
-                  <th className="p-4 text-right text-sm font-medium text-gray-500">Status</th>
                   <th className="p-4 text-right text-sm font-medium text-gray-500">Actions</th>
                 </tr>
               </thead>
@@ -255,9 +248,7 @@ export default function VillageDetailPage() {
                 {MATERIALS.map((material) => {
                   const stock = materials.find(m => m.material_name === material)
                   const received = stock?.quantity_received || 0
-                  const used = stock?.quantity_used || 0
                   const remaining = stock?.quantity_remaining || 0
-                  const usagePercent = received > 0 ? (used / received) * 100 : 0
 
                   return (
                     <tr key={material} className="border-t hover:bg-gray-50 transition-colors">
@@ -275,27 +266,7 @@ export default function VillageDetailPage() {
                         <span className="font-semibold text-green-600">{received.toFixed(0)}</span>
                       </td>
                       <td className="p-4 text-right">
-                        <span className="font-semibold text-orange-600">{used.toFixed(0)}</span>
-                      </td>
-                      <td className="p-4 text-right">
                         <span className="font-bold text-lg">{remaining.toFixed(0)}</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                usagePercent >= 80 ? 'bg-red-500' : usagePercent >= 50 ? 'bg-yellow-400' : 'bg-green-500'
-                              }`}
-                              style={{ width: `${Math.min(usagePercent, 100)}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-medium ${
-                            usagePercent >= 80 ? 'text-red-600' : usagePercent >= 50 ? 'text-yellow-600' : 'text-green-600'
-                          }`}>
-                            {usagePercent.toFixed(0)}%
-                          </span>
-                        </div>
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
