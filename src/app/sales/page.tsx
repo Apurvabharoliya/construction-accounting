@@ -64,7 +64,7 @@ export default function SalesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sales</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage sales invoices and client payments</p>
+          <p className="text-gray-500 text-sm mt-1">Manage sales invoices and payments</p>
         </div>
         <Link href="/sales/new" className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
           <Plus className="w-5 h-5" /> New Sale
@@ -102,7 +102,7 @@ export default function SalesPage() {
                 <tr className="text-left bg-gray-50">
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Date</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Invoice #</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Client</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Beneficiary</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Amount</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Description</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Status</th>
@@ -117,7 +117,7 @@ export default function SalesPage() {
                       <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(s.created_at)}</div>
                     </td>
                     <td className="p-4 text-sm font-medium" data-label="Invoice #">{s.sale_number}</td>
-                    <td className="p-4 text-sm" data-label="Client">{s.client?.name || 'N/A'}</td>
+                    <td className="p-4 text-sm" data-label="Beneficiary">{s.client?.name || 'N/A'}</td>
                     <td className="p-4 text-sm font-medium" data-label="Amount">{formatCurrency(Number(s.total_amount))}</td>
                     <td className="p-4 text-sm text-gray-500 max-w-[200px] truncate hidden md:table-cell" data-label="Description">
                       {s.remarks || <span className="text-gray-400">—</span>}

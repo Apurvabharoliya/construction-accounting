@@ -288,8 +288,8 @@ export async function getPartyInvoices(partyId: string, partyType: string): Prom
     })
   }
 
-  // Fetch sales if party is a client
-  if (partyType === 'client') {
+  // Fetch sales if party is a beneficiary
+  if (partyType === 'beneficiary') {
     const { data: sales, error: salesError } = await supabase
       .from('sales')
       .select('*, items:sale_items(count)')

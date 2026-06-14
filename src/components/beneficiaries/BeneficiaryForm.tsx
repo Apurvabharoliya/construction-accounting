@@ -126,7 +126,7 @@ export default function BeneficiaryForm({ initialData, onSubmit, isLoading }: Be
           {/* Party Selection */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Existing Vendor/Client <span className="text-gray-400 font-normal">(optional — search by name or phone)</span>
+              Select Existing Vendor <span className="text-gray-400 font-normal">(optional — search by name or phone)</span>
             </label>
             <div ref={searchRef} className="relative">
               {selectedParty ? (
@@ -153,7 +153,7 @@ export default function BeneficiaryForm({ initialData, onSubmit, isLoading }: Be
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
                     type="text"
-                    placeholder="Search vendors/clients by name or phone..."
+                    placeholder="Search vendors by name or phone..."
                     value={partySearch}
                     onChange={(e) => setPartySearch(e.target.value)}
                     onFocus={() => { if (partyResults.length > 0) setShowResults(true) }}
@@ -195,7 +195,7 @@ export default function BeneficiaryForm({ initialData, onSubmit, isLoading }: Be
 
                   {showResults && partyResults.length === 0 && partySearch.length >= 2 && !searching && (
                     <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg p-4 text-center">
-                      <p className="text-sm text-gray-500">No existing vendors/clients found</p>
+                      <p className="text-sm text-gray-500">No existing vendors found</p>
                       <p className="text-xs text-gray-400 mt-1">Fill in the name below to create a new one</p>
                     </div>
                   )}
@@ -204,8 +204,8 @@ export default function BeneficiaryForm({ initialData, onSubmit, isLoading }: Be
             </div>
             <p className="text-xs text-gray-400 mt-1.5">
               {selectedParty
-                ? 'Creating beneficiary from existing vendor/client'
-                : 'Search for an existing vendor/client or enter new details below'}
+                ? 'Creating beneficiary from existing vendor'
+                : 'Search for an existing vendor or enter new details below'}
             </p>
           </div>
 

@@ -333,10 +333,10 @@ async function importParties(rows: Record<string, string>[], columnMap: Map<stri
   const result: ImportResult = { success: true, imported: 0, errors: [], warnings: [], entityType: 'parties' }
   const partyTypeMap: Record<string, string> = {
     'supplier': 'supplier',
-    'client': 'client',
+    'client': 'beneficiary',
     'beneficiary': 'beneficiary',
     'vendor': 'supplier',
-    'customer': 'client',
+    'customer': 'beneficiary',
   }
 
   for (let i = 0; i < rows.length; i++) {
@@ -353,7 +353,7 @@ async function importParties(rows: Record<string, string>[], columnMap: Map<stri
       const typeInput = (getField(row, columnMap, 'type') || 'supplier').toLowerCase().trim()
       const partyType = partyTypeMap[typeInput] || typeInput
 
-      if (!['supplier', 'client', 'beneficiary'].includes(partyType)) {
+      if (!['supplier', 'beneficiary'].includes(partyType)) {
         result.warnings.push(`Row ${rowNum}: Invalid type "${typeInput}" for "${name}", defaulting to Supplier`)
       }
 
@@ -370,7 +370,7 @@ async function importParties(rows: Record<string, string>[], columnMap: Map<stri
         city: getField(row, columnMap, 'city') || null,
         state: getField(row, columnMap, 'state') || null,
         pin_code: getField(row, columnMap, 'pin_code') || null,
-        party_type: ['supplier', 'client', 'beneficiary'].includes(partyType) ? partyType : 'supplier',
+        party_type: ['supplier', 'beneficiary'].includes(partyType) ? partyType : 'supplier',
         opening_balance: openingBalance,
         gst_registered: gstRegField.toLowerCase() === 'yes' || false,
         notes: getField(row, columnMap, 'notes') || null
@@ -626,7 +626,7 @@ async function importSales(rows: Record<string, string>[], columnMap: Map<string
         .from('parties')
         .select('id')
         .eq('name', clientName)
-        .eq('party_type', 'client')
+        .eq('party_type', 'beneficiary')
         .maybeSingle()
 
       let clientId: string
@@ -635,7 +635,7 @@ async function importSales(rows: Record<string, string>[], columnMap: Map<string
       } else {
         const { data: newClient, error: createError } = await supabase
           .from('parties')
-          .insert([{ name: clientName, party_type: 'client' }])
+          .insert([{ name: clientName, party_type: 'beneficiary' }])
           .select('id')
           .single()
         if (createError) throw createError
@@ -821,7 +821,7 @@ async function importTransactions(rows: Record<string, string>[], columnMap: Map
       const txnType = isDebitTxn ? 'purchase' : 'receipt'
 
       // Resolve or create the party (debit = purchase = supplier, credit = receipt = client)
-      const partyType = isDebitTxn ? 'supplier' : 'client'
+      const partyType = isDebitTxn ? 'supplier' : 'beneficiary'
       const { data: existingParty } = await supabase
         .from('parties')
         .select('id')

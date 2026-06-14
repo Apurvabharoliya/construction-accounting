@@ -23,7 +23,7 @@ export interface PartyVolume {
 export interface OutstandingParty {
   name: string
   amount: number
-  type: 'supplier' | 'client'
+  type: 'supplier' | 'beneficiary'
 }
 
 // Get monthly purchase vs sales data - ALL time (no date filter so sample data always shows)
@@ -145,7 +145,7 @@ export async function getOutstandingParties(): Promise<OutstandingParty[]> {
       .gt('balance_due', 0)
   ])
 
-  const partyMap: Record<string, { name: string; amount: number; type: 'supplier' | 'client' }> = {}
+  const partyMap: Record<string, { name: string; amount: number; type: 'supplier' | 'beneficiary' }> = {}
 
   suppliersRes.data?.forEach((p: any) => {
     const name = p.supplier?.name || 'Unknown'
@@ -161,7 +161,7 @@ export async function getOutstandingParties(): Promise<OutstandingParty[]> {
     if (partyMap[name]) {
       partyMap[name].amount += Number(s.balance_due)
     } else {
-      partyMap[name] = { name, amount: Number(s.balance_due), type: 'client' }
+      partyMap[name] = { name, amount: Number(s.balance_due), type: 'beneficiary' }
     }
   })
 

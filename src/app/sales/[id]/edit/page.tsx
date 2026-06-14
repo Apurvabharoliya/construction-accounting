@@ -41,15 +41,15 @@ export default function EditSalePage() {
       .from('parties')
       .select('id')
       .eq('name', name)
-      .eq('party_type', 'client')
+      .eq('party_type', 'beneficiary')
       .maybeSingle()
     if (existing) return existing.id
     const { data: created, error } = await supabase
       .from('parties')
-      .insert([{ name, party_type: 'client' }])
+      .insert([{ name, party_type: 'beneficiary' }])
       .select('id')
       .single()
-    if (error) throw new Error(`Failed to create client: ${error.message}`)
+    if (error) throw new Error(`Failed to create beneficiary: ${error.message}`)
     return created.id
   }
 

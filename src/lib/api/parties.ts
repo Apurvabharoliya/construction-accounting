@@ -70,8 +70,8 @@ export async function deleteParty(id: string, partyType?: string) {
     partyType = party?.party_type
   }
 
-  // Cascade delete related sales (party is a client)
-  if (partyType === 'client') {
+  // Cascade delete related sales (party is a beneficiary)
+  if (partyType === 'beneficiary') {
     const { data: sales } = await supabase
       .from('sales')
       .select('id')
