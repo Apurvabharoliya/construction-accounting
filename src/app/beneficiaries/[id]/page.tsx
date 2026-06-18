@@ -85,8 +85,28 @@ export default function BeneficiaryDetailPage() {
             <span className="font-medium">{beneficiary.party?.name || 'N/A'}</span>
           </div>
           <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-600">Aadhaar Number</span>
-            <span className="font-medium">{beneficiary.aadhaar_number || 'N/A'}</span>
+            <span className="text-gray-600">Beneficiary Number</span>
+            <span className="font-medium">{beneficiary.beneficiary_number || 'N/A'}</span>
+          </div>
+          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-600">Application Number</span>
+            <span className="font-medium">{beneficiary.application_number || 'N/A'}</span>
+          </div>
+          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-600">Plinth</span>
+            <span className="font-medium">{formatCurrency(Number(beneficiary.plinth) || 0)}</span>
+          </div>
+          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-600">Lintel</span>
+            <span className="font-medium">{formatCurrency(Number(beneficiary.lintel) || 0)}</span>
+          </div>
+          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-600">Roof</span>
+            <span className="font-medium">{formatCurrency(Number(beneficiary.roof) || 0)}</span>
+          </div>
+          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-600">Finishing</span>
+            <span className="font-medium">{formatCurrency(Number(beneficiary.finishing) || 0)}</span>
           </div>
           <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
             <span className="text-gray-600">Outstanding Amount</span>

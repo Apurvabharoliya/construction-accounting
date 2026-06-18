@@ -29,7 +29,7 @@ export default function SalesPage() {
     try {
       let query = supabase
         .from('sales')
-        .select('*, client:parties!client_id(name, phone), remarks')
+        .select('*, beneficiary:parties!client_id(name, phone), remarks')
         .order('invoice_date', { ascending: false })
 
       if (statusFilter !== 'all') {
@@ -117,7 +117,7 @@ export default function SalesPage() {
                       <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(s.created_at)}</div>
                     </td>
                     <td className="p-4 text-sm font-medium" data-label="Invoice #">{s.sale_number}</td>
-                    <td className="p-4 text-sm" data-label="Beneficiary">{s.client?.name || 'N/A'}</td>
+                    <td className="p-4 text-sm" data-label="Beneficiary">{s.beneficiary?.name || 'N/A'}</td>
                     <td className="p-4 text-sm font-medium" data-label="Amount">{formatCurrency(Number(s.total_amount))}</td>
                     <td className="p-4 text-sm text-gray-500 max-w-[200px] truncate hidden md:table-cell" data-label="Description">
                       {s.remarks || <span className="text-gray-400">—</span>}
@@ -134,7 +134,7 @@ export default function SalesPage() {
                         {Number(s.balance_due) > 0 && (
                           <button
                             onClick={() => {
-                              setPaymentDialogParty({ id: s.client_id, name: s.client?.name || 'Unknown' })
+                              setPaymentDialogParty({ id: s.client_id, name: s.beneficiary?.name || 'Unknown' })
                               setPaymentDialogInvoice({
                                 id: s.id,
                                 invoice_number: s.sale_number,

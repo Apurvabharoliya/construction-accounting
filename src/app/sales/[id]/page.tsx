@@ -29,7 +29,7 @@ export default function SaleDetailPage() {
     try {
       const { data } = await supabase
         .from('sales')
-        .select('*, client:parties!client_id(*), items:sale_items(*)')
+        .select('*, beneficiary:parties!client_id(*), items:sale_items(*)')
         .eq('id', params.id)
         .single()
       setSale(data)
@@ -92,7 +92,7 @@ export default function SaleDetailPage() {
               <FileText className="w-4 h-5 md:w-5 md:h-5 text-blue-600 flex-shrink-0" />
               <span className="truncate">{sale.sale_number}</span>
             </h1>
-            <p className="text-gray-500 text-xs md:text-sm truncate">Sale to {sale.client?.name}</p>
+            <p className="text-gray-500 text-xs md:text-sm truncate">Sale to {sale.beneficiary?.name}</p>
           </div>
           <div className="flex items-center gap-1.5 md:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
             {Number(sale.balance_due) > 0 && (
@@ -148,10 +148,10 @@ export default function SaleDetailPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-8 mb-4 md:mb-8">
             <div className="bg-gray-50 rounded-lg p-3 md:p-4 border">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 md:mb-2">Bill To</p>
-              <p className="font-bold text-gray-900 text-sm md:text-base">{sale.client?.name || 'N/A'}</p>
-              {sale.client?.address && <p className="text-xs md:text-sm text-gray-600 mt-0.5 md:mt-1">{sale.client.address}</p>}
-              {sale.client?.phone && <p className="text-xs md:text-sm text-gray-600 mt-0.5">Phone: {sale.client.phone}</p>}
-              {sale.client?.gstin && <p className="text-xs md:text-sm text-gray-600 mt-0.5">GSTIN: {sale.client.gstin}</p>}
+              <p className="font-bold text-gray-900 text-sm md:text-base">{sale.beneficiary?.name || 'N/A'}</p>
+              {sale.beneficiary?.address && <p className="text-xs md:text-sm text-gray-600 mt-0.5 md:mt-1">{sale.beneficiary.address}</p>}
+              {sale.beneficiary?.phone && <p className="text-xs md:text-sm text-gray-600 mt-0.5">Phone: {sale.beneficiary.phone}</p>}
+              {sale.beneficiary?.gstin && <p className="text-xs md:text-sm text-gray-600 mt-0.5">GSTIN: {sale.beneficiary.gstin}</p>}
             </div>
             <div className="bg-gray-50 rounded-lg p-3 md:p-4 border">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 md:mb-2">Invoice Details</p>
@@ -268,7 +268,7 @@ export default function SaleDetailPage() {
               items_count: sale.items?.length || 0,
               link: `/sales/${sale.id}`
             } as InvoiceSummary}
-            partyName={sale.client?.name || ''}
+            partyName={sale.beneficiary?.name || ''}
             partyId={sale.client_id}
             open={paymentDialogOpen}
             onOpenChange={setPaymentDialogOpen}

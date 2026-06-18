@@ -47,9 +47,14 @@ export default function EditBeneficiaryPage() {
         if (partyError) throw partyError
       }
 
-      // Update beneficiary aadhaar
+      // Update beneficiary fields
       await updateBeneficiary(params.id as string, {
-        aadhaar_number: data.aadhaar_number || undefined,
+        beneficiary_number: data.beneficiary_number || undefined,
+        application_number: data.application_number || undefined,
+        plinth: data.plinth || 0,
+        lintel: data.lintel || 0,
+        roof: data.roof || 0,
+        finishing: data.finishing || 0,
         total_amount_due: data.outstanding_amount || beneficiary.total_amount_due
       })
 
@@ -80,7 +85,12 @@ export default function EditBeneficiaryPage() {
       <BeneficiaryForm
         initialData={{
           name: beneficiary.party?.name,
-          aadhaar_number: beneficiary.aadhaar_number,
+          beneficiary_number: beneficiary.beneficiary_number,
+          application_number: beneficiary.application_number,
+          plinth: beneficiary.plinth,
+          lintel: beneficiary.lintel,
+          roof: beneficiary.roof,
+          finishing: beneficiary.finishing,
           outstanding_amount: beneficiary.total_amount_due || 400000
         }}
         onSubmit={handleSubmit}

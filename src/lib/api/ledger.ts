@@ -82,7 +82,7 @@ export async function getOutstandingReport(): Promise<OutstandingParty[]> {
   // Get all sales with outstanding balances
   const { data: sales, error: salesError } = await supabase
     .from('sales')
-    .select('id, sale_number, invoice_date, created_at, total_amount, amount_received, balance_due, payment_status, client_id, client:parties!client_id(name, phone)')
+    .select('id, sale_number, invoice_date, created_at, total_amount, amount_received, balance_due, payment_status, client_id, beneficiary:parties!client_id(name, phone)')
     .gt('balance_due', 0)
     .order('invoice_date', { ascending: false })
 
@@ -120,8 +120,8 @@ export async function getOutstandingReport(): Promise<OutstandingParty[]> {
     if (!partyMap[s.client_id]) {
       partyMap[s.client_id] = {
         partyId: s.client_id,
-        name: s.client?.name || 'Unknown',
-        phone: s.client?.phone || '',
+        name: s.beneficiary?.name || 'Unknown',
+        phone: s.beneficiary?.phone || '',
         payable: 0,
         receivable: 0,
         invoices: []

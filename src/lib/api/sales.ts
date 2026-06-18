@@ -10,7 +10,7 @@ export async function getSales(filters?: {
 }) {
   let query = supabase
     .from('sales')
-    .select('*, client:parties!client_id(name, phone)')
+    .select('*, beneficiary:parties!client_id(name, phone)')
     .order('invoice_date', { ascending: false })
 
   if (filters?.clientId) {
@@ -34,7 +34,7 @@ export async function getSales(filters?: {
 export async function getSale(id: string) {
   const { data, error } = await supabase
     .from('sales')
-    .select('*, client:parties!client_id(*), items:sale_items(*)')
+    .select('*, beneficiary:parties!client_id(*), items:sale_items(*)')
     .eq('id', id)
     .single()
 

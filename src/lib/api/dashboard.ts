@@ -110,7 +110,7 @@ export async function getPaymentStatusData(): Promise<PaymentStatusData[]> {
 export async function getTopParties(): Promise<PartyVolume[]> {
   const [purchasesRes, salesRes] = await Promise.all([
     supabase.from('purchases').select('supplier_id, total_amount, supplier:parties!supplier_id(name)'),
-    supabase.from('sales').select('client_id, total_amount, client:parties!client_id(name)')
+    supabase.from('sales').select('client_id, total_amount, beneficiary:parties!client_id(name)')
   ])
 
   const partyMap: Record<string, { name: string; purchases: number; sales: number }> = {}
@@ -122,7 +122,7 @@ export async function getTopParties(): Promise<PartyVolume[]> {
   })
 
   salesRes.data?.forEach((s: any) => {
-    const name = s.client?.name || 'Unknown'
+    const name = s.beneficiary?.name || 'Unknown'
     if (!partyMap[name]) partyMap[name] = { name, purchases: 0, sales: 0 }
     partyMap[name].sales += Number(s.total_amount)
   })
@@ -134,14 +134,14 @@ export async function getTopParties(): Promise<PartyVolume[]> {
 
 // Get outstanding amounts by party (aggregated)
 export async function getOutstandingParties(): Promise<OutstandingParty[]> {
-  const [suppliersRes, clientsRes] = await Promise.all([
+  const [suppliersRes, beneficiariesRes] = await Promise.all([
     supabase
       .from('purchases')
       .select('balance_due, supplier:parties!supplier_id(name)')
       .gt('balance_due', 0),
     supabase
       .from('sales')
-      .select('balance_due, client:parties!client_id(name)')
+      .select('balance_due, beneficiary:parties!client_id(name)')
       .gt('balance_due', 0)
   ])
 
@@ -156,8 +156,8 @@ export async function getOutstandingParties(): Promise<OutstandingParty[]> {
     }
   })
 
-  clientsRes.data?.forEach((s: any) => {
-    const name = s.client?.name || 'Unknown'
+  beneficiariesRes.data?.forEach((s: any) => {
+    const name = s.beneficiary?.name || 'Unknown'
     if (partyMap[name]) {
       partyMap[name].amount += Number(s.balance_due)
     } else {

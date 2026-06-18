@@ -15,7 +15,7 @@ export async function getBeneficiaries(filters?: {
   }
 
   if (filters?.search) {
-    query = query.or(`party.name.ilike.%${filters.search}%,aadhaar_number.ilike.%${filters.search}%`)
+    query = query.or(`party.name.ilike.%${filters.search}%,beneficiary_number.ilike.%${filters.search}%,application_number.ilike.%${filters.search}%`)
   }
 
   const { data, error } = await query

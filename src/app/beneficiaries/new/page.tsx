@@ -21,7 +21,12 @@ export default function NewBeneficiaryPage() {
           gst_registered: false
         },
         {
-          aadhaar_number: data.aadhaar_number || undefined,
+          beneficiary_number: data.beneficiary_number || undefined,
+          application_number: data.application_number || undefined,
+          plinth: data.plinth || 0,
+          lintel: data.lintel || 0,
+          roof: data.roof || 0,
+          finishing: data.finishing || 0,
           subsidy_status: 'pending',
           construction_progress: 0,
           total_amount_received: 0,
@@ -44,7 +49,7 @@ export default function NewBeneficiaryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Add Beneficiary</h1>
-        <p className="text-gray-500 text-sm mt-1">Register a new beneficiary with name and Aadhaar details</p>
+        <p className="text-gray-500 text-sm mt-1">Register a new beneficiary with application details</p>
       </div>
       <BeneficiaryForm onSubmit={handleSubmit} isLoading={isLoading} />
     </div>

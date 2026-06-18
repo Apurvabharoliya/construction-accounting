@@ -25,7 +25,7 @@ export default function BeneficiariesPage() {
         .select('*, party:parties(*)')
         .order('created_at', { ascending: false })
 
-      if (searchQuery) query = query.or(`party.name.ilike.%${searchQuery}%,aadhaar_number.ilike.%${searchQuery}%`)
+      if (searchQuery) query = query.or(`party.name.ilike.%${searchQuery}%,beneficiary_number.ilike.%${searchQuery}%,application_number.ilike.%${searchQuery}%`)
 
       const { data } = await query
       setBeneficiaries(data || [])
@@ -62,7 +62,7 @@ export default function BeneficiariesPage() {
       <div className="bg-white rounded-xl shadow-sm p-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input type="text" placeholder="Search by name or Aadhaar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+          <input type="text" placeholder="Search by name, beneficiary number..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50" />
         </div>
       </div>
@@ -79,12 +79,12 @@ export default function BeneficiariesPage() {
           <div className="overflow-x-auto">                    <table className="w-full responsive-table-card">
               <thead>
                 <tr className="text-left bg-gray-50">
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Phone</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">App No</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Name</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Amount (-4 Lakhs)</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Payments</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Balance</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Aadhaar</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Plinth</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Lintel</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Roof</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Finishing</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -95,27 +95,24 @@ export default function BeneficiariesPage() {
                   const balance = amountDue - amountPaid
                   return (
                     <tr key={b.id} className="border-t hover:bg-gray-50">
-                      <td className="p-4 text-sm" data-label="Phone">
-                        <span className="font-mono text-gray-600">{b.party?.phone || '-'}</span>
+                      <td className="p-4 text-sm" data-label="App No">
+                        <span className="font-mono text-gray-600">{b.application_number || '-'}</span>
                       </td>
                       <td className="p-4" data-label="Name">
                         <p className="font-medium text-gray-900">{b.party?.name || 'N/A'}</p>
                       </td>
-                      <td className="p-4" data-label="Amount">
-                        <div className="flex items-center gap-1">
-                          <IndianRupee className="w-3.5 h-3.5 text-red-500" />
-                          <span className="font-semibold text-red-600">{formatCurrency(amountDue)}</span>
-                        </div>
+                      <td className="p-4 text-sm hidden md:table-cell" data-label="Plinth">
+                        <span className="font-medium">{formatCurrency(Number(b.plinth) || 0)}</span>
                       </td>
-                      <td className="p-4" data-label="Payments">
-                        <span className="font-semibold text-green-600">{formatCurrency(amountPaid)}</span>
+                      <td className="p-4 text-sm hidden md:table-cell" data-label="Lintel">
+                        <span className="font-medium">{formatCurrency(Number(b.lintel) || 0)}</span>
                       </td>
-                      <td className="p-4" data-label="Balance">
-                        <span className={`font-bold ${balance > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                          {formatCurrency(balance)}
-                        </span>
+                      <td className="p-4 text-sm hidden md:table-cell" data-label="Roof">
+                        <span className="font-medium">{formatCurrency(Number(b.roof) || 0)}</span>
                       </td>
-                      <td className="p-4 text-sm text-gray-600 hidden md:table-cell" data-label="Aadhaar">{b.aadhaar_number || '-'}</td>
+                      <td className="p-4 text-sm hidden md:table-cell" data-label="Finishing">
+                        <span className="font-medium">{formatCurrency(Number(b.finishing) || 0)}</span>
+                      </td>
                       <td className="p-4" data-label="">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <Link href={`/beneficiaries/${b.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">

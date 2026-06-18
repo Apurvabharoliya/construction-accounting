@@ -45,6 +45,12 @@ const PARTY_COLUMNS: ColumnDef[] = [
   { field: 'opening_balance', aliases: ['opening balance', 'opening_balance', 'opening bal', 'balance', 'opening'], keywords: ['opening', 'opening balance'] },
   { field: 'gst_registered', aliases: ['gst registered', 'gst_registered', 'gst registration', 'registered'], keywords: ['gst registered', 'gst_registered'] },
   { field: 'notes', aliases: ['notes', 'remarks', 'note', 'comment', 'description', 'remarks/notes'], keywords: ['note', 'remark', 'comment'] },
+  { field: 'beneficiary_number', aliases: ['beneficiary number', 'ben no', 'ben number', 'beneficiary no', 'ben_no'], keywords: ['beneficiary', 'ben'] },
+  { field: 'application_number', aliases: ['application number', 'app no', 'app number', 'application no', 'app_no'], keywords: ['application', 'app'] },
+  { field: 'plinth', aliases: ['plinth', 'plinth amount'], keywords: ['plinth'] },
+  { field: 'lintel', aliases: ['lintel', 'lintel amount'], keywords: ['lintel'] },
+  { field: 'roof', aliases: ['roof', 'roof amount'], keywords: ['roof'] },
+  { field: 'finishing', aliases: ['finishing', 'finishing amount'], keywords: ['finishing'] },
 ]
 
 const TRANSACTION_COLUMNS: ColumnDef[] = [
@@ -73,7 +79,7 @@ const PURCHASE_COLUMNS: ColumnDef[] = [
 ]
 
 const SALE_COLUMNS: ColumnDef[] = [
-  { field: 'client_name', aliases: ['client name', 'customer name', 'client', 'customer', 'party name', 'name'], keywords: ['client', 'customer'] },
+  { field: 'client_name', aliases: ['client name', 'customer name', 'client', 'customer', 'party name', 'name', 'beneficiary name', 'beneficiary'], keywords: ['client', 'customer', 'beneficiary'] },
   { field: 'invoice_date', aliases: ['invoice date', 'date', 'invoice_date', 'bill date', 'sale date', 'transaction date'], keywords: ['date', 'invoice date'] },
   { field: 'item', aliases: ['item', 'item name', 'service', 'description', 'work', 'work description', 'particulars', 'particular'], keywords: ['item', 'service', 'work', 'particular'] },
   { field: 'hsn', aliases: ['hsn', 'hsn code', 'hsn_code', 'hsn/sac', 'hsn/sac code'], keywords: ['hsn'] },
@@ -246,6 +252,8 @@ export function detectEntityType(headers: string[]): EntityType {
   if (headerContains(lowerHeaders, 'email')) partyScore += 1
   if (headerContains(lowerHeaders, 'address')) partyScore += 1
   if (headerContains(lowerHeaders, 'opening balance', 'opening_balance')) partyScore += 1
+  // Beneficiary indicators
+  if (headerContains(lowerHeaders, 'plinth', 'lintel', 'roof', 'finishing', 'application number', 'beneficiary number')) partyScore += 5
 
   // Purchases indicators
   if (headerContains(lowerHeaders, 'supplier', 'vendor')) purchaseScore += 3
@@ -392,6 +400,12 @@ async function importParties(rows: Record<string, string>[], columnMap: Map<stri
         if (createdParty) {
           await supabase.from('beneficiaries').insert([{
             party_id: createdParty.id,
+            beneficiary_number: getField(row, columnMap, 'beneficiary_number') || undefined,
+            application_number: getField(row, columnMap, 'application_number') || undefined,
+            plinth: parseFloat(getField(row, columnMap, 'plinth') || '0') || 0,
+            lintel: parseFloat(getField(row, columnMap, 'lintel') || '0') || 0,
+            roof: parseFloat(getField(row, columnMap, 'roof') || '0') || 0,
+            finishing: parseFloat(getField(row, columnMap, 'finishing') || '0') || 0,
             subsidy_status: 'pending',
             construction_progress: 0,
             total_amount_received: 0,

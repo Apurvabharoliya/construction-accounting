@@ -11,7 +11,7 @@ export default function NewSalePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  async function resolveOrCreateClient(name: string): Promise<string> {
+  async function resolveOrCreateBeneficiary(name: string): Promise<string> {
     const { data: existing } = await supabase
       .from('parties')
       .select('id')
@@ -66,7 +66,7 @@ export default function NewSalePage() {
       const totalGstAmount = itemsWithGst.reduce((sum, item) => sum + item.gst_amount, 0)
       const totalWithGst = totalAmount + totalGstAmount
 
-      const client_id = await resolveOrCreateClient(data.client_name)
+      const client_id = await resolveOrCreateBeneficiary(data.client_name)
 
       const saleData = {
         client_id,
@@ -100,7 +100,7 @@ export default function NewSalePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">New Sale</h1>
-        <p className="text-gray-500 text-sm mt-1">Record a new sale to a client</p>
+        <p className="text-gray-500 text-sm mt-1">Record a new sale to a beneficiary</p>
       </div>
       <SaleForm onSubmit={handleSubmit} isLoading={isLoading} />
     </div>

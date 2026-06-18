@@ -91,7 +91,12 @@ export interface SaleItem {
 export interface Beneficiary {
   id: string
   party_id: string
-  aadhaar_number?: string
+  beneficiary_number?: string
+  application_number?: string
+  plinth?: number
+  lintel?: number
+  roof?: number
+  finishing?: number
   property_address?: string
   subsidy_scheme?: string
   subsidy_amount_sanctioned?: number

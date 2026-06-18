@@ -24,7 +24,7 @@ export default function EditSalePage() {
     try {
       const { data, error } = await supabase
         .from('sales')
-        .select('*, client:parties!client_id(*), items:sale_items(*)')
+        .select('*, beneficiary:parties!client_id(*), items:sale_items(*)')
         .eq('id', params.id)
         .single()
       if (error) throw error
@@ -36,7 +36,7 @@ export default function EditSalePage() {
     }
   }
 
-  async function resolveOrCreateClient(name: string): Promise<string> {
+  async function resolveOrCreateBeneficiary(name: string): Promise<string> {
     const { data: existing } = await supabase
       .from('parties')
       .select('id')
@@ -61,7 +61,7 @@ export default function EditSalePage() {
       const totalGst = data.items.reduce((sum: number, item: any) => sum + (item.quantity * item.rate * item.gst_rate / 100), 0)
       const totalWithGst = totalAmount + totalGst
 
-      const client_id = await resolveOrCreateClient(data.client_name)
+      const client_id = await resolveOrCreateBeneficiary(data.client_name)
 
       await updateSale(params.id as string, {
         client_id,
@@ -122,7 +122,7 @@ export default function EditSalePage() {
         isLoading={isLoading}
         isEditing={true}
         initialData={sale ? {
-          client_name: sale.client?.name || '',
+          client_name: sale.beneficiary?.name || '',
           invoice_date: sale.invoice_date,
           payment_mode: sale.payment_mode,
           payment_status: sale.payment_status,

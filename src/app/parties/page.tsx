@@ -8,8 +8,10 @@ import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { deleteParty } from '@/lib/api/parties'
 import { toast } from 'sonner'
+
 const partyTypeColors: Record<string, string> = {
-  supplier: 'bg-blue-100 text-blue-800'
+  supplier: 'bg-blue-100 text-blue-800',
+  beneficiary: 'bg-orange-100 text-orange-800'
 }
 
 export default function PartiesPage() {
@@ -37,7 +39,7 @@ export default function PartiesPage() {
       let query = supabase.from('parties').select('*').order('created_at', { ascending: false })
 
       // Only filter by party_type for valid types; 'paid'/'unpaid' are client-side filters
-      if (filterType === 'supplier') {
+      if (filterType === 'supplier' || filterType === 'beneficiary') {
         query = query.eq('party_type', filterType)
       }
 
@@ -130,7 +132,8 @@ export default function PartiesPage() {
           <div className="flex gap-2 flex-wrap">
             {[
               { value: 'all', label: 'All' },
-              { value: 'supplier', label: 'Supplier' },
+              { value: 'supplier', label: 'Suppliers' },
+              { value: 'beneficiary', label: 'Beneficiaries' },
               { value: 'paid', label: 'Settled' },
               { value: 'unpaid', label: 'Outstanding' }
             ].map(({ value, label }) => (

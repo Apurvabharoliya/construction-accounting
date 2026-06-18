@@ -45,8 +45,7 @@ export default function Dashboard() {
         // Single combined query for recent transactions (both sales and purchases)
         (async () => {
           const [sales, purchases] = await Promise.all([
-            supabase.from('sales')
-              .select('id, sale_number, invoice_date, created_at, total_amount, payment_status, client:parties!client_id(name)')
+            supabase.from('sales')               .select('id, sale_number, invoice_date, created_at, total_amount, payment_status, beneficiary:parties!client_id(name)')
               .order('created_at', { ascending: false })
               .limit(5),
             supabase.from('purchases')
@@ -70,7 +69,7 @@ export default function Dashboard() {
         created_at: s.created_at,
         total_amount: s.total_amount,
         payment_status: s.payment_status,
-        party_name: s.client?.name,
+        party_name: s.beneficiary?.name,
         invoice_number: s.sale_number,
         type: 'sale' as const
       }))

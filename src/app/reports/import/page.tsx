@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { importFromExcel, downloadTemplate, detectEntityType, buildColumnMapForType, getColumnDefs, type EntityType, type ImportResult } from '@/lib/import'
 
 const entityTypeInfo: Record<EntityType, { label: string; description: string; bgClass: string; borderClass: string; textClass: string }> = {
-  parties: { label: 'Vendors', description: 'Import vendors (suppliers, beneficiaries)', bgClass: 'bg-purple-50', borderClass: 'border-purple-200', textClass: 'text-purple-600' },
+  parties: { label: 'Vendors & Beneficiaries', description: 'Import suppliers and beneficiaries', bgClass: 'bg-purple-50', borderClass: 'border-purple-200', textClass: 'text-purple-600' },
   purchases: { label: 'Purchases', description: 'Import purchase invoices with items', bgClass: 'bg-blue-50', borderClass: 'border-blue-200', textClass: 'text-blue-600' },
   sales: { label: 'Sales', description: 'Import sale invoices with items', bgClass: 'bg-green-50', borderClass: 'border-green-200', textClass: 'text-green-600' },
   transactions: { label: 'Transactions', description: 'Import ledger/account statement with debits and credits', bgClass: 'bg-amber-50', borderClass: 'border-amber-200', textClass: 'text-amber-600' },

@@ -9,7 +9,12 @@ import { Search, UserPlus, Users, Check } from 'lucide-react'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  aadhaar_number: z.string().length(12, 'Aadhaar must be 12 digits'),
+  beneficiary_number: z.string().min(1, 'Beneficiary number is required'),
+  application_number: z.string().min(1, 'Application number is required'),
+  plinth: z.number().min(0, 'Plinth amount must be >= 0'),
+  lintel: z.number().min(0, 'Lintel amount must be >= 0'),
+  roof: z.number().min(0, 'Roof amount must be >= 0'),
+  finishing: z.number().min(0, 'Finishing amount must be >= 0'),
   outstanding_amount: z.number().min(400000, 'Minimum outstanding amount is ₹4,00,000 (4 Lakhs)')
 })
 
@@ -25,7 +30,12 @@ interface PartyResult {
 interface BeneficiaryFormProps {
   initialData?: {
     name?: string
-    aadhaar_number?: string | null
+    beneficiary_number?: string | null
+    application_number?: string | null
+    plinth?: number | null
+    lintel?: number | null
+    roof?: number | null
+    finishing?: number | null
     outstanding_amount?: number
   }
   onSubmit: (data: BeneficiaryFormData & { existingPartyId?: string }) => Promise<void>
@@ -45,7 +55,12 @@ export default function BeneficiaryForm({ initialData, onSubmit, isLoading }: Be
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || '',
-      aadhaar_number: initialData?.aadhaar_number || '',
+      beneficiary_number: initialData?.beneficiary_number || '',
+      application_number: initialData?.application_number || '',
+      plinth: initialData?.plinth || 0,
+      lintel: initialData?.lintel || 0,
+      roof: initialData?.roof || 0,
+      finishing: initialData?.finishing || 0,
       outstanding_amount: initialData?.outstanding_amount || 400000
     }
   })
@@ -215,9 +230,34 @@ export default function BeneficiaryForm({ initialData, onSubmit, isLoading }: Be
             {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Aadhaar Number *</label>
-            <input type="text" {...register('aadhaar_number')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="12-digit Aadhaar number" maxLength={12} />
-            {errors.aadhaar_number && <p className="text-red-500 text-sm mt-1">{errors.aadhaar_number.message}</p>}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Beneficiary Number *</label>
+            <input type="text" {...register('beneficiary_number')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter beneficiary number" />
+            {errors.beneficiary_number && <p className="text-red-500 text-sm mt-1">{errors.beneficiary_number.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Application Number *</label>
+            <input type="text" {...register('application_number')} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter application number" />
+            {errors.application_number && <p className="text-red-500 text-sm mt-1">{errors.application_number.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Plinth (₹)</label>
+            <input type="number" step="0.01" {...register('plinth', { valueAsNumber: true })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0" />
+            {errors.plinth && <p className="text-red-500 text-sm mt-1">{errors.plinth.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Lintel (₹)</label>
+            <input type="number" step="0.01" {...register('lintel', { valueAsNumber: true })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0" />
+            {errors.lintel && <p className="text-red-500 text-sm mt-1">{errors.lintel.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Roof (₹)</label>
+            <input type="number" step="0.01" {...register('roof', { valueAsNumber: true })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0" />
+            {errors.roof && <p className="text-red-500 text-sm mt-1">{errors.roof.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Finishing (₹)</label>
+            <input type="number" step="0.01" {...register('finishing', { valueAsNumber: true })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0" />
+            {errors.finishing && <p className="text-red-500 text-sm mt-1">{errors.finishing.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Outstanding Amount (₹) *</label>

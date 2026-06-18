@@ -106,7 +106,7 @@ export async function getOutstandingExportData() {
 
   const { data: sales } = await supabase
     .from('sales')
-    .select('client_id, balance_due, sale_number, client:parties!client_id(name)')
+    .select('client_id, balance_due, sale_number, beneficiary:parties!client_id(name)')
     .gt('balance_due', 0)
 
   const rows: any[][] = []
@@ -114,7 +114,7 @@ export async function getOutstandingExportData() {
     rows.push([p.supplier?.name || 'N/A', p.purchase_number, '-', formatCurrency(Number(p.balance_due)), 'Payable'])
   })
   sales?.forEach((s: any) => {
-    rows.push([s.client?.name || 'N/A', s.sale_number, formatCurrency(Number(s.balance_due)), '-', 'Receivable'])
+    rows.push([s.beneficiary?.name || 'N/A', s.sale_number, formatCurrency(Number(s.balance_due)), '-', 'Receivable'])
   })
 
   return rows
@@ -123,7 +123,7 @@ export async function getOutstandingExportData() {
 export async function getDailyExportData(date: string) {
   const { data: sales } = await supabase
     .from('sales')
-    .select('sale_number, client:parties!client_id(name), total_amount, amount_received')
+    .select('sale_number, beneficiary:parties!client_id(name), total_amount, amount_received')
     .eq('invoice_date', date)
 
   const { data: purchases } = await supabase
@@ -133,7 +133,7 @@ export async function getDailyExportData(date: string) {
 
   const rows: any[][] = []
   sales?.forEach((s: any) => {
-    rows.push([formatDate(date), s.sale_number, s.client?.name || 'N/A', 'Sale', formatCurrency(Number(s.total_amount)), formatCurrency(Number(s.amount_received))])
+    rows.push([formatDate(date), s.sale_number, s.beneficiary?.name || 'N/A', 'Sale', formatCurrency(Number(s.total_amount)), formatCurrency(Number(s.amount_received))])
   })
   purchases?.forEach((p: any) => {
     rows.push([formatDate(date), p.purchase_number, p.supplier?.name || 'N/A', 'Purchase', formatCurrency(Number(p.total_amount)), formatCurrency(Number(p.amount_paid))])
@@ -148,7 +148,7 @@ export async function getMonthlyExportData(year: number, month: number) {
 
   const { data: sales } = await supabase
     .from('sales')
-    .select('sale_number, invoice_date, client:parties!client_id(name), total_amount, amount_received, payment_status')
+    .select('sale_number, invoice_date, beneficiary:parties!client_id(name), total_amount, amount_received, payment_status')
     .gte('invoice_date', startDate)
     .lte('invoice_date', endDate)
 
@@ -160,7 +160,7 @@ export async function getMonthlyExportData(year: number, month: number) {
 
   const rows: any[][] = []
   sales?.forEach((s: any) => {
-    rows.push([formatDate(s.invoice_date), s.sale_number, s.client?.name || 'N/A', 'Sale', formatCurrency(Number(s.total_amount)), formatCurrency(Number(s.amount_received)), s.payment_status])
+    rows.push([formatDate(s.invoice_date), s.sale_number, s.beneficiary?.name || 'N/A', 'Sale', formatCurrency(Number(s.total_amount)), formatCurrency(Number(s.amount_received)), s.payment_status])
   })
   purchases?.forEach((p: any) => {
     rows.push([formatDate(p.invoice_date), p.purchase_number, p.supplier?.name || 'N/A', 'Purchase', formatCurrency(Number(p.total_amount)), formatCurrency(Number(p.amount_paid)), p.payment_status])
@@ -172,7 +172,7 @@ export async function getMonthlyExportData(year: number, month: number) {
 export async function getGstExportData(startDate: string, endDate: string) {
   const { data: sales } = await supabase
     .from('sales')
-    .select('sale_number, client:parties!client_id(name), total_amount, cgst_amount, sgst_amount, igst_amount')
+    .select('sale_number, beneficiary:parties!client_id(name), total_amount, cgst_amount, sgst_amount, igst_amount')
     .gte('invoice_date', startDate)
     .lte('invoice_date', endDate)
 
@@ -184,7 +184,7 @@ export async function getGstExportData(startDate: string, endDate: string) {
 
   const rows: any[][] = []
   sales?.forEach((s: any) => {
-    rows.push([s.sale_number, s.client?.name || 'N/A', 'Sale', formatCurrency(Number(s.total_amount)), formatCurrency(Number(s.cgst_amount)), formatCurrency(Number(s.sgst_amount)), formatCurrency(Number(s.igst_amount))])
+    rows.push([s.sale_number, s.beneficiary?.name || 'N/A', 'Sale', formatCurrency(Number(s.total_amount)), formatCurrency(Number(s.cgst_amount)), formatCurrency(Number(s.sgst_amount)), formatCurrency(Number(s.igst_amount))])
   })
   purchases?.forEach((p: any) => {
     rows.push([p.purchase_number, p.supplier?.name || 'N/A', 'Purchase', formatCurrency(Number(p.total_amount)), formatCurrency(Number(p.cgst_amount)), formatCurrency(Number(p.sgst_amount)), formatCurrency(Number(p.igst_amount))])

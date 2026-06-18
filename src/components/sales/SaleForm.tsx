@@ -20,7 +20,7 @@ const itemSchema = z.object({
 })
 
 const formSchema = z.object({
-  client_name: z.string().min(1, 'Enter client name'),
+  client_name: z.string().min(1, 'Enter beneficiary name'),
   invoice_date: z.string().min(1, 'Date required'),
   payment_mode: z.string().optional().or(z.literal('')),
   payment_status: z.enum(['paid', 'unpaid']),
