@@ -61,19 +61,19 @@ export default function SalesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sales</h1>
           <p className="text-gray-500 text-sm mt-1">Manage sales invoices and payments</p>
         </div>
-        <Link href="/sales/new" className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        <Link href="/sales/new" className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
           <Plus className="w-5 h-5" /> New Sale
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex gap-2">
             <DatePicker value={dateRange.start} onChange={(v) => setDateRange(p => ({ ...p, start: v }))} />
             <DatePicker value={dateRange.end} onChange={(v) => setDateRange(p => ({ ...p, end: v }))} />

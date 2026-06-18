@@ -56,19 +56,21 @@ export default function PurchaseDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={() => router.push('/purchases')} className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="w-5 h-5 text-gray-600" /></button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">Transaction • {purchase.purchase_number}</h1>
-          <p className="text-gray-500 text-sm">{purchase.supplier?.name}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <button onClick={() => router.push('/purchases')} className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0"><ArrowLeft className="w-5 h-5 text-gray-600" /></button>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Transaction • {purchase.purchase_number}</h1>
+            <p className="text-gray-500 text-sm truncate">{purchase.supplier?.name}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {Number(purchase.balance_due) > 0 && (
             <button
               onClick={() => setPaymentDialogOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm text-sm flex-1 sm:flex-none"
             >
-              <Banknote className="w-4 h-4" /> Record Payment
+              <Banknote className="w-4 h-4" /> <span className="sm:inline">Record Payment</span>
             </button>
           )}
           <button onClick={() => {
@@ -78,11 +80,11 @@ export default function PurchaseDetailPage() {
                 router.push('/purchases')
               }).catch((e: any) => toast.error(e.message))
             }
-          }} className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
-            <Trash2 className="w-4 h-4" /> Delete
+          }} className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm flex-1 sm:flex-none">
+            <Trash2 className="w-4 h-4" /> <span className="sm:inline">Delete</span>
           </button>
-          <Link href={`/purchases/${purchase.id}/edit`} className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">
-            <Edit3 className="w-4 h-4" /> Edit
+          <Link href={`/purchases/${purchase.id}/edit`} className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm flex-1 sm:flex-none">
+            <Edit3 className="w-4 h-4" /> <span className="sm:inline">Edit</span>
           </Link>
         </div>
       </div>

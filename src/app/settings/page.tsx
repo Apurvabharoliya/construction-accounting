@@ -71,8 +71,8 @@ export default function SettingsPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm">
-        <div className="border-b px-6">
-          <div className="flex gap-6">
+        <div className="border-b px-4 sm:px-6">
+          <div className="flex gap-4 sm:gap-6 overflow-x-auto">
             <button onClick={() => setActiveTab('profile')} className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'profile' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}>
@@ -86,7 +86,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

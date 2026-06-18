@@ -179,27 +179,27 @@ export default function VillageDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className={`bg-gradient-to-r ${gradient} p-6 text-white`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/villages')} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
+        <div className={`bg-gradient-to-r ${gradient} p-4 sm:p-6 text-white`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <button onClick={() => router.push('/villages')} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0">
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <div>
-                <h1 className="text-2xl font-bold">{villageName}</h1>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold truncate">{villageName}</h1>
                 <p className="text-white/80 text-sm mt-0.5">Construction Material Inventory</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setReceiptDialog(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm font-medium"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm font-medium flex-1 sm:flex-none"
               >
                 <Plus className="w-4 h-4" /> Add Stock
               </button>
               <button
                 onClick={() => setUsageDialog(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm font-medium"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm font-medium flex-1 sm:flex-none"
               >
                 <MinusCircle className="w-4 h-4" /> Record Usage
               </button>

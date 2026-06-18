@@ -102,14 +102,14 @@ export default function PartiesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
           <p className="text-gray-500 text-sm mt-1">Manage suppliers and vendors</p>
         </div>
         <Link
           href="/parties/new"
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
         >
           <Plus className="w-5 h-5" />
           Add Vendor

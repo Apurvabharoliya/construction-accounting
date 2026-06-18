@@ -150,13 +150,15 @@ export default function LedgerReportPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/reports" className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="w-5 h-5 text-gray-600" /></Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">Party Ledger</h1>
-          <p className="text-gray-500 text-sm mt-1 capitalize">{party?.name || 'Loading...'} • {party?.party_type}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/reports" className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0"><ArrowLeft className="w-5 h-5 text-gray-600" /></Link>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-gray-900 truncate">Party Ledger</h1>
+            <p className="text-gray-500 text-sm mt-1 capitalize">{party?.name || 'Loading...'} • {party?.party_type}</p>
+          </div>
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           <p className="text-sm text-gray-500">Current Balance</p>
           <p className={`text-xl font-bold ${currentBalance > 0 ? 'text-red-600' : currentBalance < 0 ? 'text-green-600' : 'text-gray-900'}`}>
             {currentBalance === 0 ? 'Settled' : formatCurrency(currentBalance)}
@@ -171,7 +173,7 @@ export default function LedgerReportPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4">
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <DatePicker value={dateRange.start} onChange={(v) => setDateRange(p => ({ ...p, start: v }))} className="bg-white" />
           <DatePicker value={dateRange.end} onChange={(v) => setDateRange(p => ({ ...p, end: v }))} className="bg-white" />
         </div>

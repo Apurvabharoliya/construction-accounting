@@ -51,7 +51,7 @@ export default function TopBar() {
   }
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
+    <header className="h-14 sm:h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-3 md:px-6 sticky top-0 z-30">
       {/* Mobile spacer for hamburger menu */}
       <div className="md:hidden w-8" />
 

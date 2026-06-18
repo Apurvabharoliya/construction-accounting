@@ -162,11 +162,11 @@ export default function ImportPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/reports" className="p-2 hover:bg-gray-100 rounded-lg">
+      <div className="flex items-center gap-3">
+        <Link href="/reports" className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0">
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </Link>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">Import from Excel</h1>
           <p className="text-gray-500 text-sm mt-0.5">Upload Excel files to import vendors, purchases, or sales</p>
         </div>

@@ -200,15 +200,17 @@ export default function PartyDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button onClick={() => router.push('/parties')} className="p-2 hover:bg-gray-100 rounded-lg">
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{party.name}</h1>
-          <p className="text-gray-500 text-sm capitalize">{party.party_type}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <button onClick={() => router.push('/parties')} className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0">
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{party.name}</h1>
+            <p className="text-gray-500 text-sm capitalize">{party.party_type}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button onClick={() => {
             if (confirm(`Are you sure you want to delete ${party.name}?`)) {
               deleteParty(party.id).then(() => {
@@ -216,11 +218,11 @@ export default function PartyDetailPage() {
                 router.push('/parties')
               }).catch((e: any) => toast.error(e.message))
             }
-          }} className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
-            <Trash2 className="w-4 h-4" /> Delete
+          }} className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm flex-1 sm:flex-none">
+            <Trash2 className="w-4 h-4" /> <span className="sm:inline">Delete</span>
           </button>
-          <Link href={`/parties/${party.id}/edit`} className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">
-            <Edit3 className="w-4 h-4" /> Edit
+          <Link href={`/parties/${party.id}/edit`} className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm flex-1 sm:flex-none">
+            <Edit3 className="w-4 h-4" /> <span className="sm:inline">Edit</span>
           </Link>
         </div>
       </div>
