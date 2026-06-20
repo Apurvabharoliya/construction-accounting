@@ -345,9 +345,36 @@ export default function CashbookPage() {
         </div>
 
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex gap-4">
+              <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3.5 w-24 bg-gray-200 rounded animate-pulse ml-auto" />
+            </div>
           </div>
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+            <div className="flex gap-4">
+              {[...Array(9)].map((_, i) => (
+                <div key={i} className="h-3.5 flex-1 bg-gray-200 rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="px-4 py-3 flex gap-4 items-center">
+                <div className="h-4 w-6 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                <div className="h-5 w-16 bg-gray-200 rounded-full animate-pulse" />
+                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-8 bg-gray-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
         ) : filteredTransactions.length === 0 ? (
           <div className="p-12 text-center">
             <Receipt className="w-12 h-12 text-gray-300 mx-auto mb-3" />

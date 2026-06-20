@@ -104,8 +104,8 @@ export default function DatePicker({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-        className={`w-full px-4 py-2 border rounded-lg cursor-pointer bg-white ${
-          focused ? 'border-blue-500' : ''
+        className={`w-full px-3 py-2.5 border rounded-lg text-sm cursor-pointer bg-white transition-all ${
+          focused ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-gray-300'
         } disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
         autoComplete="off"
         readOnly={false}

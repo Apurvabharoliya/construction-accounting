@@ -88,7 +88,7 @@ export const GST_RATES = [
 ]
 
 export const UNITS = [
-  'Nos', 'Kg', 'Qtl', 'Bag', 'Box', 'Litre', 'Metre', 
+  'Nos', 'Kg', 'Ton', 'Qtl', 'Bag', 'Box', 'Litre', 'Metre', 
   'Sq.Ft', 'Cu.Ft', 'Pcs', 'Roll', 'Sheet', 'Bundle', 'Feet', 'Inch'
 ]
 

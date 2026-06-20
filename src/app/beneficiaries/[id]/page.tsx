@@ -35,7 +35,25 @@ export default function BeneficiaryDetailPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-7 w-48 bg-gray-200 rounded-lg animate-pulse" />
+            <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-6 max-w-md space-y-3">
+          {[...Array(7)].map((_, i) => (
+            <div key={i} className="flex justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   if (!beneficiary) {

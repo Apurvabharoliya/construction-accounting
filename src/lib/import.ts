@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { addMaterialReceipt } from '@/lib/api/villages'
 import { getNextPurchaseNumber, getNextSaleNumber } from './api/sequence'
 
 // =============================================
@@ -65,12 +66,13 @@ const TRANSACTION_COLUMNS: ColumnDef[] = [
 const PURCHASE_COLUMNS: ColumnDef[] = [
   { field: 'supplier_name', aliases: ['supplier name', 'vendor name', 'supplier', 'vendor', 'party name', 'name'], keywords: ['supplier', 'vendor'] },
   { field: 'invoice_date', aliases: ['invoice date', 'date', 'invoice_date', 'bill date', 'purchase date', 'transaction date'], keywords: ['date', 'invoice date'] },
+  { field: 'village_name', aliases: ['village name', 'village', 'village_name', 'site name', 'site', 'location'], keywords: ['village', 'site', 'location'] },
   { field: 'supplier_invoice_no', aliases: ['supplier invoice no', 'supplier invoice number', 'invoice no', 'invoice number', 'inv no', 'bill no', 'bill number'], keywords: ['invoice no', 'invoice number', 'inv no', 'bill no'] },
   { field: 'material', aliases: ['material', 'item', 'item name', 'material name', 'product', 'product name', 'description', 'particulars', 'particular'], keywords: ['material', 'item', 'product', 'particular'] },
-  { field: 'hsn', aliases: ['hsn', 'hsn code', 'hsn_code', 'hsn no', 'hsn/sac', 'hsn/sac code'], keywords: ['hsn'] },
   { field: 'quantity', aliases: ['quantity', 'qty', 'qty.', 'quantity nos', 'qty nos'], keywords: ['qty', 'quantity'] },
   { field: 'unit', aliases: ['unit', 'uom', 'measurement unit', 'measure', 'unit of measure'], keywords: ['unit', 'uom'] },
   { field: 'rate', aliases: ['rate', 'price', 'unit price', 'rate per unit', 'price per unit'], keywords: ['rate', 'price'] },
+  { field: 'amount', aliases: ['amount', 'total amount', 'value', 'total', 'amount (this for purchase)'], keywords: ['amount', 'value', 'total'] },
   { field: 'gst', aliases: ['gst', 'gst %', 'gst rate', 'gst_rate', 'gst%', 'tax', 'tax %', 'tax rate', 'tax_rate'], keywords: ['gst', 'tax'] },
   { field: 'payment_status', aliases: ['payment status', 'status', 'payment_status', 'pay status'], keywords: ['status', 'payment status'] },
   { field: 'payment_mode', aliases: ['payment mode', 'mode', 'payment method', 'payment_mode', 'pay mode', 'pay method'], keywords: ['mode', 'method', 'payment mode'] },
@@ -500,7 +502,8 @@ async function importPurchases(rows: Record<string, string>[], columnMap: Map<st
         const gstRate = parseFloat(getField(row, columnMap, 'gst') || '18') || 0
         const unit = getField(row, columnMap, 'unit') || 'Nos'
         const hsnCode = getField(row, columnMap, 'hsn')
-        const amount = qty * rate
+        const explicitAmount = parseFloat(getField(row, columnMap, 'amount') || '0') || 0
+        const amount = explicitAmount > 0 ? explicitAmount : qty * rate
         const gstAmount = amount * gstRate / 100
 
         items.push({
@@ -556,6 +559,28 @@ async function importPurchases(rows: Record<string, string>[], columnMap: Map<st
       const itemsWithIds = items.map(item => ({ ...item, purchase_id: purchaseData.id }))
       const { error: itemsError } = await supabase.from('purchase_items').insert(itemsWithIds)
       if (itemsError) throw itemsError
+
+      // Update village stock if village_name is provided
+      const villageName = getField(firstRow, columnMap, 'village_name')
+      if (villageName) {
+        for (const item of items) {
+          if (item.material_name && item.quantity > 0) {
+            try {
+              await addMaterialReceipt({
+                village_name: villageName,
+                material_name: item.material_name,
+                quantity: item.quantity,
+                contractor_name: supplierName,
+                reference_purchase_id: purchaseData.id,
+                notes: `Purchase ${purchaseNumber}`,
+                transaction_date: invoiceDate
+              })
+            } catch (err) {
+              console.error(`Failed to update village stock for ${item.material_name}:`, err)
+            }
+          }
+        }
+      }
 
       // Create transaction
       await supabase.from('transactions').insert([{

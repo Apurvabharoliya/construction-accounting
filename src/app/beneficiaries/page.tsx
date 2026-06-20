@@ -69,7 +69,28 @@ export default function BeneficiariesPage() {
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div></div>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <div className="flex gap-4">
+                {[...Array(7)].map((_, i) => (
+                  <div key={i} className="h-3.5 flex-1 bg-gray-200 rounded animate-pulse" />
+                ))}
+              </div>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="px-4 py-4 flex gap-4 items-center">
+                  <div className="h-3 w-12 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-6 w-24 bg-gray-200 rounded-full animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : beneficiaries.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-500 mb-4">No beneficiaries found</p>

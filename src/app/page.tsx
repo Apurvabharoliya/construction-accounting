@@ -147,12 +147,49 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-12 h-12 border-4 border-blue-100 rounded-full animate-spin border-t-blue-600" />
+      <div className="space-y-6">
+        {/* Header skeleton */}
+        <div className="flex justify-between">
+          <div className="space-y-2">
+            <div className="h-8 w-48 bg-gray-200 rounded-lg animate-pulse" />
+            <div className="h-4 w-64 bg-gray-200 rounded-lg animate-pulse" />
           </div>
-          <p className="text-gray-500 text-sm font-medium">Loading dashboard...</p>
+          <div className="h-4 w-40 bg-gray-200 rounded-lg animate-pulse" />
+        </div>
+        {/* Stats cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-3">
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="w-12 h-12 bg-gray-200 rounded-xl animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Bottom section skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="h-5 w-32 bg-gray-200 rounded animate-pulse mb-4" />
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-4" />
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex gap-4 py-3 border-b border-gray-50 last:border-0">
+                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse ml-auto" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
