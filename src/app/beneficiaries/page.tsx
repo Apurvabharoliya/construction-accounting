@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Search, Eye, Edit3, Trash2, IndianRupee } from 'lucide-react'
+import { Plus, Search, Eye, Edit3, Trash2, Save, X, Loader2, IndianRupee } from 'lucide-react'
 import Link from 'next/link'
 import { deleteBeneficiary } from '@/lib/api/beneficiaries'
 import { toast } from 'sonner'
@@ -33,6 +33,65 @@ export default function BeneficiariesPage() {
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // --- Inline editing state ---
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Record<string, any>>({})
+  const [savingId, setSavingId] = useState<string | null>(null)
+
+  function startEdit(b: any) {
+    setEditingId(b.id)
+    setEditForm({
+      name: b.party?.name || '',
+      plinth: Number(b.plinth) || 0,
+      lintel: Number(b.lintel) || 0,
+      roof: Number(b.roof) || 0,
+      finishing: Number(b.finishing) || 0,
+      amount_due: Number(b.total_amount_due) || 0,
+    })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditForm({})
+  }
+
+  async function handleInlineSave(id: string, partyId: string | null) {
+    setSavingId(id)
+    try {
+      // Update party name
+      if (partyId) {
+        const { error: partyErr } = await supabase
+          .from('parties')
+          .update({ name: editForm.name, updated_at: new Date().toISOString() })
+          .eq('id', partyId)
+        if (partyErr) throw partyErr
+      }
+
+      // Update beneficiary financial fields
+      const { error: benErr } = await supabase
+        .from('beneficiaries')
+        .update({
+          plinth: Number(editForm.plinth) || 0,
+          lintel: Number(editForm.lintel) || 0,
+          roof: Number(editForm.roof) || 0,
+          finishing: Number(editForm.finishing) || 0,
+          total_amount_due: Number(editForm.amount_due) || 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+      if (benErr) throw benErr
+
+      toast.success('Beneficiary updated')
+      setEditingId(null)
+      setEditForm({})
+      fetchBeneficiaries()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update')
+    } finally {
+      setSavingId(null)
     }
   }
 
@@ -107,6 +166,9 @@ export default function BeneficiariesPage() {
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Lintel</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Roof</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Finishing</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap text-right">Total Due</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap text-right">Received</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap text-right">Balance</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -121,28 +183,117 @@ export default function BeneficiariesPage() {
                         <span className="font-mono text-gray-600">{b.application_number || '-'}</span>
                       </td>
                       <td className="p-4" data-label="Name">
-                        <p className="font-medium text-gray-900">{b.party?.name || 'N/A'}</p>
+                        {editingId === b.id ? (
+                          <input
+                            type="text"
+                            value={editForm.name}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
+                          />
+                        ) : (
+                          <Link href={`/beneficiaries/${b.id}`} className="font-medium text-gray-900 hover:text-blue-600 transition-colors">
+                            {b.party?.name || 'N/A'}
+                          </Link>
+                        )}
                       </td>
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Plinth">
-                        <span className="font-medium">{formatCurrency(Number(b.plinth) || 0)}</span>
+                        {editingId === b.id ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editForm.plinth}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, plinth: Number(e.target.value) }))}
+                            className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
+                          />
+                        ) : (
+                          <span className="font-medium">{formatCurrency(Number(b.plinth) || 0)}</span>
+                        )}
                       </td>
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Lintel">
-                        <span className="font-medium">{formatCurrency(Number(b.lintel) || 0)}</span>
+                        {editingId === b.id ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editForm.lintel}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, lintel: Number(e.target.value) }))}
+                            className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
+                          />
+                        ) : (
+                          <span className="font-medium">{formatCurrency(Number(b.lintel) || 0)}</span>
+                        )}
                       </td>
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Roof">
-                        <span className="font-medium">{formatCurrency(Number(b.roof) || 0)}</span>
+                        {editingId === b.id ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editForm.roof}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, roof: Number(e.target.value) }))}
+                            className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
+                          />
+                        ) : (
+                          <span className="font-medium">{formatCurrency(Number(b.roof) || 0)}</span>
+                        )}
                       </td>
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Finishing">
-                        <span className="font-medium">{formatCurrency(Number(b.finishing) || 0)}</span>
+                        {editingId === b.id ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editForm.finishing}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, finishing: Number(e.target.value) }))}
+                            className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
+                          />
+                        ) : (
+                          <span className="font-medium">{formatCurrency(Number(b.finishing) || 0)}</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-sm text-right font-semibold" data-label="Total Due">
+                        {formatCurrency(amountDue)}
+                      </td>
+                      <td className="p-4 text-sm text-right font-semibold text-green-600" data-label="Received">
+                        {formatCurrency(amountPaid)}
+                      </td>
+                      <td className="p-4 text-sm text-right font-bold" data-label="Balance">
+                        <span className={balance > 0 ? 'text-red-600' : balance < 0 ? 'text-green-600' : 'text-gray-500'}>
+                          {formatCurrency(Math.abs(balance))}
+                          {balance > 0 ? ' Dr' : balance < 0 ? ' Cr' : ''}
+                        </span>
                       </td>
                       <td className="p-4" data-label="Actions">
                         <div className="flex items-center gap-2 sm:gap-3 justify-end">
                           <Link href={`/beneficiaries/${b.id}`} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
                             <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
                           </Link>
-                          <Link href={`/beneficiaries/${b.id}/edit`} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
-                            <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
-                          </Link>
+                          {editingId === b.id ? (
+                            <>
+                              <button
+                                onClick={() => handleInlineSave(b.id, b.party_id)}
+                                disabled={savingId === b.id}
+                                className="flex items-center gap-1 p-1.5 text-green-600 hover:text-green-700 rounded-lg hover:bg-green-50 transition-colors"
+                                title="Save"
+                              >
+                                {savingId === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                <span className="hidden sm:inline text-sm font-medium"> Save</span>
+                              </button>
+                              <button
+                                onClick={cancelEdit}
+                                className="flex items-center gap-1 p-1.5 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                                title="Cancel"
+                              >
+                                <X className="w-4 h-4" />
+                                <span className="hidden sm:inline text-sm"> Cancel</span>
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => startEdit(b)}
+                              className="flex items-center gap-1 p-1.5 text-gray-600 hover:text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
+                            </button>
+                          )}
                           <button onClick={() => handleDelete(b.id, b.party?.name)} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> Delete</span>
                           </button>

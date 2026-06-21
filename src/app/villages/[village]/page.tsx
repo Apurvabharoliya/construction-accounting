@@ -335,7 +335,19 @@ export default function VillageDetailPage() {
                     <p className="text-xs text-gray-500">
                       {formatDate(txn.transaction_date)}
                       {txn.contractor_name && ` • ${txn.contractor_name}`}
-                      {txn.notes && ` • ${txn.notes}`}
+                      {txn.reference_purchase_id ? (
+                        <>
+                          {' • '}
+                          <Link
+                            href={`/purchases/${txn.reference_purchase_id}`}
+                            className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                          >
+                            {txn.notes || 'View Purchase'}
+                          </Link>
+                        </>
+                      ) : (
+                        txn.notes && ` • ${txn.notes}`
+                      )}
                     </p>
                   </div>
                 </div>

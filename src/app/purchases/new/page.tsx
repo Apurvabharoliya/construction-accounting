@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { createPurchase } from '@/lib/api/purchases'
 import { addMaterialReceipt } from '@/lib/api/villages'
 import { toast } from 'sonner'
-import { Plus, Trash2, Upload, Loader2, Copy, FileSpreadsheet, Save, X } from 'lucide-react'
+import { Plus, Trash2, Upload, Loader2, Copy, FileSpreadsheet, Save, X, ChevronUp, Eye } from 'lucide-react'
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import DatePicker from '@/components/ui/DatePicker'
 import SupplierDropdown from '@/components/ui/SupplierDropdown'
@@ -35,6 +35,7 @@ interface TransactionEntry {
   amount_paid: number
   remarks: string
   items: TransactionItem[]
+  expanded: boolean
 }
 
 function emptyItem(): TransactionItem {
@@ -60,6 +61,7 @@ function emptyEntry(): TransactionEntry {
     amount_paid: 0,
     remarks: '',
     items: [emptyItem()],
+    expanded: false,
   }
 }
 
@@ -70,12 +72,12 @@ export default function NewTransactionPage() {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Keyboard shortcut: Ctrl+Enter to save
+  // Keyboard shortcut: Ctrl+Enter to save all
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault()
-        handleSubmit()
+        handleSaveAll()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -90,7 +92,9 @@ export default function NewTransactionPage() {
     setEntries(prev => prev.map(e => {
       if (e.id !== entryId) return e
       const items = e.items.map(item =>
-        item.id === itemId ? { ...item, [field]: value } : item
+        item.id === itemId
+          ? { ...item, [field]: value }
+          : item
       )
       return { ...e, items }
     }))
@@ -134,6 +138,10 @@ export default function NewTransactionPage() {
       next.splice(idx + 1, 0, copy)
       return next
     })
+  }
+
+  function toggleExpand(id: string) {
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, expanded: !e.expanded } : e))
   }
 
   // --- Excel Upload ---
@@ -186,7 +194,6 @@ export default function NewTransactionPage() {
         if (!isPayment && materialCol >= 0) {
           const material = getVal(row, materialCol)
           if (material) {
-            // Use per-item village if available, otherwise fall back to entry-level village
             const perItemVillage = getVal(row, villageCol) || ''
             items.push({
               id: genId(),
@@ -210,6 +217,7 @@ export default function NewTransactionPage() {
           amount_paid: isPayment ? amount : 0,
           remarks: '',
           items: items.length > 0 ? items : [emptyItem()],
+          expanded: false,
         }
       }).filter(e => e.supplier_name || e.items.some(i => i.material_name))
 
@@ -233,8 +241,117 @@ export default function NewTransactionPage() {
     }
   }
 
-  // --- Save ---
-  async function handleSubmit() {
+  // --- Save a single row ---
+  async function handleSaveRow(entry: TransactionEntry) {
+    if (!entry.supplier_name.trim()) {
+      toast.error('Supplier name is required')
+      return
+    }
+    if (entry.payment_status === 'unpaid') {
+      const validItems = entry.items.filter(it => it.material_name.trim())
+      if (validItems.length === 0) {
+        toast.error('Add at least one item with a material name')
+        return
+      }
+    }
+
+    setIsLoading(true)
+    try {
+      const { data: existing } = await supabase
+        .from('parties')
+        .select('id')
+        .eq('name', entry.supplier_name.trim())
+        .eq('party_type', 'supplier')
+        .maybeSingle()
+
+      let supplierId: string
+      if (existing) {
+        supplierId = existing.id
+      } else {
+        const { data: created, error } = await supabase
+          .from('parties')
+          .insert([{ name: entry.supplier_name.trim(), party_type: 'supplier' }])
+          .select('id')
+          .single()
+        if (error) throw error
+        supplierId = created.id
+      }
+
+      const validItems = entry.items.filter(it => it.material_name.trim())
+      const itemsWithGst = validItems.map(item => ({
+        material_name: item.material_name,
+        hsn_code: undefined,
+        village_name: item.village_name || undefined,
+        quantity: item.quantity,
+        unit: item.unit,
+        rate: item.rate,
+        amount: item.amount > 0 ? item.amount : (item.quantity * item.rate),
+        gst_rate: 0,
+        gst_amount: 0
+      }))
+
+      const invoiceDate = validItems.length > 0
+        ? validItems.reduce((earliest, item) => item.date < earliest ? item.date : earliest, validItems[0].date)
+        : new Date().toISOString().split('T')[0]
+
+      const totalAmount = entry.payment_status === 'paid'
+        ? (entry.amount_paid || 0)
+        : itemsWithGst.reduce((sum, item) => sum + item.amount, 0)
+
+      const purchaseData = await createPurchase({
+        supplier_id: supplierId,
+        invoice_date: invoiceDate,
+        supplier_invoice_number: entry.supplier_invoice_number || undefined,
+        subtotal: totalAmount,
+        gst_rate: 0,
+        cgst_amount: 0,
+        sgst_amount: 0,
+        igst_amount: 0,
+        total_amount: totalAmount,
+        payment_mode: entry.payment_mode || undefined,
+        payment_status: entry.payment_status,
+        amount_paid: entry.amount_paid,
+        balance_due: totalAmount - entry.amount_paid,
+        remarks: entry.remarks || undefined
+      }, itemsWithGst)
+
+      // Update village stock per item
+      for (const item of validItems) {
+        const targetVillage = item.village_name
+        if (targetVillage && item.material_name.trim() && item.quantity > 0) {
+          try {
+            await addMaterialReceipt({
+              village_name: targetVillage,
+              material_name: item.material_name,
+              quantity: item.quantity,
+              contractor_name: entry.supplier_name,
+              reference_purchase_id: purchaseData.id,
+              notes: `Purchase ${purchaseData.purchase_number}`,
+              transaction_date: item.date
+            })
+          } catch (err) {
+            console.error(`Failed to update village stock for ${item.material_name}:`, err)
+          }
+        }
+      }
+
+      // Remove the saved row and add a new empty row if it's the only one
+      setEntries(prev => {
+        const remaining = prev.filter(e => e.id !== entry.id)
+        return remaining.length === 0 ? [emptyEntry()] : remaining
+      })
+
+      toast.success(`Transaction saved (${purchaseData.purchase_number})`)
+    } catch (error: any) {
+      console.error('Save failed:', error)
+      toast.error(error.message || 'Failed to save transaction')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // --- Save all rows ---
+  async function handleSaveAll() {
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i]
       if (!entry.supplier_name.trim()) {
@@ -289,7 +406,6 @@ export default function NewTransactionPage() {
           gst_amount: 0
         }))
 
-        // Use the earliest item date as the invoice date for the row
         const invoiceDate = validItems.length > 0
           ? validItems.reduce((earliest, item) => item.date < earliest ? item.date : earliest, validItems[0].date)
           : new Date().toISOString().split('T')[0]
@@ -315,10 +431,7 @@ export default function NewTransactionPage() {
           remarks: entry.remarks || undefined
         }, itemsWithGst)
 
-        // Update village stock per item - each item can go to a different village
-        let villageStockSuccess = 0
-        let villageStockFail = 0
-        const villageFailures: string[] = []
+        // Update village stock per item
         for (const item of validItems) {
           const targetVillage = item.village_name
           if (targetVillage && item.material_name.trim() && item.quantity > 0) {
@@ -332,18 +445,10 @@ export default function NewTransactionPage() {
                 notes: `Purchase ${purchaseData.purchase_number}`,
                 transaction_date: item.date
               })
-              villageStockSuccess++
             } catch (err) {
-              villageStockFail++
-              villageFailures.push(item.material_name)
-              console.error(`Failed to update village stock for ${item.material_name} in ${targetVillage}:`, err)
+              console.error(`Failed to update village stock:`, err)
             }
           }
-        }
-        if (villageStockFail > 0) {
-          toast.error(`Failed to update village stock for ${villageStockFail} item(s): ${villageFailures.join(', ')}`)
-        } else if (villageStockSuccess > 0) {
-          toast.success(`Village stock updated for ${villageStockSuccess} material(s)`)
         }
 
         successCount++
@@ -355,7 +460,10 @@ export default function NewTransactionPage() {
 
     if (successCount > 0) {
       toast.success(`${successCount} transaction${successCount > 1 ? 's' : ''} saved`)
-      if (failCount === 0) router.push('/purchases')
+      if (failCount === 0) {
+        setEntries([emptyEntry()])
+        router.push('/purchases')
+      }
     }
     if (failCount > 0) toast.error(`${failCount} transaction${failCount > 1 ? 's' : ''} failed`)
     setIsLoading(false)
@@ -371,11 +479,11 @@ export default function NewTransactionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6 space-y-5">
+      <div className="max-w-[1800px] mx-auto px-4 sm:px-8 xl:px-12 py-6 space-y-5">
         {/* Keyboard shortcut hint */}
         <div className="fixed bottom-4 right-4 z-50">
           <div className="bg-gray-900 text-white text-[11px] px-3 py-1.5 rounded-full shadow-lg font-medium opacity-60">
-            Ctrl+Enter to save
+            Ctrl+Enter to save all
           </div>
         </div>
 
@@ -388,7 +496,7 @@ export default function NewTransactionPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">New Purchases</h1>
               <p className="text-gray-500 text-sm mt-0.5">
-                Each item row can have its own date and amount
+                Each row = one supplier entry. Use columns to enter data like a spreadsheet.
               </p>
             </div>
           </div>
@@ -412,291 +520,359 @@ export default function NewTransactionPage() {
               onClick={addRow}
               className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all text-sm font-medium shadow-sm shadow-blue-200"
             >
-              <Plus className="w-4 h-4" /> Add Supplier
+              <Plus className="w-4 h-4" /> Add Row
             </button>
           </div>
         </div>
 
-        {/* Transaction Cards */}
-        <div className="space-y-4">
-          {entries.map((entry, idx) => {
-            const isPayment = entry.payment_status === 'paid'
-            const total = calcEntryTotal(entry)
+        {/* Spreadsheet Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1200px] text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[160px]">Supplier *</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-32">Date</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Village</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Inv No.</th>
+                  <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Type</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[130px]">Material</th>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-16">Qty</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Unit</th>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Rate</th>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Amount ₹</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Pay Mode</th>
+                  <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {entries.map((entry, idx) => {
+                  const isPayment = entry.payment_status === 'paid'
+                  const total = calcEntryTotal(entry)
+                  const firstItem = entry.items[0]
+                  const isExpanded = entry.expanded
 
-            return (
-              <div
-                key={entry.id}
-                className={`bg-white rounded-2xl shadow-sm border transition-all ${
-                  isPayment ? 'border-emerald-200' : 'border-gray-200'
-                }`}
-              >
-                {/* Card Header — Supplier details */}
-                <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center gap-3 ${
-                  isPayment ? 'bg-emerald-50/30 border-emerald-100' : 'bg-white border-gray-100'
-                }`}>
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-xs font-bold text-gray-500 shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider shrink-0">Supplier</p>
-                        <div className="flex-1 min-w-0 max-w-[300px]">
+                  return (
+                    <React.Fragment key={entry.id}>
+                      {/* Main Row */}
+                      <tr className={`group transition-colors ${isPayment ? 'bg-emerald-50/30 hover:bg-emerald-50/60' : 'hover:bg-orange-50/20'}`}>
+                        <td className="px-3 py-2.5 text-xs text-gray-400 font-mono">{idx + 1}</td>
+                        <td className="px-2.5 py-2">
                           <SupplierDropdown
                             value={entry.supplier_name}
                             onChange={(v) => updateEntry(entry.id, 'supplier_name', v)}
-                            placeholder="Select or type supplier"
+                            placeholder="Select supplier"
                           />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {/* Type Toggle */}
-                    <button
-                      type="button"
-                      onClick={() => updateEntry(entry.id, 'payment_status', isPayment ? 'unpaid' : 'paid')}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                        isPayment
-                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                          : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                      }`}
-                    >
-                      {isPayment ? '💰 Payment' : '📦 Purchase'}
-                    </button>
-
-                    {/* Row actions */}
-                    <div className="flex items-center gap-0.5">
-                      <button
-                        onClick={() => duplicateRow(entry.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-                        title="Duplicate"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-                      {entries.length > 1 && (
-                        <button
-                          onClick={() => deleteRow(entry.id)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Body — Material items with dates */}
-                <div className="px-5 py-4">
-                  {/* Supplier meta fields */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Invoice No.</label>
-                      <input
-                        type="text"
-                        value={entry.supplier_invoice_number}
-                        onChange={(e) => updateEntry(entry.id, 'supplier_invoice_number', e.target.value)}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-300"
-                        placeholder="Optional"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Payment Mode</label>
-                      <SearchableSelect
-                        value={entry.payment_mode}
-                        onChange={(v) => updateEntry(entry.id, 'payment_mode', v)}
-                        options={paymentModeOptions}
-                        placeholder="—"
-                        searchable={false}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Items section */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Material Items</h4>
-                      {!isPayment && (
-                        <button
-                          onClick={() => addItem(entry.id)}
-                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Add Item
-                        </button>
-                      )}
-                    </div>
-
-                    {!isPayment ? (
-                      <div className="space-y-3">
-                        {/* Column headers */}
-                        <div className="hidden sm:grid grid-cols-[110px_1fr_100px_80px_90px_90px_80px_36px] gap-2 px-2">
-                          {['Village', 'Material *', 'Date', 'Qty', 'Unit', 'Rate', 'Amount', ''].map(h => (
-                            <span key={h} className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{h}</span>
-                          ))}
-                        </div>
-                        <div className="hidden sm:block text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-2 mb-1">Each item can be assigned to a different village</div>
-
-                        {entry.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="grid grid-cols-1 sm:grid-cols-[110px_1fr_100px_80px_90px_90px_80px_36px] gap-2 sm:gap-2 bg-white rounded-xl p-3 border border-gray-200 shadow-sm hover:border-gray-300 transition-all"
+                        </td>
+                        <td className="px-2.5 py-2">
+                          <DatePicker
+                            value={firstItem?.date || ''}
+                            onChange={(v) => {
+                              if (firstItem) updateItem(entry.id, firstItem.id, 'date', v)
+                            }}
+                          />
+                        </td>
+                        <td className="px-2.5 py-2">
+                          <select
+                            value={firstItem?.village_name || ''}
+                            onChange={(e) => {
+                              if (firstItem) updateItem(entry.id, firstItem.id, 'village_name', e.target.value)
+                            }}
+                            className="w-full px-2 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all"
                           >
-                            {/* Village */}
-                            <div>
-                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Village</label>
-                              <select
-                                value={item.village_name}
-                                onChange={(e) => updateItem(entry.id, item.id, 'village_name', e.target.value)}
-                                className="w-full h-9 rounded-lg border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                              >
-                                <option value="">Village...</option>
-                                {VILLAGES.map(v => (
-                                  <option key={v} value={v}>{v}</option>
-                                ))}
-                              </select>
-                            </div>
-                            {/* Material name */}
-                            <div>
-                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Material</label>
-                              <input
-                                type="text"
-                                value={item.material_name}
-                                onChange={(e) => updateItem(entry.id, item.id, 'material_name', e.target.value)}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-300"
-                                placeholder="e.g. Cement"
-                              />
-                            </div>
-                            {/* Date */}
-                            <div>
-                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Date</label>
-                              <DatePicker
-                                value={item.date}
-                                onChange={(v) => updateItem(entry.id, item.id, 'date', v)}
-                              />
-                            </div>
-                            {/* Qty */}
-                            <div>
-                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Qty</label>
-                              <input
-                                type="number"
-                                step="0.001"
-                                value={item.quantity || ''}
-                                onChange={(e) => updateItem(entry.id, item.id, 'quantity', Number(e.target.value))}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-300"
-                                placeholder="0"
-                              />
-                            </div>
-                            {/* Unit */}
-                            <div>
-                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Unit</label>
-                              <SearchableSelect
-                                value={item.unit}
-                                onChange={(v) => updateItem(entry.id, item.id, 'unit', v)}
-                                options={unitOptions}
-                                placeholder="Unit"
-                                searchable={false}
-                              />
-                            </div>
-                            {/* Rate */}
-                            <div>
-                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Rate</label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={item.rate || ''}
-                                onChange={(e) => updateItem(entry.id, item.id, 'rate', Number(e.target.value))}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-300"
-                                placeholder="0"
-                              />
-                            </div>
-                            {/* Amount — EDITABLE */}
-                            <div>
-                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Amount</label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={item.amount || ''}
-                                onChange={(e) => updateItem(entry.id, item.id, 'amount', Number(e.target.value))}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-300"
-                                placeholder="0"
-                              />
-                            </div>
-                            {/* Delete */}
-                            {entry.items.length > 1 && (
+                            <option value="">Village...</option>
+                            {VILLAGES.map(v => (
+                              <option key={v} value={v}>{v}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-2.5 py-2">
+                          <input
+                            type="text"
+                            value={entry.supplier_invoice_number}
+                            onChange={(e) => updateEntry(entry.id, 'supplier_invoice_number', e.target.value)}
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                            placeholder="INV-001"
+                          />
+                        </td>
+                        <td className="px-2.5 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => updateEntry(entry.id, 'payment_status', isPayment ? 'unpaid' : 'paid')}
+                            className={`relative inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                              isPayment
+                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 shadow-sm shadow-emerald-100'
+                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200 shadow-sm shadow-orange-100'
+                            }`}
+                          >
+                            {isPayment ? '💰 Payment' : '📦 Purchase'}
+                          </button>
+                        </td>
+                        <td className="px-2.5 py-2">
+                          {isPayment ? (
+                            <span className="text-xs text-gray-300 italic px-3">—</span>
+                          ) : (
+                            <input
+                              type="text"
+                              value={firstItem?.material_name || ''}
+                              onChange={(e) => {
+                                if (firstItem) updateItem(entry.id, firstItem.id, 'material_name', e.target.value)
+                              }}
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              placeholder="e.g. Cement"
+                            />
+                          )}
+                        </td>
+                        <td className="px-2.5 py-2">
+                          {isPayment ? (
+                            <span className="text-xs text-gray-300 px-3">—</span>
+                          ) : (
+                            <input
+                              type="number"
+                              step="0.001"
+                              value={firstItem?.quantity || ''}
+                              onChange={(e) => {
+                                if (firstItem) updateItem(entry.id, firstItem.id, 'quantity', Number(e.target.value))
+                              }}
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              placeholder="0"
+                            />
+                          )}
+                        </td>
+                        <td className="px-2.5 py-2">
+                          {isPayment ? (
+                            <span className="text-xs text-gray-300 px-3">—</span>
+                          ) : (
+                            <SearchableSelect
+                              value={firstItem?.unit || 'Nos'}
+                              onChange={(v) => {
+                                if (firstItem) updateItem(entry.id, firstItem.id, 'unit', v)
+                              }}
+                              options={unitOptions}
+                              placeholder="Unit"
+                              searchable={false}
+                            />
+                          )}
+                        </td>
+                        <td className="px-2.5 py-2">
+                          {isPayment ? (
+                            <span className="text-xs text-gray-300 px-3">—</span>
+                          ) : (
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={firstItem?.rate || ''}
+                              onChange={(e) => {
+                                if (firstItem) updateItem(entry.id, firstItem.id, 'rate', Number(e.target.value))
+                              }}
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              placeholder="0"
+                            />
+                          )}
+                        </td>
+                        <td className="px-2.5 py-2">
+                          {isPayment ? (
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={entry.amount_paid || ''}
+                              onChange={(e) => updateEntry(entry.id, 'amount_paid', Number(e.target.value))}
+                              className="w-full px-3 py-2.5 border border-emerald-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-emerald-50/50 transition-all placeholder:text-gray-300"
+                              placeholder="Amount"
+                            />
+                          ) : (
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={firstItem?.amount || ''}
+                              onChange={(e) => {
+                                if (firstItem) updateItem(entry.id, firstItem.id, 'amount', Number(e.target.value))
+                              }}
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all placeholder:text-gray-300"
+                              placeholder="0"
+                            />
+                          )}
+                        </td>
+                        <td className="px-2.5 py-2">
+                          <SearchableSelect
+                            value={entry.payment_mode}
+                            onChange={(v) => updateEntry(entry.id, 'payment_mode', v)}
+                            options={paymentModeOptions}
+                            placeholder="—"
+                            searchable={false}
+                          />
+                        </td>
+                        <td className="px-2.5 py-2">
+                          <div className="flex items-center justify-center gap-0.5">
+                            {/* Save Button */}
+                            <button
+                              onClick={() => handleSaveRow(entry)}
+                              disabled={isLoading}
+                              className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all disabled:opacity-50"
+                              title="Save this row"
+                            >
+                              <Save className="w-4 h-4" />
+                            </button>
+                            {/* Eye / Expand Button */}
+                            <button
+                              onClick={() => toggleExpand(entry.id)}
+                              className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all"
+                              title={isExpanded ? 'Collapse details' : 'View / Edit details'}
+                            >
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            {/* Bin / Delete Button */}
+                            {entries.length > 1 && (
                               <button
-                                onClick={() => removeItem(entry.id, item.id)}
-                                className="p-2 mt-0 sm:mt-0 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors self-end sm:self-center"
-                                title="Remove item"
+                                onClick={() => deleteRow(entry.id)}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                title="Delete row"
                               >
-                                <X className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
-                        <p className="text-sm font-bold text-emerald-700">💲 Payment Entry</p>
-                        <div className="mt-2 flex items-center gap-3">
-                          <label className="text-xs font-semibold text-emerald-600">Amount Paid</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={entry.amount_paid || ''}
-                            onChange={(e) => updateEntry(entry.id, 'amount_paid', Number(e.target.value))}
-                            className="w-36 px-3 py-2 border border-emerald-300 rounded-lg text-sm text-right font-bold focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white"
-                            placeholder="0"
-                          />
-                          <span className="text-sm font-bold text-emerald-700">{formatCurrency(entry.amount_paid || 0)}</span>
-                        </div>
-                      </div>
-                    )}
+                        </td>
+                      </tr>
 
-                    {/* Item total */}
-                    {!isPayment && (
-                      <div className="flex justify-end items-center gap-1 pt-1 pr-1">
-                        <span className="text-xs text-gray-400">Item Total:</span>
-                        <span className="text-sm font-bold text-gray-800 tabular-nums">{formatCurrency(total)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Remarks */}
-                  <div className="mt-4">
-                    <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Remarks</label>
-                    <textarea
-                      value={entry.remarks}
-                      onChange={(e) => updateEntry(entry.id, 'remarks', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                      rows={2}
-                      placeholder="Notes about this transaction..."
-                    />
-                  </div>
-                </div>
-
-                {/* Card footer — row total */}
-                <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl flex justify-between items-center">
-                  <span className="text-xs text-gray-500">
-                    {entry.items.length} item{entry.items.length !== 1 ? 's' : ''}
-                    {entry.supplier_invoice_number && ` • Inv: ${entry.supplier_invoice_number}`}
-                  </span>
-                  <span className="text-base font-bold text-gray-900 tabular-nums">
-                    {formatCurrency(total)}
-                  </span>
-                </div>
-              </div>
-            )
-          })}
+                      {/* Expanded Detail Row */}
+                      {isExpanded && (
+                        <tr className="bg-gray-50/80">
+                          <td colSpan={13} className="px-8 py-5">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                              <div className="md:col-span-2 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Items ({entry.items.length})
+                                  </h4>
+                                  {!isPayment && (
+                                    <button
+                                      onClick={() => addItem(entry.id)}
+                                      className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                                    >
+                                      <Plus className="w-3 h-3" /> Add Item
+                                    </button>
+                                  )}
+                                </div>
+                                {!isPayment ? (
+                                  <div className="space-y-2">
+                                    {entry.items.map((item, ii) => (
+                                      <div key={item.id} className="flex items-center gap-2 bg-white rounded-xl p-3 border border-gray-200 shadow-sm">
+                                        <span className="text-xs text-gray-400 font-mono w-5 shrink-0">{ii + 1}</span>
+                                        {/* Village per item */}
+                                        <select
+                                          value={item.village_name}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'village_name', e.target.value)}
+                                          className="w-28 px-2 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        >
+                                          <option value="">Village...</option>
+                                          {VILLAGES.map(v => (
+                                            <option key={v} value={v}>{v}</option>
+                                          ))}
+                                        </select>
+                                        <input
+                                          type="text"
+                                          value={item.material_name}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'material_name', e.target.value)}
+                                          className="flex-1 min-w-[100px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          placeholder="Material name"
+                                        />
+                                        <input
+                                          type="date"
+                                          value={item.date}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'date', e.target.value)}
+                                          className="w-36 px-2 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                        <input
+                                          type="number"
+                                          step="0.001"
+                                          value={item.quantity || ''}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'quantity', Number(e.target.value))}
+                                          className="w-16 px-2 py-2 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          placeholder="Qty"
+                                        />
+                                        <SearchableSelect
+                                          value={item.unit}
+                                          onChange={(v) => updateItem(entry.id, item.id, 'unit', v)}
+                                          options={unitOptions}
+                                          placeholder="Unit"
+                                          searchable={false}
+                                        />
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={item.rate || ''}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'rate', Number(e.target.value))}
+                                          className="w-20 px-2 py-2 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          placeholder="Rate"
+                                        />
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={item.amount || ''}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'amount', Number(e.target.value))}
+                                          className="w-20 px-2 py-2 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          placeholder="Amt"
+                                        />
+                                        {entry.items.length > 1 && (
+                                          <button
+                                            onClick={() => removeItem(entry.id, item.id)}
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                          >
+                                            <X className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                                    <p className="text-sm text-emerald-700">
+                                      <span className="font-bold">Payment entry</span> — No items needed.
+                                    </p>
+                                    <p className="text-sm text-emerald-600 mt-1">
+                                      Amount: <span className="font-bold text-lg">{formatCurrency(entry.amount_paid || 0)}</span>
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                    Remarks
+                                  </label>
+                                  <textarea
+                                    value={entry.remarks}
+                                    onChange={(e) => updateEntry(entry.id, 'remarks', e.target.value)}
+                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                    rows={3}
+                                    placeholder="Notes about this transaction..."
+                                  />
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xs text-gray-400">Row Total: </span>
+                                  <span className="text-sm font-bold text-gray-800">{formatCurrency(total)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Grand Total Bar */}
         <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 text-sm text-gray-600 flex-wrap">
+            <div className="flex items-center gap-4 text-sm text-gray-600">
               <span className="inline-flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full font-medium">
-                <span className="font-bold text-gray-900">{entries.length}</span> Supplier{entries.length !== 1 ? 's' : ''}
+                <span className="font-bold text-gray-900">{entries.length}</span> Row{entries.length !== 1 ? 's' : ''}
               </span>
               {purchaseCount > 0 && (
                 <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-full font-medium">
@@ -722,7 +898,7 @@ export default function NewTransactionPage() {
             onClick={addRow}
             className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
           >
-            <Plus className="w-4 h-4" /> Add Another Supplier
+            <Plus className="w-4 h-4" /> Add Another Row
           </button>
           <div className="flex items-center gap-3">
             <button
@@ -732,14 +908,14 @@ export default function NewTransactionPage() {
               Cancel
             </button>
             <button
-              onClick={handleSubmit}
+              onClick={handleSaveAll}
               disabled={isLoading || entries.length === 0}
               className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 text-sm font-semibold shadow-sm shadow-blue-200 flex items-center gap-2"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
               ) : (
-                <><Save className="w-4 h-4" /> Save {entries.length} Transaction{entries.length !== 1 ? 's' : ''}</>
+                <><Save className="w-4 h-4" /> Save All ({entries.length})</>
               )}
             </button>
           </div>

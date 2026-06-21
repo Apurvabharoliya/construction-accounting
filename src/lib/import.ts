@@ -80,6 +80,17 @@ const PURCHASE_COLUMNS: ColumnDef[] = [
   { field: 'remarks', aliases: ['remarks', 'description', 'notes', 'remark', 'note', 'comment', 'description/remarks'], keywords: ['remark', 'note', 'comment', 'description'] },
 ]
 
+const BENEFICIARY_COLUMNS: ColumnDef[] = [
+  { field: 'application_number', aliases: ['application no', 'application number', 'app no', 'application no.', 'app no.', 'app_no'], keywords: ['application', 'app no'] },
+  { field: 'village', aliases: ['village', 'village name', 'village_name'], keywords: ['village'] },
+  { field: 'name', aliases: ['name', 'beneficiary name', 'beneficiary', 'full name', 'party name'], keywords: ['name'] },
+  { field: 'plinth', aliases: ['plinth', 'plinth amount'], keywords: ['plinth'] },
+  { field: 'lintel', aliases: ['lintel', 'lintel amount'], keywords: ['lintel'] },
+  { field: 'roof', aliases: ['roof', 'roof amount'], keywords: ['roof'] },
+  { field: 'finishing', aliases: ['finishing', 'finishing amount'], keywords: ['finishing'] },
+  { field: 'opening_balance', aliases: ['opening balance', 'opening_balance', 'balance', 'opening bal'], keywords: ['opening balance', 'balance'] },
+]
+
 const SALE_COLUMNS: ColumnDef[] = [
   { field: 'client_name', aliases: ['client name', 'customer name', 'client', 'customer', 'party name', 'name', 'beneficiary name', 'beneficiary'], keywords: ['client', 'customer', 'beneficiary'] },
   { field: 'invoice_date', aliases: ['invoice date', 'date', 'invoice_date', 'bill date', 'sale date', 'transaction date'], keywords: ['date', 'invoice date'] },
@@ -152,6 +163,7 @@ export function getColumnDefs(type: EntityType): ColumnDef[] {
     case 'purchases': return PURCHASE_COLUMNS
     case 'sales': return SALE_COLUMNS
     case 'transactions': return TRANSACTION_COLUMNS
+    case 'beneficiaries': return BENEFICIARY_COLUMNS
     default: return []
   }
 }
@@ -223,7 +235,7 @@ export function excelSerialToDate(serial: number): string {
 // Detect data type from headers
 // =============================================
 
-export type EntityType = 'parties' | 'purchases' | 'sales' | 'transactions' | 'unknown'
+export type EntityType = 'parties' | 'purchases' | 'sales' | 'transactions' | 'beneficiaries' | 'unknown'
 
 // Helper: check if any header contains a keyword (case-insensitive)
 function headerContains(headers: string[], ...keywords: string[]): boolean {
@@ -254,8 +266,8 @@ export function detectEntityType(headers: string[]): EntityType {
   if (headerContains(lowerHeaders, 'email')) partyScore += 1
   if (headerContains(lowerHeaders, 'address')) partyScore += 1
   if (headerContains(lowerHeaders, 'opening balance', 'opening_balance')) partyScore += 1
-  // Beneficiary indicators
-  if (headerContains(lowerHeaders, 'plinth', 'lintel', 'roof', 'finishing', 'application number', 'beneficiary number')) partyScore += 5
+  // Beneficiary indicators - strong signal for separate beneficiary import
+  if (headerContains(lowerHeaders, 'plinth', 'lintel', 'roof', 'finishing', 'application number', 'application no')) partyScore += 8
 
   // Purchases indicators
   if (headerContains(lowerHeaders, 'supplier', 'vendor')) purchaseScore += 3
@@ -309,6 +321,11 @@ export function detectEntityType(headers: string[]): EntityType {
     return 'transactions'
   }
 
+  // Beneficiary-specific detection - if file has beneficiary-specific columns, route to beneficiaries
+  if (headerContains(lowerHeaders, 'plinth', 'lintel', 'roof', 'finishing', 'application no', 'application number')) {
+    return 'beneficiaries'
+  }
+
   // Determine winner based on score
   if (txnScore >= 5 && txnScore > partyScore && txnScore > purchaseScore && txnScore > saleScore) {
     return 'transactions'
@@ -333,6 +350,83 @@ export function detectEntityType(headers: string[]): EntityType {
   }
 
   return 'unknown'
+}
+
+// =============================================
+// Import Beneficiaries
+// Each row: Application no., Village, Name, Plinth, Lintel, Roof, Finishing, Balance
+// Opening balance defaults to -4,00,000 for all beneficiaries
+// =============================================
+
+async function importBeneficiaries(rows: Record<string, string>[], columnMap: Map<string, string>): Promise<ImportResult> {
+  const result: ImportResult = { success: true, imported: 0, errors: [], warnings: [], entityType: 'beneficiaries' }
+  const DEFAULT_OPENING_BALANCE = 400000 // -4,00,000 (stored as positive for opening_balance, handled as negative in ledger)
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]
+    const rowNum = i + 2
+
+    try {
+      const name = getField(row, columnMap, 'name')
+      if (!name) {
+        result.warnings.push(`Row ${rowNum}: Skipped - Name is required`)
+        continue
+      }
+
+      const applicationNumber = getField(row, columnMap, 'application_number') || undefined
+      const village = getField(row, columnMap, 'village') || ''
+      const plinth = parseFloat(getField(row, columnMap, 'plinth') || '0') || 0
+      const lintel = parseFloat(getField(row, columnMap, 'lintel') || '0') || 0
+      const roof = parseFloat(getField(row, columnMap, 'roof') || '0') || 0
+      const finishing = parseFloat(getField(row, columnMap, 'finishing') || '0') || 0
+      const balanceStr = getField(row, columnMap, 'opening_balance')
+      // Use the absolute value of the provided opening balance or default to 400000
+      // Users often use negative notation (-4,00,000) to indicate the opening balance direction
+      const rawBalance = balanceStr ? (parseFloat(balanceStr) || DEFAULT_OPENING_BALANCE) : DEFAULT_OPENING_BALANCE
+      const openingBalance = Math.abs(rawBalance)
+
+      // Create party record with type 'beneficiary'
+      const { data: partyData, error: partyError } = await supabase.from('parties').insert([{
+        name,
+        phone: null,
+        email: null,
+        gstin: null,
+        pan: null,
+        address: village || null,
+        city: null,
+        state: null,
+        pin_code: null,
+        party_type: 'beneficiary',
+        opening_balance: openingBalance,
+        gst_registered: false,
+        notes: applicationNumber ? `App No: ${applicationNumber}` : null
+      }]).select('id').single()
+
+      if (partyError) throw partyError
+
+      // Create beneficiary record
+      await supabase.from('beneficiaries').insert([{
+        party_id: partyData.id,
+        application_number: applicationNumber || undefined,
+        plinth,
+        lintel,
+        roof,
+        finishing,
+        subsidy_status: 'pending',
+        construction_progress: 0,
+        total_amount_received: 0,
+        total_amount_due: openingBalance, // Opening balance as amount due
+        payment_installments: 1
+      }])
+
+      result.imported++
+    } catch (error: any) {
+      result.errors.push(`Row ${rowNum}: ${error.message || 'Failed to import'}`)
+    }
+  }
+
+  if (result.errors.length > 0) result.success = false
+  return result
 }
 
 // =============================================
@@ -984,6 +1078,8 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
       entityType = 'purchases'
     } else if (headerStr.includes('client') || headerStr.includes('customer')) {
       entityType = 'sales'
+    } else if (headerStr.includes('plinth') || headerStr.includes('lintel') || headerStr.includes('roof') || headerStr.includes('finishing') || headerStr.includes('application no')) {
+      entityType = 'beneficiaries'
     } else if (headerStr.includes('name') || headerStr.includes('type') || headerStr.includes('party')) {
       entityType = 'parties'
     } else {
@@ -998,6 +1094,11 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
     case 'parties': {
       const columnMap = buildColumnMap(headers, PARTY_COLUMNS)
       result = await importParties(rows, columnMap)
+      break
+    }
+    case 'beneficiaries': {
+      const columnMap = buildColumnMap(headers, BENEFICIARY_COLUMNS)
+      result = await importBeneficiaries(rows, columnMap)
       break
     }
     case 'purchases': {
@@ -1031,8 +1132,19 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
 
 /** Canonical template headers for each entity type */
 export function getTemplateHeaders(type: EntityType): string[] {
-  // All entity types use the same unified template format
-  return ['Date', 'Vendors name', 'Description/Particulars', 'Debit/Purchase', 'Credit/Payment', 'Balance']
+  switch (type) {
+    case 'purchases':
+      return ['Supplier name', 'Date', 'Village', 'Invoice number', 'Material', 'Quantity', 'Unit', 'Rate', 'Amount']
+    case 'beneficiaries':
+      return ['Application no.', 'Village', 'Name', 'Plinth', 'Lintel', 'Roof', 'Finishing', 'Balance']
+    case 'parties':
+      return ['Name', 'Type', 'Phone', 'Email', 'Address', 'GSTIN', 'Opening Balance', 'Notes']
+    case 'sales':
+      return ['Client name', 'Date', 'Item', 'Quantity', 'Unit', 'Rate', 'Amount']
+    default:
+      // All other types use the unified template format
+      return ['Date', 'Vendors name', 'Description/Particulars', 'Debit/Purchase', 'Credit/Payment', 'Balance']
+  }
 }
 
 /** Map from database field name to the canonical template header for a given entity type */
@@ -1144,13 +1256,41 @@ export async function downloadTemplate(type: EntityType): Promise<void> {
   const templateHeaders = getTemplateHeaders(type)
   let sampleData: any[][]
 
-  // All entity types use the same unified template format
-  sampleData = [
-    ['2025-04-01', 'ABC Constructions', 'Cement purchase - foundation work', 59000, 0, 59000],
-    ['2025-04-05', 'ABC Constructions', 'Payment for cement purchase', 0, 30000, 29000],
-    ['2025-04-10', 'PQR Developers', 'Construction service - floor', 0, 118000, 118000],
-    ['2025-04-15', 'XYZ Traders', 'Steel rods purchase', 45000, 45000, 0],
-  ]
+  switch (type) {
+    case 'purchases':
+      sampleData = [
+        ['M/s Bhardwaj Constructions', '2025-04-01', 'Varnama', 'BIL-001', 'OPC Cement 53 Grade', 200, 'Bag', 380, 76000],
+        ['M/s Bhardwaj Constructions', '2025-04-01', 'Dharapura', 'BIL-001', 'TMT Steel Bars 12mm', 100, 'Kg', 78, 7800],
+        ['Sharma Traders', '2025-04-05', 'Dodhka', 'ST-001', 'Clay Bricks', 10000, 'Nos', 9, 90000],
+      ]
+      break
+    case 'beneficiaries':
+      sampleData = [
+        ['APP-001', 'Varnama', 'Ram Prasad Sharma', 120000, 80000, 100000, 50000, -400000],
+        ['APP-002', 'Dharapura', 'Sita Devi', 100000, 75000, 90000, 40000, -400000],
+        ['APP-003', 'Rayka', 'Lal Bahadur', 150000, 90000, 110000, 60000, -400000],
+      ]
+      break
+    case 'parties':
+      sampleData = [
+        ['ABC Constructions', 'Supplier', '9876543210', 'info@abc.com', 'Plot 45, Sector 12', '27AABCU1234D1Z5', 0, 'Cement supplier'],
+        ['Patel Infra', 'Beneficiary', '9876543211', '', '123, Skyline Tower', '', -400000, 'PM Awas Yojana'],
+      ]
+      break
+    case 'sales':
+      sampleData = [
+        ['Patel Infrastructure', '2025-04-02', 'Construction Service', 1, 'Lump Sum', 250000, 250000],
+        ['Verma Developers', '2025-04-08', 'Architecture Consultation', 1, 'Hour', 5000, 5000],
+      ]
+      break
+    default:
+      sampleData = [
+        ['2025-04-01', 'ABC Constructions', 'Cement purchase - foundation work', 59000, 0, 59000],
+        ['2025-04-05', 'ABC Constructions', 'Payment for cement purchase', 0, 30000, 29000],
+        ['2025-04-10', 'PQR Developers', 'Construction service - floor', 0, 118000, 118000],
+        ['2025-04-15', 'XYZ Traders', 'Steel rods purchase', 45000, 45000, 0],
+      ]
+  }
 
   const ws = XLSX.utils.aoa_to_sheet([templateHeaders, ...sampleData])
   XLSX.utils.book_append_sheet(wb, ws, type)

@@ -260,7 +260,7 @@ export default function NewSalePage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-[1300px] mx-auto px-4 sm:px-6 py-6 space-y-5">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-8 xl:px-12 py-6 space-y-5">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -345,7 +345,14 @@ export default function NewSalePage() {
                           {isPayment ? (
                             <input type="number" step="0.01" value={entry.amount_received || ''} onChange={(e) => updateEntry(entry.id, 'amount_received', Number(e.target.value))} className="w-full px-3 py-2.5 border border-emerald-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-emerald-50/50 transition-all placeholder:text-gray-300" placeholder="Amount" />
                           ) : (
-                            <span className="block px-3 py-2.5 text-sm text-right font-bold text-gray-800 tabular-nums">{formatCurrency(total)}</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={entry.items[0]?.amount || ''}
+                              onChange={(e) => updateItem(entry.id, 0, 'amount', Number(e.target.value))}
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all placeholder:text-gray-300"
+                              placeholder="0"
+                            />
                           )}
                         </td>
                         <td className="px-2.5 py-2">

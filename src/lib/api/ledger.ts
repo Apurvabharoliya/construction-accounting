@@ -432,6 +432,25 @@ export async function recordInvoicePayment(
 
     if (txnError) throw txnError
 
+    // Sync payment to beneficiary's total_amount_received for live balance display
+    try {
+      const { data: beneficiary } = await supabase
+        .from('beneficiaries')
+        .select('id, total_amount_received')
+        .eq('party_id', partyId)
+        .maybeSingle()
+
+      if (beneficiary) {
+        const newTotalReceived = Number(beneficiary.total_amount_received) + payment.amount
+        await supabase
+          .from('beneficiaries')
+          .update({ total_amount_received: newTotalReceived })
+          .eq('id', beneficiary.id)
+      }
+    } catch (err) {
+      console.error('Failed to sync beneficiary balance:', err)
+    }
+
     return { invoice_number: sale.sale_number, newStatus, newBalanceDue: Math.max(0, newBalanceDue) }
   }
 }

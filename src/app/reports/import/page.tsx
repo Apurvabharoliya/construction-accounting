@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { importFromExcel, downloadTemplate, detectEntityType, buildColumnMapForType, getColumnDefs, type EntityType, type ImportResult } from '@/lib/import'
 
 const entityTypeInfo: Record<EntityType, { label: string; description: string; bgClass: string; borderClass: string; textClass: string }> = {
-  parties: { label: 'Vendors & Beneficiaries', description: 'Import suppliers and beneficiaries', bgClass: 'bg-purple-50', borderClass: 'border-purple-200', textClass: 'text-purple-600' },
+  parties: { label: 'Vendors', description: 'Import suppliers and vendors', bgClass: 'bg-purple-50', borderClass: 'border-purple-200', textClass: 'text-purple-600' },
+  beneficiaries: { label: 'Beneficiaries', description: 'Import beneficiaries with construction stages and opening balance', bgClass: 'bg-orange-50', borderClass: 'border-orange-200', textClass: 'text-orange-600' },
   purchases: { label: 'Purchases', description: 'Import purchase invoices with items', bgClass: 'bg-blue-50', borderClass: 'border-blue-200', textClass: 'text-blue-600' },
   sales: { label: 'Sales', description: 'Import sale invoices with items', bgClass: 'bg-green-50', borderClass: 'border-green-200', textClass: 'text-green-600' },
   transactions: { label: 'Transactions', description: 'Import ledger/account statement with debits and credits', bgClass: 'bg-amber-50', borderClass: 'border-amber-200', textClass: 'text-amber-600' },
@@ -180,6 +181,9 @@ export default function ImportPage() {
           <button onClick={() => handleDownloadTemplate('parties')} className="flex items-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 border border-purple-200 transition-colors text-sm font-medium">
             <Download className="w-4 h-4" /> Vendors Template
           </button>
+          <button onClick={() => handleDownloadTemplate('beneficiaries')} className="flex items-center gap-2 px-4 py-2.5 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 border border-orange-200 transition-colors text-sm font-medium">
+            <Download className="w-4 h-4" /> Beneficiaries Template
+          </button>
           <button onClick={() => handleDownloadTemplate('purchases')} className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors text-sm font-medium">
             <Download className="w-4 h-4" /> Purchases Template
           </button>
@@ -293,7 +297,29 @@ export default function ImportPage() {
             )}
 
             {/* Manual type selector when unknown */}
-            {detectedType === 'unknown' && (
+            {detectedType && typeInfo && detectedType === 'beneficiaries' && (
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-lg ${typeInfo.bgClass} border ${typeInfo.borderClass} mb-3`}>
+                <Database className={`w-5 h-5 ${typeInfo.textClass}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900">
+                    Detected: <span className={typeInfo.textClass}>{typeInfo.label}</span>
+                  </p>
+                  <p className="text-xs text-gray-500">{typeInfo.description}</p>
+                  {columnMapping && columnMapping.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {columnMapping.map((m, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/70 rounded text-[11px] text-gray-600 border border-gray-200">
+                          <span className="font-medium text-gray-800">{m.dbField}</span>
+                          <span className="text-gray-400">←</span>
+                          <span className="text-gray-500 truncate max-w-[120px]">{m.fileHeader}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          {detectedType === 'unknown' && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
@@ -304,6 +330,9 @@ export default function ImportPage() {
                       You can manually select the data type below, or download a template to see the expected format.
                     </p>
                     <div className="flex flex-wrap gap-2 mb-3">
+                      <button onClick={() => { setDetectedType('beneficiaries'); buildMappingDisplay(previewHeaders, 'beneficiaries'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-orange-300 bg-white text-orange-700 hover:bg-orange-50 transition-colors">
+                        Import as Beneficiaries
+                      </button>
                       <button onClick={() => { setDetectedType('parties'); buildMappingDisplay(previewHeaders, 'parties'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-purple-300 bg-white text-purple-700 hover:bg-purple-50 transition-colors">
                         Import as Vendors
                       </button>
