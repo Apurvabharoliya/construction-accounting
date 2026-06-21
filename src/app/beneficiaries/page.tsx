@@ -268,13 +268,17 @@ export default function BeneficiariesPage() {
                         )}
                       </td>
                       <td className="p-4 text-sm text-right font-semibold" data-label="Total Due">
-                        {formatCurrency(amountDue)}
+                        {amountDue > 0 ? formatCurrency(amountDue) : '-'}
                       </td>
                       <td className="p-4 text-sm text-right font-bold" data-label="Balance">
-                        <span className={balance > 0 ? 'text-red-600' : balance < 0 ? 'text-green-600' : 'text-gray-500'}>
-                          {formatCurrency(Math.abs(balance))}
-                          {balance > 0 ? ' Dr' : balance < 0 ? ' Cr' : ''}
-                        </span>
+                        {balance !== 0 ? (
+                          <span className={balance > 0 ? 'text-red-600' : 'text-green-600'}>
+                            {formatCurrency(Math.abs(balance))}
+                            {balance > 0 ? ' Dr' : ' Cr'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="p-4" data-label="Actions">
                         <div className="flex items-center gap-2 sm:gap-3 justify-end">
