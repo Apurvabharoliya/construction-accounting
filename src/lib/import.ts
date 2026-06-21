@@ -67,7 +67,6 @@ const PURCHASE_COLUMNS: ColumnDef[] = [
   { field: 'supplier_name', aliases: ['supplier name', 'vendor name', 'supplier', 'vendor', 'party name', 'name'], keywords: ['supplier', 'vendor'] },
   { field: 'invoice_date', aliases: ['invoice date', 'date', 'invoice_date', 'bill date', 'purchase date', 'transaction date'], keywords: ['date', 'invoice date'] },
   { field: 'village_name', aliases: ['village name', 'village', 'village_name', 'site name', 'site', 'location'], keywords: ['village', 'site', 'location'] },
-  { field: 'supplier_invoice_no', aliases: ['supplier invoice no', 'supplier invoice number', 'invoice no', 'invoice number', 'inv no', 'bill no', 'bill number'], keywords: ['invoice no', 'invoice number', 'inv no', 'bill no'] },
   { field: 'material', aliases: ['material', 'item', 'item name', 'material name', 'product', 'product name', 'description', 'particulars', 'particular'], keywords: ['material', 'item', 'product', 'particular'] },
   { field: 'quantity', aliases: ['quantity', 'qty', 'qty.', 'quantity nos', 'qty nos'], keywords: ['qty', 'quantity'] },
   { field: 'unit', aliases: ['unit', 'uom', 'measurement unit', 'measure', 'unit of measure'], keywords: ['unit', 'uom'] },
@@ -526,7 +525,7 @@ async function importParties(rows: Record<string, string>[], columnMap: Map<stri
 async function importPurchases(rows: Record<string, string>[], columnMap: Map<string, string>): Promise<ImportResult> {
   const result: ImportResult = { success: true, imported: 0, errors: [], warnings: [], entityType: 'purchases' }
 
-  // Group rows by invoice
+  // Group rows by invoice (grouping by supplier + date)
   const invoiceGroups = new Map<string, Record<string, string>[]>()
   const invoiceKeys: string[] = []
 
@@ -534,14 +533,13 @@ async function importPurchases(rows: Record<string, string>[], columnMap: Map<st
     const row = rows[i]
     const supplierName = getField(row, columnMap, 'supplier_name')
     const invoiceDate = getField(row, columnMap, 'invoice_date')
-    const supplierInvNo = getField(row, columnMap, 'supplier_invoice_no')
 
     if (!supplierName || !invoiceDate) {
       result.warnings.push(`Row ${i + 2}: Skipped - Supplier name and invoice date are required`)
       continue
     }
 
-    const key = `${supplierName}|||${invoiceDate}|||${supplierInvNo}`
+    const key = `${supplierName}|||${invoiceDate}`
     if (!invoiceGroups.has(key)) {
       invoiceGroups.set(key, [])
       invoiceKeys.push(key)
@@ -555,7 +553,6 @@ async function importPurchases(rows: Record<string, string>[], columnMap: Map<st
     const firstRow = groupRows[0]
     const supplierName = getField(firstRow, columnMap, 'supplier_name')
     const invoiceDate = getField(firstRow, columnMap, 'invoice_date')
-    const supplierInvNo = getField(firstRow, columnMap, 'supplier_invoice_no')
     const paymentStatus = (getField(firstRow, columnMap, 'payment_status') || 'unpaid').toLowerCase()
     const paymentMode = getField(firstRow, columnMap, 'payment_mode')
     const remarks = getField(firstRow, columnMap, 'remarks')
@@ -630,7 +627,6 @@ async function importPurchases(rows: Record<string, string>[], columnMap: Map<st
         .insert([{
           supplier_id: supplierId,
           invoice_date: invoiceDate,
-          supplier_invoice_number: supplierInvNo || undefined,
           purchase_number: purchaseNumber,
           subtotal: totalAmount,
           gst_rate: 0,
@@ -1134,7 +1130,7 @@ export async function importFromExcel(buffer: ArrayBuffer, forceType?: EntityTyp
 export function getTemplateHeaders(type: EntityType): string[] {
   switch (type) {
     case 'purchases':
-      return ['Supplier name', 'Date', 'Village', 'Invoice number', 'Material', 'Quantity', 'Unit', 'Rate', 'Amount']
+      return ['Supplier name', 'Date', 'Village', 'Material', 'Quantity', 'Unit', 'Rate', 'Amount']
     case 'beneficiaries':
       return ['Application no.', 'Village', 'Name', 'Plinth', 'Lintel', 'Roof', 'Finishing', 'Balance']
     case 'parties':
@@ -1259,9 +1255,9 @@ export async function downloadTemplate(type: EntityType): Promise<void> {
   switch (type) {
     case 'purchases':
       sampleData = [
-        ['M/s Bhardwaj Constructions', '2025-04-01', 'Varnama', 'BIL-001', 'OPC Cement 53 Grade', 200, 'Bag', 380, 76000],
-        ['M/s Bhardwaj Constructions', '2025-04-01', 'Dharapura', 'BIL-001', 'TMT Steel Bars 12mm', 100, 'Kg', 78, 7800],
-        ['Sharma Traders', '2025-04-05', 'Dodhka', 'ST-001', 'Clay Bricks', 10000, 'Nos', 9, 90000],
+        ['M/s Bhardwaj Constructions', '2025-04-01', 'Varnama', 'OPC Cement 53 Grade', 200, 'Bag', 380, 76000],
+        ['M/s Bhardwaj Constructions', '2025-04-01', 'Dharapura', 'TMT Steel Bars 12mm', 100, 'Kg', 78, 7800],
+        ['Sharma Traders', '2025-04-05', 'Dodhka', 'Clay Bricks', 10000, 'Nos', 9, 90000],
       ]
       break
     case 'beneficiaries':

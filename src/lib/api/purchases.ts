@@ -2,6 +2,38 @@ import { supabase } from '@/lib/supabase'
 import type { Purchase, PurchaseItem } from '@/types/database'
 import { getNextPurchaseNumber } from './sequence'
 
+/** Reverse village stock for a purchase item (subtract from received/remaining) */
+async function reverseVillageStock(villageName: string, materialName: string, quantity: number) {
+  const { data: village } = await supabase
+    .from('villages')
+    .select('id')
+    .eq('name', villageName)
+    .single()
+
+  if (!village) return
+
+  const { data: existing } = await supabase
+    .from('village_materials')
+    .select('*')
+    .eq('village_id', village.id)
+    .eq('material_name', materialName)
+    .single()
+
+  if (existing) {
+    const newReceived = Math.max(0, Number(existing.quantity_received) - quantity)
+    const usedQty = Number(existing.quantity_used) || 0
+    const newRemaining = Math.max(0, newReceived - usedQty)
+    await supabase
+      .from('village_materials')
+      .update({
+        quantity_received: newReceived,
+        quantity_remaining: newRemaining,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existing.id)
+  }
+}
+
 export async function getPurchases(filters?: {
   supplierId?: string
   startDate?: string
@@ -109,6 +141,29 @@ export async function updatePurchase(
   purchase: Partial<Purchase>,
   items?: Omit<PurchaseItem, 'purchase_id'>[]
 ) {
+  // First, get existing purchase items to reverse village stock
+  const { data: oldItems } = await supabase
+    .from('purchase_items')
+    .select('*')
+    .eq('purchase_id', id)
+
+  // Reverse village stock for old items
+  if (oldItems) {
+    for (const item of oldItems) {
+      if (item.village_name && item.material_name && item.quantity > 0) {
+        try {
+          await reverseVillageStock(item.village_name, item.material_name, Number(item.quantity))
+        } catch (err) {
+          console.error('Failed to reverse village stock:', err)
+        }
+      }
+    }
+  }
+
+  // Delete old material transactions for this purchase
+  await supabase.from('material_transactions').delete().eq('reference_purchase_id', id)
+
+  // Update the purchase record
   const { data, error } = await supabase
     .from('purchases')
     .update({ ...purchase, updated_at: new Date().toISOString() })
@@ -118,6 +173,7 @@ export async function updatePurchase(
 
   if (error) throw error
 
+  // Update items
   if (items) {
     await supabase.from('purchase_items').delete().eq('purchase_id', id)
     const itemsWithPurchaseId = items.map(item => ({ ...item, purchase_id: id }))
@@ -161,7 +217,29 @@ export async function updatePurchase(
 }
 
 export async function deletePurchase(id: string) {
-  // First delete purchase items
+  // Get existing items to reverse village stock
+  const { data: oldItems } = await supabase
+    .from('purchase_items')
+    .select('*')
+    .eq('purchase_id', id)
+
+  // Reverse village stock for old items
+  if (oldItems) {
+    for (const item of oldItems) {
+      if (item.village_name && item.material_name && item.quantity > 0) {
+        try {
+          await reverseVillageStock(item.village_name, item.material_name, Number(item.quantity))
+        } catch (err) {
+          console.error('Failed to reverse village stock:', err)
+        }
+      }
+    }
+  }
+
+  // Delete related material transactions
+  await supabase.from('material_transactions').delete().eq('reference_purchase_id', id)
+
+  // Delete purchase items
   await supabase.from('purchase_items').delete().eq('purchase_id', id)
   
   // Delete related transactions

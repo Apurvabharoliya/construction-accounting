@@ -29,7 +29,6 @@ interface TransactionEntry {
   id: string
   date: string
   supplier_name: string
-  supplier_invoice_number: string
   payment_mode: string
   payment_status: 'unpaid' | 'paid'
   amount_paid: number
@@ -55,7 +54,6 @@ function emptyEntry(): TransactionEntry {
     id: genId(),
     date: new Date().toISOString().split('T')[0],
     supplier_name: '',
-    supplier_invoice_number: '',
     payment_mode: '',
     payment_status: 'unpaid',
     amount_paid: 0,
@@ -91,11 +89,17 @@ export default function NewTransactionPage() {
   function updateItem(entryId: string, itemId: string, field: keyof TransactionItem, value: any) {
     setEntries(prev => prev.map(e => {
       if (e.id !== entryId) return e
-      const items = e.items.map(item =>
-        item.id === itemId
-          ? { ...item, [field]: value }
-          : item
-      )
+      const items = e.items.map(item => {
+        if (item.id !== itemId) return item
+        const updated = { ...item, [field]: value }
+        // Auto-calculate amount when quantity or rate changes
+        if (field === 'quantity' || field === 'rate') {
+          const qty = field === 'quantity' ? Number(value) : item.quantity
+          const rate = field === 'rate' ? Number(value) : item.rate
+          updated.amount = qty * rate
+        }
+        return updated
+      })
       return { ...e, items }
     }))
   }
@@ -163,7 +167,6 @@ export default function NewTransactionPage() {
       const supplierCol = findCol(['supplier', 'vendor', 'party'])
       const dateCol = findCol(['date', 'invoice date'])
       const villageCol = findCol(['village', 'site', 'location'])
-      const invoiceCol = findCol(['invoice no', 'invoice number', 'bill no'])
       const materialCol = findCol(['material', 'item', 'product'])
       const qtyCol = findCol(['quantity', 'qty'])
       const unitCol = findCol(['unit', 'uom'])
@@ -211,7 +214,6 @@ export default function NewTransactionPage() {
           id: genId(),
           date: parseDate(getVal(row, dateCol)),
           supplier_name: getVal(row, supplierCol),
-          supplier_invoice_number: getVal(row, invoiceCol),
           payment_mode: '',
           payment_status: (isPayment ? 'paid' : 'unpaid') as 'paid' | 'unpaid',
           amount_paid: isPayment ? amount : 0,
@@ -299,7 +301,6 @@ export default function NewTransactionPage() {
       const purchaseData = await createPurchase({
         supplier_id: supplierId,
         invoice_date: invoiceDate,
-        supplier_invoice_number: entry.supplier_invoice_number || undefined,
         subtotal: totalAmount,
         gst_rate: 0,
         cgst_amount: 0,
@@ -314,8 +315,10 @@ export default function NewTransactionPage() {
       }, itemsWithGst)
 
       // Update village stock per item
+      // Use the first item's village as fallback for items without their own village
+      const fallbackVillage = validItems.find(i => i.village_name)?.village_name || ''
       for (const item of validItems) {
-        const targetVillage = item.village_name
+        const targetVillage = item.village_name || fallbackVillage
         if (targetVillage && item.material_name.trim() && item.quantity > 0) {
           try {
             await addMaterialReceipt({
@@ -413,7 +416,6 @@ export default function NewTransactionPage() {
         const purchaseData = await createPurchase({
           supplier_id: supplierId,
           invoice_date: invoiceDate,
-          supplier_invoice_number: entry.supplier_invoice_number || undefined,
           subtotal: totalAmount,
           gst_rate: 0,
           cgst_amount: 0,
@@ -428,8 +430,10 @@ export default function NewTransactionPage() {
         }, itemsWithGst)
 
         // Update village stock per item
+        // Use the first item's village as fallback for items without their own village
+        const fallbackVillage = validItems.find(i => i.village_name)?.village_name || ''
         for (const item of validItems) {
-          const targetVillage = item.village_name
+          const targetVillage = item.village_name || fallbackVillage
           if (targetVillage && item.material_name.trim() && item.quantity > 0) {
             try {
               await addMaterialReceipt({
@@ -531,7 +535,6 @@ export default function NewTransactionPage() {
                   <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[140px]">Supplier *</th>
                   <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-32">Date</th>
                   <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Village</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Inv No.</th>
                   <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Type</th>
                   <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[120px]">Material</th>
                   <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-16">Qty</th>
@@ -580,15 +583,6 @@ export default function NewTransactionPage() {
                               <option key={v} value={v}>{v}</option>
                             ))}
                           </select>
-                        </td>
-                        <td className="px-2.5 py-2">
-                          <input
-                            type="text"
-                            value={entry.supplier_invoice_number}
-                            onChange={(e) => updateEntry(entry.id, 'supplier_invoice_number', e.target.value)}
-                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
-                            placeholder="INV-001"
-                          />
                         </td>
                         <td className="px-2.5 py-2 text-center">
                           <button
@@ -733,7 +727,7 @@ export default function NewTransactionPage() {
                       {/* Expanded Detail Row */}
                       {isExpanded && (
                         <tr className="bg-gray-50/80">
-                          <td colSpan={13} className="px-8 py-5">
+                          <td colSpan={12} className="px-8 py-5">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                               <div className="md:col-span-2 space-y-3">
                                 <div className="flex items-center justify-between">

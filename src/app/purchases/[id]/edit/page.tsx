@@ -5,9 +5,11 @@ import { useParams, useRouter } from 'next/navigation'
 import React from 'react'
 import { supabase } from '@/lib/supabase'
 import { updatePurchase } from '@/lib/api/purchases'
+import { addMaterialReceipt } from '@/lib/api/villages'
 import { toast } from 'sonner'
 import { Plus, Trash2, Eye, Loader2, ChevronUp, ArrowLeft } from 'lucide-react'
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
+import type { Purchase } from '@/types/database'
 import DatePicker from '@/components/ui/DatePicker'
 import SupplierDropdown from '@/components/ui/SupplierDropdown'
 import { VILLAGES } from '@/lib/village-constants'
@@ -15,7 +17,9 @@ import { genId, calcEntryTotal } from '@/lib/transaction-utils'
 import Link from 'next/link'
 
 interface TransactionItem {
+  id: string
   material_name: string
+  village_name: string
   quantity: number
   unit: string
   rate: number
@@ -24,15 +28,27 @@ interface TransactionItem {
 
 interface TransactionEntry {
   id: string
+  date: string
   supplier_name: string
-  invoice_date: string
   village_name: string
-  invoice_number: string
   payment_type: 'Purchase' | 'Payment'
   items: TransactionItem[]
   payment_mode: string
   payment_status: 'unpaid' | 'paid'
   amount_paid: number
+  remarks: string
+}
+
+function emptyItem(): TransactionItem {
+  return {
+    id: genId(),
+    material_name: '',
+    village_name: '',
+    quantity: 0,
+    unit: 'Nos',
+    rate: 0,
+    amount: 0,
+  }
 }
 
 export default function EditPurchasePage() {
@@ -53,25 +69,34 @@ export default function EditPurchasePage() {
     try {
       const { data: purchase, error } = await supabase
         .from('purchases')
-        .select('*')
+        .select('*, supplier:parties!supplier_id(name), items:purchase_items(*)')
         .eq('id', purchaseId)
         .single()
 
       if (error) throw error
 
       if (purchase) {
-        const items = purchase.items || []
+        const items = (purchase.items || []).map((item: any) => ({
+          id: item.id || genId(),
+          material_name: item.material_name || '',
+          village_name: item.village_name || '',
+          quantity: Number(item.quantity) || 0,
+          unit: item.unit || 'Nos',
+          rate: Number(item.rate) || 0,
+          amount: Number(item.amount) || 0,
+        }))
+
         const entry: TransactionEntry = {
           id: genId(),
-          supplier_name: purchase.supplier_name || '',
-          invoice_date: purchase.invoice_date || new Date().toISOString().split('T')[0],
+          date: purchase.invoice_date || new Date().toISOString().split('T')[0],
+          supplier_name: purchase.supplier?.name || '',
           village_name: purchase.village_name || '',
-          invoice_number: purchase.invoice_number || '',
-          payment_type: purchase.payment_type || 'Purchase',
-          items: Array.isArray(items) ? items : [items],
+          payment_type: purchase.payment_status === 'paid' ? 'Payment' : 'Purchase',
+          items: items.length > 0 ? items : [emptyItem()],
           payment_mode: purchase.payment_mode || '',
           payment_status: purchase.payment_status || 'unpaid',
-          amount_paid: purchase.amount_paid || 0,
+          amount_paid: Number(purchase.amount_paid) || 0,
+          remarks: purchase.remarks || '',
         }
         setEntries([entry])
       }
@@ -87,14 +112,20 @@ export default function EditPurchasePage() {
     setEntries(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e))
   }
 
-  function updateItem(entryId: string, itemIdx: number, field: keyof TransactionItem, value: any) {
+  function updateItem(entryId: string, itemId: string, field: keyof TransactionItem, value: any) {
     setEntries(prev => prev.map(e => {
       if (e.id !== entryId) return e
-      const newItems = [...e.items]
-      newItems[itemIdx] = { ...newItems[itemIdx], [field]: value }
-      if (field === 'quantity' || field === 'rate') {
-        newItems[itemIdx].amount = newItems[itemIdx].quantity * newItems[itemIdx].rate
-      }
+      const newItems = e.items.map(item => {
+        if (item.id !== itemId) return item
+        const updated = { ...item, [field]: value }
+        // Auto-calculate amount when quantity or rate changes
+        if (field === 'quantity' || field === 'rate') {
+          const qty = field === 'quantity' ? Number(value) : item.quantity
+          const rate = field === 'rate' ? Number(value) : item.rate
+          updated.amount = qty * rate
+        }
+        return updated
+      })
       return { ...e, items: newItems }
     }))
   }
@@ -102,18 +133,15 @@ export default function EditPurchasePage() {
   function addItem(entryId: string) {
     setEntries(prev => prev.map(e => {
       if (e.id !== entryId) return e
-      return {
-        ...e,
-        items: [...e.items, { material_name: '', quantity: 0, unit: 'PCS', rate: 0, amount: 0 }]
-      }
+      return { ...e, items: [...e.items, emptyItem()] }
     }))
   }
 
-  function removeItem(entryId: string, itemIdx: number) {
+  function removeItem(entryId: string, itemId: string) {
     setEntries(prev => prev.map(e => {
       if (e.id !== entryId) return e
-      const newItems = e.items.filter((_, i) => i !== itemIdx)
-      return { ...e, items: newItems.length > 0 ? newItems : [{ material_name: '', quantity: 0, unit: 'PCS', rate: 0, amount: 0 }] }
+      const newItems = e.items.filter(it => it.id !== itemId)
+      return { ...e, items: newItems.length > 0 ? newItems : [emptyItem()] }
     }))
   }
 
@@ -123,27 +151,95 @@ export default function EditPurchasePage() {
     setSaving(true)
     try {
       const entry = entries[0]
-      const total = calcEntryTotal(entry)
+      const isPayment = entry.payment_type === 'Payment'
 
-      const updateData: any = {
-        supplier_name: entry.supplier_name,
-        invoice_date: entry.invoice_date,
-        village_name: entry.village_name,
-        invoice_number: entry.invoice_number,
-        payment_type: entry.payment_type,
-        items: entry.items,
-        payment_mode: entry.payment_mode,
-        payment_status: entry.payment_status,
-        amount_paid: entry.payment_status === 'paid' ? total : 0,
+      // Resolve supplier
+      const { data: existing } = await supabase
+        .from('parties')
+        .select('id')
+        .eq('name', entry.supplier_name.trim())
+        .eq('party_type', 'supplier')
+        .maybeSingle()
+
+      let supplierId: string
+      if (existing) {
+        supplierId = existing.id
+      } else {
+        const { data: created, error: ce } = await supabase
+          .from('parties')
+          .insert([{ name: entry.supplier_name.trim(), party_type: 'supplier' }])
+          .select('id')
+          .single()
+        if (ce) throw ce
+        supplierId = created.id
       }
 
-      await updatePurchase(purchaseId, updateData)
+      const validItems = entry.items.filter(it => it.material_name.trim())
+      const itemsWithGst = validItems.map(item => ({
+        id: genId(),
+        material_name: item.material_name,
+        hsn_code: undefined as string | undefined,
+        village_name: item.village_name || undefined,
+        quantity: item.quantity,
+        unit: item.unit,
+        rate: item.rate,
+        amount: item.amount > 0 ? item.amount : (item.quantity * item.rate),
+        gst_rate: 0,
+        gst_amount: 0
+      }))
+
+      const totalAmount = isPayment
+        ? (entry.amount_paid || 0)
+        : itemsWithGst.reduce((sum, item) => sum + item.amount, 0)
+
+      const updateData: Partial<Purchase> = {
+        supplier_id: supplierId,
+        invoice_date: entry.date,
+        village_name: entry.village_name || undefined,
+        subtotal: totalAmount,
+        gst_rate: 0,
+        cgst_amount: 0,
+        sgst_amount: 0,
+        igst_amount: 0,
+        total_amount: totalAmount,
+        payment_mode: entry.payment_mode || undefined,
+        payment_status: isPayment ? 'paid' : 'unpaid',
+        amount_paid: isPayment ? totalAmount : 0,
+        balance_due: isPayment ? 0 : totalAmount,
+        remarks: entry.remarks || undefined
+      }
+
+      await updatePurchase(purchaseId, updateData, itemsWithGst)
+
+      // After updating the purchase, re-sync village stock for the new items
+      // Use entry.village_name as fallback for items without their own village
+      const fallbackVillage = entry.village_name || validItems.find(i => i.village_name)?.village_name || ''
+      for (const item of validItems) {
+        const targetVillage = item.village_name || fallbackVillage
+        if (targetVillage && item.material_name.trim() && item.quantity > 0) {
+          try {
+            const { data: p } = await supabase
+              .from('purchases')
+              .select('purchase_number')
+              .eq('id', purchaseId)
+              .single()
+            await addMaterialReceipt({
+              village_name: targetVillage,
+              material_name: item.material_name,
+              quantity: item.quantity,
+              contractor_name: entry.supplier_name,
+              reference_purchase_id: purchaseId,
+              notes: `Purchase ${p?.purchase_number || ''}`,
+              transaction_date: entry.date
+            })
+          } catch (err) {
+            console.error(`Failed to update village stock for ${item.material_name}:`, err)
+          }
+        }
+      }
 
       toast.success('Purchase updated successfully!')
-
-      // Note: Village stock is NOT updated during edits to prevent double-counting.
-      // Stock adjustments should be made directly on the village page.
-      router.push('/purchases')
+      router.push(`/purchases/${purchaseId}`)
     } catch (error: any) {
       toast.error('Failed to update purchase: ' + error.message)
     } finally {
@@ -192,7 +288,6 @@ export default function EditPurchasePage() {
                 <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 min-w-[160px]">Supplier</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 w-32">Date</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 w-36">Village</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 w-28">Inv No.</th>
                 <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 w-24">Type</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 min-w-[140px]">Material</th>
                 <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600 w-20">Qty</th>
@@ -223,8 +318,8 @@ export default function EditPurchasePage() {
                       </td>
                       <td className="px-3 py-2">
                         <DatePicker
-                          value={entry.invoice_date}
-                          onChange={(val) => updateEntry(entry.id, 'invoice_date', val)}
+                          value={entry.date}
+                          onChange={(val) => updateEntry(entry.id, 'date', val)}
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -239,21 +334,12 @@ export default function EditPurchasePage() {
                           ))}
                         </select>
                       </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="text"
-                          value={entry.invoice_number}
-                          onChange={(e) => updateEntry(entry.id, 'invoice_number', e.target.value)}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="INV-001"
-                        />
-                      </td>
                       <td className="px-3 py-2 text-center">
                         <button
                           onClick={() => updateEntry(entry.id, 'payment_type', isPayment ? 'Purchase' : 'Payment')}
                           className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                             isPayment
-                              ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                               : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                           }`}
                         >
@@ -267,7 +353,7 @@ export default function EditPurchasePage() {
                           <input
                             type="text"
                             value={entry.items[0]?.material_name || ''}
-                            onChange={(e) => updateItem(entry.id, 0, 'material_name', e.target.value)}
+                            onChange={(e) => updateItem(entry.id, entry.items[0]?.id, 'material_name', e.target.value)}
                             className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g. Sand, Cement"
                           />
@@ -280,7 +366,7 @@ export default function EditPurchasePage() {
                           <input
                             type="number"
                             value={entry.items[0]?.quantity || ''}
-                            onChange={(e) => updateItem(entry.id, 0, 'quantity', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateItem(entry.id, entry.items[0]?.id, 'quantity', parseFloat(e.target.value) || 0)}
                             className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="0"
                             min="0"
@@ -293,8 +379,8 @@ export default function EditPurchasePage() {
                           <span className="text-gray-400 italic">—</span>
                         ) : (
                           <select
-                            value={entry.items[0]?.unit || 'PCS'}
-                            onChange={(e) => updateItem(entry.id, 0, 'unit', e.target.value)}
+                            value={entry.items[0]?.unit || 'Nos'}
+                            onChange={(e) => updateItem(entry.id, entry.items[0]?.id, 'unit', e.target.value)}
                             className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                           >
                             {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
@@ -308,7 +394,7 @@ export default function EditPurchasePage() {
                           <input
                             type="number"
                             value={entry.items[0]?.rate || ''}
-                            onChange={(e) => updateItem(entry.id, 0, 'rate', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateItem(entry.id, entry.items[0]?.id, 'rate', parseFloat(e.target.value) || 0)}
                             className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="0"
                             min="0"
@@ -355,92 +441,118 @@ export default function EditPurchasePage() {
                     {/* Expanded Detail Row */}
                     {isExpanded && (
                       <tr className="bg-slate-50 border-b border-gray-200">
-                        <td colSpan={13} className="px-4 py-4">
+                        <td colSpan={12} className="px-4 py-4">
                           <div className="bg-white rounded-lg border border-gray-200 p-4">
                             <div className="flex items-center justify-between mb-3">
                               <h4 className="text-sm font-semibold text-gray-700">Line Items</h4>
-                              <button
-                                onClick={() => addItem(entry.id)}
-                                className="px-3 py-1.5 bg-blue-500 text-white rounded-md text-xs font-medium hover:bg-blue-600 flex items-center gap-1"
-                              >
-                                <Plus className="h-3 w-3" /> Add Item
-                              </button>
+                              {!isPayment && (
+                                <button
+                                  onClick={() => addItem(entry.id)}
+                                  className="px-3 py-1.5 bg-blue-500 text-white rounded-md text-xs font-medium hover:bg-blue-600 flex items-center gap-1"
+                                >
+                                  <Plus className="h-3 w-3" /> Add Item
+                                </button>
+                              )}
                             </div>
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr className="border-b border-gray-200">
-                                  <th className="px-2 py-2 text-left text-gray-600">Material</th>
-                                  <th className="px-2 py-2 text-right text-gray-600">Qty</th>
-                                  <th className="px-2 py-2 text-left text-gray-600">Unit</th>
-                                  <th className="px-2 py-2 text-right text-gray-600">Rate</th>
-                                  <th className="px-2 py-2 text-right text-gray-600">Amount</th>
-                                  <th className="px-2 py-2 text-center text-gray-600 w-10"></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {entry.items.map((item, idx) => (
-                                  <tr key={idx} className="border-b border-gray-100">
-                                    <td className="px-2 py-1.5">
-                                      <input
-                                        type="text"
-                                        value={item.material_name}
-                                        onChange={(e) => updateItem(entry.id, idx, 'material_name', e.target.value)}
-                                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
-                                        placeholder="Material name"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-1.5">
-                                      <input
-                                        type="number"
-                                        value={item.quantity || ''}
-                                        onChange={(e) => updateItem(entry.id, idx, 'quantity', parseFloat(e.target.value) || 0)}
-                                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-blue-500"
-                                        min="0"
-                                        step="0.01"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-1.5">
-                                      <select
-                                        value={item.unit}
-                                        onChange={(e) => updateItem(entry.id, idx, 'unit', e.target.value)}
-                                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
-                                      >
-                                        {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                                      </select>
-                                    </td>
-                                    <td className="px-2 py-1.5">
-                                      <input
-                                        type="number"
-                                        value={item.rate || ''}
-                                        onChange={(e) => updateItem(entry.id, idx, 'rate', parseFloat(e.target.value) || 0)}
-                                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-blue-500"
-                                        min="0"
-                                        step="0.01"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-1.5 text-right font-medium text-gray-900">
-                                      {formatCurrency(item.amount)}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-center">
-                                      <button
-                                        onClick={() => removeItem(entry.id, idx)}
-                                        className="p-1 hover:bg-red-100 rounded text-red-500"
-                                        title="Remove item"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </button>
-                                    </td>
+                            {!isPayment ? (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-gray-200">
+                                    <th className="px-2 py-2 text-left text-gray-600">Village</th>
+                                    <th className="px-2 py-2 text-left text-gray-600">Material</th>
+                                    <th className="px-2 py-2 text-right text-gray-600">Qty</th>
+                                    <th className="px-2 py-2 text-left text-gray-600">Unit</th>
+                                    <th className="px-2 py-2 text-right text-gray-600">Rate</th>
+                                    <th className="px-2 py-2 text-right text-gray-600">Amount</th>
+                                    <th className="px-2 py-2 text-center text-gray-600 w-10"></th>
                                   </tr>
-                                ))}
-                              </tbody>
-                              <tfoot>
-                                <tr className="font-semibold text-gray-900 border-t-2 border-gray-300">
-                                  <td colSpan={4} className="px-2 py-2 text-right">Total:</td>
-                                  <td className="px-2 py-2 text-right">{formatCurrency(total)}</td>
-                                  <td></td>
-                                </tr>
-                              </tfoot>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {entry.items.map((item, idx) => (
+                                    <tr key={item.id} className="border-b border-gray-100">
+                                      <td className="px-2 py-1.5">
+                                        <select
+                                          value={item.village_name}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'village_name', e.target.value)}
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                                        >
+                                          <option value="">Village...</option>
+                                          {VILLAGES.map(v => (
+                                            <option key={v} value={v}>{v}</option>
+                                          ))}
+                                        </select>
+                                      </td>
+                                      <td className="px-2 py-1.5">
+                                        <input
+                                          type="text"
+                                          value={item.material_name}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'material_name', e.target.value)}
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                                          placeholder="Material name"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-1.5">
+                                        <input
+                                          type="number"
+                                          value={item.quantity || ''}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-blue-500"
+                                          min="0"
+                                          step="0.01"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-1.5">
+                                        <select
+                                          value={item.unit}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'unit', e.target.value)}
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                                        >
+                                          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                      </td>
+                                      <td className="px-2 py-1.5">
+                                        <input
+                                          type="number"
+                                          value={item.rate || ''}
+                                          onChange={(e) => updateItem(entry.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-blue-500"
+                                          min="0"
+                                          step="0.01"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right font-medium text-gray-900">
+                                        {formatCurrency(item.amount)}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-center">
+                                        <button
+                                          onClick={() => removeItem(entry.id, item.id)}
+                                          className="p-1 hover:bg-red-100 rounded text-red-500"
+                                          title="Remove item"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="font-semibold text-gray-900 border-t-2 border-gray-300">
+                                    <td colSpan={5} className="px-2 py-2 text-right">Total:</td>
+                                    <td className="px-2 py-2 text-right">{formatCurrency(total)}</td>
+                                    <td></td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            ) : (
+                              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                                <p className="text-sm text-emerald-700">
+                                  <span className="font-bold">Payment entry</span> — No items needed.
+                                </p>
+                                <p className="text-sm text-emerald-600 mt-1">
+                                  Amount: <span className="font-bold text-lg">{formatCurrency(entry.amount_paid || 0)}</span>
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -464,6 +576,20 @@ export default function EditPurchasePage() {
           </div>
         )}
       </div>
+
+      {/* Remarks */}
+      {entries.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Remarks</label>
+          <textarea
+            value={entries[0].remarks}
+            onChange={(e) => updateEntry(entries[0].id, 'remarks', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            rows={2}
+            placeholder="Notes about this transaction..."
+          />
+        </div>
+      )}
     </div>
   )
 }
