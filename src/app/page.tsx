@@ -54,22 +54,22 @@ interface StatCardProps {
 
 const accentConfig = {
   amber: { 
-    gradient: 'from-amber-500 to-amber-600', 
-    bg: 'bg-amber-50', 
-    iconBg: 'bg-amber-100', 
-    iconColor: 'text-amber-600',
-    border: 'border-amber-200/50',
-    text: 'text-amber-700',
-    light: 'from-amber-50 to-amber-100/50'
+    gradient: 'from-[#c4841d] to-[#9a6515]', 
+    bg: 'bg-[#d4a02b]/8', 
+    iconBg: 'bg-[#d4a02b]/12', 
+    iconColor: 'text-[#9a6515]',
+    border: 'border-[#d4a02b]/20',
+    text: 'text-[#9a6515]',
+    light: 'from-[#d4a02b]/5 to-[#c4841d]/8'
   },
   blue: { 
-    gradient: 'from-blue-500 to-blue-600', 
-    bg: 'bg-blue-50', 
-    iconBg: 'bg-blue-100', 
-    iconColor: 'text-blue-600',
-    border: 'border-blue-200/50',
-    text: 'text-blue-700',
-    light: 'from-blue-50 to-blue-100/50'
+    gradient: 'from-[#3b5998] to-[#2d4373]', 
+    bg: 'bg-[#3b5998]/8', 
+    iconBg: 'bg-[#3b5998]/12', 
+    iconColor: 'text-[#2d4373]',
+    border: 'border-[#3b5998]/20',
+    text: 'text-[#2d4373]',
+    light: 'from-[#3b5998]/5 to-[#3b5998]/8'
   },
   green: { 
     gradient: 'from-emerald-500 to-emerald-600', 
@@ -90,13 +90,13 @@ const accentConfig = {
     light: 'from-red-50 to-red-100/50'
   },
   purple: { 
-    gradient: 'from-purple-500 to-purple-600', 
-    bg: 'bg-purple-50', 
-    iconBg: 'bg-purple-100', 
-    iconColor: 'text-purple-600',
-    border: 'border-purple-200/50',
-    text: 'text-purple-700',
-    light: 'from-purple-50 to-purple-100/50'
+    gradient: 'from-[#6366f1] to-[#4f46e5]', 
+    bg: 'bg-[#6366f1]/8', 
+    iconBg: 'bg-[#6366f1]/12', 
+    iconColor: 'text-[#4f46e5]',
+    border: 'border-[#6366f1]/20',
+    text: 'text-[#4f46e5]',
+    light: 'from-[#6366f1]/5 to-[#6366f1]/8'
   },
 }
 
@@ -154,16 +154,15 @@ interface QuickActionProps {
 
 function QuickAction({ href, icon: Icon, label, description, color }: QuickActionProps) {
   const colorMap: Record<string, string> = {
-    amber: 'bg-amber-100 text-amber-700 group-hover:bg-amber-200',
-    blue: 'bg-blue-100 text-blue-700 group-hover:bg-blue-200',
+    amber: 'bg-[#d4a02b]/10 text-[#9a6515] group-hover:bg-[#d4a02b]/20',
+    blue: 'bg-[#3b5998]/10 text-[#2d4373] group-hover:bg-[#3b5998]/20',
     green: 'bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200',
-    purple: 'bg-purple-100 text-purple-700 group-hover:bg-purple-200',
+    purple: 'bg-[#6366f1]/10 text-[#4f46e5] group-hover:bg-[#6366f1]/20',
   }
   
   return (
     <Link href={href}>
-      <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-amber-200/50 hover:bg-amber-50/30 transition-all duration-200 group cursor-pointer active:scale-[0.98]">
-        <div className={`p-2.5 rounded-lg transition-all duration-200 group-hover:scale-110 ${colorMap[color] || colorMap.amber}`}>
+      <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-amber-200/50 hover:bg-amber-50/30 transition-all duration-200 group cursor-pointer active:scale-[0.98]">            <div className={`p-2.5 rounded-lg transition-all duration-200 group-hover:scale-110 ${colorMap[color] || 'bg-[#d4a02b]/10 text-[#9a6515] group-hover:bg-[#d4a02b]/20'}`}>
           <Icon className="w-4 h-4" />
         </div>
         <div className="flex-1 min-w-0">
@@ -301,12 +300,12 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 animate-fade-in-up">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#c4841d] to-[#9a6515] rounded-xl flex items-center justify-center shadow-lg shadow-[#c4841d]/20">
               <Building2 className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-500 text-sm mt-0.5">Welcome back to your construction overview</p>
+              <p className="text-[oklch(0.52_0.01_85)] text-sm mt-0.5">Welcome back to your construction overview</p>
             </div>
           </div>
         </div>
@@ -384,10 +383,9 @@ export default function Dashboard() {
                 <QuickAction href="/beneficiaries/new" icon={HandHeart} label="Add Beneficiary" description="Register a beneficiary" color="purple" />
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center justify-between text-sm">
+              <div className="mt-4 pt-4 border-t border-gray-100">                  <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">Total Vendors</span>
-                  <span className="font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full text-xs">
+                  <span className="font-semibold text-[#9a6515] bg-[#d4a02b]/8 px-2.5 py-0.5 rounded-full text-xs">
                     {stats.totalParties}
                   </span>
                 </div>
@@ -398,7 +396,7 @@ export default function Dashboard() {
             <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 p-4 md:p-6 shadow-sm animate-fade-in-up delay-500">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-semibold text-gray-900">Recent Transactions</h2>
-                <Link href="/reports" className="text-xs font-medium text-amber-600 hover:text-amber-700 hover:underline transition-colors inline-flex items-center gap-1">
+                <Link href="/reports" className="text-xs font-medium text-[#9a6515] hover:text-[#7a5010] hover:underline transition-colors inline-flex items-center gap-1">
                   View All <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -410,7 +408,7 @@ export default function Dashboard() {
                   </div>
                   <p className="font-medium text-gray-500">No transactions yet</p>
                   <p className="text-sm text-gray-400 mt-1">Start by adding a purchase or visiting villages</p>
-                  <Link href="/purchases/new" className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium shadow-sm">
+                  <Link href="/purchases/new" className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-[#c4841d] text-white rounded-lg hover:bg-[#9a6515] transition-colors text-sm font-medium shadow-sm">
                     <Plus className="w-4 h-4" /> Record your first transaction
                   </Link>
                 </div>

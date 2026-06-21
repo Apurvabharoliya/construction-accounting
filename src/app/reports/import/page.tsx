@@ -187,9 +187,6 @@ export default function ImportPage() {
           <button onClick={() => handleDownloadTemplate('purchases')} className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors text-sm font-medium">
             <Download className="w-4 h-4" /> Purchases Template
           </button>
-          <button onClick={() => handleDownloadTemplate('sales')} className="flex items-center gap-2 px-4 py-2.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 border border-green-200 transition-colors text-sm font-medium">
-            <Download className="w-4 h-4" /> Sales Template
-          </button>
         </div>
       </div>
 
@@ -338,9 +335,6 @@ export default function ImportPage() {
                       </button>
                       <button onClick={() => { setDetectedType('purchases'); buildMappingDisplay(previewHeaders, 'purchases'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 transition-colors">
                         Import as Purchases
-                      </button>
-                      <button onClick={() => { setDetectedType('sales'); buildMappingDisplay(previewHeaders, 'sales'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-green-300 bg-white text-green-700 hover:bg-green-50 transition-colors">
-                        Import as Sales
                       </button>
                       <button onClick={() => { setDetectedType('transactions'); buildMappingDisplay(previewHeaders, 'transactions'); }} className="px-3 py-1.5 text-sm font-medium rounded-lg border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 transition-colors">
                         Import as Transactions

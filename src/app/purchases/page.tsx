@@ -250,11 +250,11 @@ export default function CashbookPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Cashbook / Ledger</h1>
-          <p className="text-gray-500 text-sm mt-1">Complete transaction log with debit/credit entries and running balance</p>
+          <p className="text-[oklch(0.52_0.01_85)] text-sm mt-1">Complete transaction log with debit/credit entries and running balance</p>
         </div>
         <Link
           href="/purchases/new"
-          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-medium"
+          className="flex items-center justify-center gap-2 bg-[#c4841d] text-white px-4 py-2 rounded-lg hover:bg-[#9a6515] transition-colors shadow-sm text-sm font-medium"
         >
           <Plus className="w-5 h-5" />
           New Purchase
@@ -291,8 +291,7 @@ export default function CashbookPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4">
+      {/* Filters */}        <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -301,7 +300,7 @@ export default function CashbookPage() {
               placeholder="Search by party, description, or type..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-sm"
+              className="w-full pl-10 pr-4 py-2 border border-[oklch(0.91_0.003_85)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_65_/_0.2)] bg-[oklch(0.975_0.003_85)] text-sm"
             />
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -324,12 +323,11 @@ export default function CashbookPage() {
       </div>
 
       {/* Cashbook Table */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">          <div className="px-5 py-4 border-b border-[oklch(0.91_0.003_85)] bg-gradient-to-r from-[#d4a02b]/5 to-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-gray-700" />
-              <h2 className="text-lg font-semibold">Cashbook Statement</h2>
+              <Receipt className="w-5 h-5 text-[#9a6515]" />
+              <h2 className="text-lg font-semibold text-gray-900">Cashbook Statement</h2>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <span className="text-gray-400">
@@ -387,7 +385,7 @@ export default function CashbookPage() {
                 : 'Try adjusting your search or filter criteria'}
             </p>
             {transactions.length === 0 && (
-              <Link href="/purchases/new" className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium text-sm mt-3">
+              <Link href="/purchases/new" className="inline-flex items-center gap-1 text-[#c4841d] hover:text-[#9a6515] hover:underline font-medium text-sm mt-3">
                 <Plus className="w-4 h-4" /> Record your first transaction
               </Link>
             )}

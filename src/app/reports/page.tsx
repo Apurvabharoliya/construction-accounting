@@ -4,11 +4,11 @@ import { FileText, TrendingUp, ShoppingCart, IndianRupee, Calculator, Download, 
 import Link from 'next/link'
 
 const reportCards = [
-  { title: 'Outstanding Report', description: 'View all pending payments from debtors and to creditors', icon: IndianRupee, href: '/reports/outstanding', color: 'bg-orange-500' },
-  { title: 'Daily Summary', description: 'View transaction summary for a specific date', icon: FileText, href: '/reports/daily', color: 'bg-blue-500' },
-  { title: 'Monthly Summary', description: 'Monthly profit/loss and transaction analysis', icon: TrendingUp, href: '/reports/monthly', color: 'bg-green-500' },
-  { title: 'GST Summary', description: 'GST payable/receivable summary for filing', icon: Calculator, href: '/reports/gst', color: 'bg-purple-500' },
-  { title: 'Import from Excel', description: 'Upload Excel files to import vendors, purchases, or sales', icon: Upload, href: '/reports/import', color: 'bg-teal-500' },
+  { title: 'Outstanding Report', description: 'View all pending payments from debtors and to creditors', icon: IndianRupee, href: '/reports/outstanding', color: 'bg-[#c4841d]' },
+  { title: 'Daily Summary', description: 'View transaction summary for a specific date', icon: FileText, href: '/reports/daily', color: 'bg-[#3b5998]' },
+  { title: 'Monthly Summary', description: 'Monthly profit/loss and transaction analysis', icon: TrendingUp, href: '/reports/monthly', color: 'bg-[#059669]' },
+  { title: 'GST Summary', description: 'GST payable/receivable summary for filing', icon: Calculator, href: '/reports/gst', color: 'bg-[#6366f1]' },
+  { title: 'Import from Excel', description: 'Upload Excel files to import vendors, purchases, or sales', icon: Upload, href: '/reports/import', color: 'bg-[#0ea5e9]' },
 ]
 
 export default function ReportsPage() {
@@ -45,7 +45,7 @@ export default function ReportsPage() {
           <input
             type="text"
             placeholder="Search for a vendor..."
-            className="flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 text-sm"
+            className="flex-1 px-4 py-2.5 border border-[oklch(0.91_0.003_85)] rounded-lg focus:ring-2 focus:ring-[oklch(0.62_0.18_65_/_0.2)] bg-[oklch(0.975_0.003_85)] text-sm"
             onKeyDown={async (e: any) => {
               if (e.key === 'Enter' && e.target.value) {
                 const results = await (await import('@/lib/api/parties')).searchParties(e.target.value)
@@ -55,7 +55,7 @@ export default function ReportsPage() {
               }
             }}
           />
-          <button className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button className="px-4 py-2.5 bg-[#c4841d] text-white rounded-lg hover:bg-[#9a6515] transition-colors">
             <Download className="w-5 h-5" />
           </button>
         </div>

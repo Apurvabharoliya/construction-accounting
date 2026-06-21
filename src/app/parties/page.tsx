@@ -90,7 +90,7 @@ export default function PartiesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
           <p className="text-gray-500 text-sm mt-1">Manage suppliers and vendors</p>
         </div>
-        <Link href="/parties/new" className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+        <Link href="/parties/new" className="flex items-center justify-center gap-2 bg-[#c4841d] text-white px-4 py-2 rounded-lg hover:bg-[#9a6515] transition-colors text-sm font-medium">
           <Plus className="w-5 h-5" /> Add Vendor
         </Link>
       </div>
@@ -100,17 +100,16 @@ export default function PartiesPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input type="text" placeholder="Search by name, phone, GSTIN..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" />
+              className="w-full pl-10 pr-4 py-2 border border-[oklch(0.91_0.003_85)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_65_/_0.2)] bg-[oklch(0.975_0.003_85)]" />
           </div>
           <div className="flex gap-2 flex-wrap">
             {[
               { value: 'all', label: 'All' },
               { value: 'supplier', label: 'Suppliers' },
               { value: 'paid', label: 'Settled' },
-              { value: 'unpaid', label: 'Outstanding' }
-            ].map(({ value, label }) => (
+              { value: 'unpaid', label: 'Outstanding' }              ].map(({ value, label }) => (
               <button key={value} onClick={() => setFilterType(value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterType === value ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterType === value ? 'bg-[#c4841d] text-white' : 'bg-[oklch(0.96_0.003_85)] text-gray-700 hover:bg-[oklch(0.93_0.003_85)]'}`}>
                 {label}
               </button>
             ))}

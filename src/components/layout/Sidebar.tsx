@@ -192,7 +192,7 @@ export default function Sidebar() {
   const sidebarContent = (
     <aside
       className={cn(
-        "bg-gray-900 text-white min-h-screen flex flex-col relative overflow-hidden",
+        "bg-[#0a0f1e] text-white min-h-screen flex flex-col relative overflow-hidden",
         "transition-[width,padding] duration-300 ease-in-out",
         showExpanded ? "w-64" : "w-16"
       )}
@@ -201,24 +201,23 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className={cn(
-        "border-b border-white/10 transition-all duration-300 ease-in-out",
+        "border-b border-white/[0.06] transition-all duration-300 ease-in-out",
         showExpanded ? "p-4" : "p-3"
       )}>
         <button onClick={toggleCollapse} className="w-full text-left" title={showExpanded ? 'Collapse sidebar (Ctrl+B)' : 'Expand sidebar (Ctrl+B)'}>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/30">
+            <div className="w-9 h-9 bg-gradient-to-br from-[#c4841d] to-[#9a6515] rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#c4841d]/25">
               <ConstructionLogo />
             </div>
-            {/* Text slides in/out with opacity */}
             <div className={cn(
               "overflow-hidden transition-all duration-300 ease-in-out",
               showExpanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
             )}>
               <div className="whitespace-nowrap">
-                <h1 className="text-xl font-bold">
-                  Build<span className="text-amber-400">Pro</span>
+                <h1 className="text-xl font-bold text-white/90">
+                  Build<span className="text-[#d4a02b]">Pro</span>
                 </h1>
-                <p className="text-gray-500 text-xs">Construction Accounting</p>
+                <p className="text-white/35 text-xs">Construction Accounting</p>
               </div>
             </div>
           </div>
@@ -228,14 +227,14 @@ export default function Sidebar() {
       {/* Mobile close button */}
       <button
         onClick={() => setMobileOpen(false)}
-        className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors md:hidden"
+        className="absolute top-3 right-3 p-1.5 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors md:hidden"
         aria-label="Close menu"
       >
         <X className="w-5 h-5" />
       </button>
       
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 p-2.5 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {menuItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
@@ -246,19 +245,19 @@ export default function Sidebar() {
                 "flex items-center rounded-lg transition-all duration-300 group relative",
                 showExpanded ? "gap-3 px-3 py-2.5" : "gap-0 px-0 py-2.5 justify-center",
                 isActive 
-                  ? 'bg-amber-500/10 text-amber-300' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5',
+                  ? 'bg-[#d4a02b]/10 text-[#d4a02b]' 
+                  : 'text-white/40 hover:text-white/80 hover:bg-white/[0.04]',
               )}
               title={!showExpanded ? item.name : undefined}
             >
               {/* Active indicator */}
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-400 rounded-r shadow-sm shadow-amber-400/30" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#d4a02b] rounded-r shadow-sm shadow-[#d4a02b]/25" />
               )}
               <div className="flex items-center justify-center flex-shrink-0 w-5 h-5">
                 <item.icon className={cn(
                   "w-5 h-5 transition-colors duration-200",
-                  isActive ? 'text-amber-400' : 'text-gray-500 group-hover:text-gray-300'
+                  isActive ? 'text-[#d4a02b]' : 'text-white/35 group-hover:text-white/60'
                 )} />
               </div>
               {/* Label slides in/out */}
@@ -268,7 +267,7 @@ export default function Sidebar() {
               )}>
                 <span className={cn(
                   "text-sm font-medium whitespace-nowrap",
-                  isActive ? 'text-white' : ''
+                  isActive ? 'text-white/90' : 'text-white/70'
                 )}>
                   {item.name}
                 </span>
@@ -279,11 +278,11 @@ export default function Sidebar() {
       </nav>
 
       {/* Collapse Button */}
-      <div className="p-3 border-t border-white/10">
+      <div className="p-2.5 border-t border-white/[0.06]">
         <button
           onClick={toggleCollapse}
           className={cn(
-            "w-full flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/5",
+            "w-full flex items-center justify-center rounded-lg text-white/35 hover:text-white/70 hover:bg-white/[0.04]",
             showExpanded ? "px-3 py-2" : "px-0 py-2"
           )}
           aria-label={showExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
@@ -324,7 +323,7 @@ export default function Sidebar() {
         {isCollapsed && !hoverExpanded && (
           <button
             onClick={toggleCollapse}
-            className="absolute top-20 right-0 translate-x-full z-30 w-6 h-12 bg-gray-900 border border-gray-700 border-l-0 rounded-r-md flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shadow-md"
+            className="absolute top-20 right-0 translate-x-full z-30 w-6 h-12 bg-[#0a0f1e] border border-white/[0.08] border-l-0 rounded-r-md flex items-center justify-center text-white/40 hover:text-white hover:bg-[#141b2e] transition-colors shadow-md"
             aria-label="Expand sidebar"
             title="Expand sidebar (Ctrl+B)"
           >

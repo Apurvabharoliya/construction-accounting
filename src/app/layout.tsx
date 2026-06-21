@@ -34,9 +34,9 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#1e293b" />
+        <meta name="theme-color" content="#0a0f1e" />
       </head>
-      <body className="min-h-screen flex bg-gray-50">
+      <body className="min-h-screen flex bg-[oklch(0.985_0.002_85)]">
         <Sidebar />
         <div className="flex-1 flex flex-col min-h-screen min-w-0">
           <TopBar />

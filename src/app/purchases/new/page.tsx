@@ -17,7 +17,6 @@ import { genId, calcEntryTotal } from '@/lib/transaction-utils'
 
 interface TransactionItem {
   id: string
-  date: string
   material_name: string
   village_name: string
   quantity: number
@@ -28,6 +27,7 @@ interface TransactionItem {
 
 interface TransactionEntry {
   id: string
+  date: string
   supplier_name: string
   supplier_invoice_number: string
   payment_mode: string
@@ -41,7 +41,6 @@ interface TransactionEntry {
 function emptyItem(): TransactionItem {
   return {
     id: genId(),
-    date: new Date().toISOString().split('T')[0],
     material_name: '',
     village_name: '',
     quantity: 0,
@@ -54,6 +53,7 @@ function emptyItem(): TransactionItem {
 function emptyEntry(): TransactionEntry {
   return {
     id: genId(),
+    date: new Date().toISOString().split('T')[0],
     supplier_name: '',
     supplier_invoice_number: '',
     payment_mode: '',
@@ -197,7 +197,6 @@ export default function NewTransactionPage() {
             const perItemVillage = getVal(row, villageCol) || ''
             items.push({
               id: genId(),
-              date: parseDate(getVal(row, dateCol)),
               material_name: material,
               village_name: perItemVillage,
               quantity: qty,
@@ -210,6 +209,7 @@ export default function NewTransactionPage() {
 
         return {
           id: genId(),
+          date: parseDate(getVal(row, dateCol)),
           supplier_name: getVal(row, supplierCol),
           supplier_invoice_number: getVal(row, invoiceCol),
           payment_mode: '',
@@ -290,9 +290,7 @@ export default function NewTransactionPage() {
         gst_amount: 0
       }))
 
-      const invoiceDate = validItems.length > 0
-        ? validItems.reduce((earliest, item) => item.date < earliest ? item.date : earliest, validItems[0].date)
-        : new Date().toISOString().split('T')[0]
+      const invoiceDate = entry.date || new Date().toISOString().split('T')[0]
 
       const totalAmount = entry.payment_status === 'paid'
         ? (entry.amount_paid || 0)
@@ -327,7 +325,7 @@ export default function NewTransactionPage() {
               contractor_name: entry.supplier_name,
               reference_purchase_id: purchaseData.id,
               notes: `Purchase ${purchaseData.purchase_number}`,
-              transaction_date: item.date
+              transaction_date: entry.date
             })
           } catch (err) {
             console.error(`Failed to update village stock for ${item.material_name}:`, err)
@@ -406,9 +404,7 @@ export default function NewTransactionPage() {
           gst_amount: 0
         }))
 
-        const invoiceDate = validItems.length > 0
-          ? validItems.reduce((earliest, item) => item.date < earliest ? item.date : earliest, validItems[0].date)
-          : new Date().toISOString().split('T')[0]
+        const invoiceDate = entry.date || new Date().toISOString().split('T')[0]
 
         const totalAmount = entry.payment_status === 'paid'
           ? (entry.amount_paid || 0)
@@ -443,7 +439,7 @@ export default function NewTransactionPage() {
                 contractor_name: entry.supplier_name,
                 reference_purchase_id: purchaseData.id,
                 notes: `Purchase ${purchaseData.purchase_number}`,
-                transaction_date: item.date
+                transaction_date: entry.date
               })
             } catch (err) {
               console.error(`Failed to update village stock:`, err)
@@ -479,7 +475,7 @@ export default function NewTransactionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-8 xl:px-12 py-6 space-y-5">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 xl:px-12 py-6 space-y-5">
         {/* Keyboard shortcut hint */}
         <div className="fixed bottom-4 right-4 z-50">
           <div className="bg-gray-900 text-white text-[11px] px-3 py-1.5 rounded-full shadow-lg font-medium opacity-60">
@@ -528,22 +524,22 @@ export default function NewTransactionPage() {
         {/* Spreadsheet Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1200px] text-sm">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[160px]">Supplier *</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[140px]">Supplier *</th>
                   <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-32">Date</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Village</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Inv No.</th>
-                  <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Type</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[130px]">Material</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Village</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Inv No.</th>
+                  <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Type</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[120px]">Material</th>
                   <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-16">Qty</th>
                   <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Unit</th>
                   <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Rate</th>
                   <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Amount ₹</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Pay Mode</th>
-                  <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Actions</th>
+                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Pay Mode</th>
+                  <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -567,10 +563,8 @@ export default function NewTransactionPage() {
                         </td>
                         <td className="px-2.5 py-2">
                           <DatePicker
-                            value={firstItem?.date || ''}
-                            onChange={(v) => {
-                              if (firstItem) updateItem(entry.id, firstItem.id, 'date', v)
-                            }}
+                            value={entry.date}
+                            onChange={(v) => updateEntry(entry.id, 'date', v)}
                           />
                         </td>
                         <td className="px-2.5 py-2">
@@ -611,7 +605,7 @@ export default function NewTransactionPage() {
                         </td>
                         <td className="px-2.5 py-2">
                           {isPayment ? (
-                            <span className="text-xs text-gray-300 italic px-3">—</span>
+                            <span className="inline-flex items-center justify-center min-h-[38px] w-full text-xs text-gray-300 italic px-3">—</span>
                           ) : (
                             <input
                               type="text"
@@ -626,7 +620,7 @@ export default function NewTransactionPage() {
                         </td>
                         <td className="px-2.5 py-2">
                           {isPayment ? (
-                            <span className="text-xs text-gray-300 px-3">—</span>
+                            <span className="inline-flex items-center justify-center min-h-[38px] w-full text-xs text-gray-300 italic px-3">—</span>
                           ) : (
                             <input
                               type="number"
@@ -642,7 +636,7 @@ export default function NewTransactionPage() {
                         </td>
                         <td className="px-2.5 py-2">
                           {isPayment ? (
-                            <span className="text-xs text-gray-300 px-3">—</span>
+                            <span className="inline-flex items-center justify-center min-h-[38px] w-full text-xs text-gray-300 italic px-3">—</span>
                           ) : (
                             <SearchableSelect
                               value={firstItem?.unit || 'Nos'}
@@ -657,7 +651,7 @@ export default function NewTransactionPage() {
                         </td>
                         <td className="px-2.5 py-2">
                           {isPayment ? (
-                            <span className="text-xs text-gray-300 px-3">—</span>
+                            <span className="inline-flex items-center justify-center min-h-[38px] w-full text-xs text-gray-300 italic px-3">—</span>
                           ) : (
                             <input
                               type="number"
@@ -777,12 +771,6 @@ export default function NewTransactionPage() {
                                           onChange={(e) => updateItem(entry.id, item.id, 'material_name', e.target.value)}
                                           className="flex-1 min-w-[100px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                           placeholder="Material name"
-                                        />
-                                        <input
-                                          type="date"
-                                          value={item.date}
-                                          onChange={(e) => updateItem(entry.id, item.id, 'date', e.target.value)}
-                                          className="w-36 px-2 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                         <input
                                           type="number"
