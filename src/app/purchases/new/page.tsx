@@ -479,7 +479,7 @@ export default function NewTransactionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 xl:px-12 py-6 space-y-5">
+      <div className="max-w-full 2xl:max-w-[1800px] mx-auto px-6 lg:px-10 xl:px-14 py-6 space-y-6">
         {/* Keyboard shortcut hint */}
         <div className="fixed bottom-4 right-4 z-50">
           <div className="bg-gray-900 text-white text-[11px] px-3 py-1.5 rounded-full shadow-lg font-medium opacity-60">
@@ -488,19 +488,19 @@ export default function NewTransactionPage() {
         </div>
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-sm">
-              <FileSpreadsheet className="w-5 h-5 text-white" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-sm shrink-0">
+              <FileSpreadsheet className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">New Purchases</h1>
-              <p className="text-gray-500 text-sm mt-0.5">
-                Each row = one supplier entry. Use columns to enter data like a spreadsheet.
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">New Purchases</h1>
+              <p className="text-gray-500 text-sm mt-1">
+                Each row = one supplier entry. Fill in the columns like a spreadsheet.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <input
               ref={fileInputRef}
               type="file"
@@ -511,14 +511,14 @@ export default function NewTransactionPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium shadow-sm"
+              className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium shadow-sm"
             >
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Upload Excel
             </button>
             <button
               onClick={addRow}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all text-sm font-medium shadow-sm shadow-blue-200"
+              className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all text-sm font-medium shadow-sm shadow-blue-200"
             >
               <Plus className="w-4 h-4" /> Add Row
             </button>
@@ -531,18 +531,18 @@ export default function NewTransactionPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[140px]">Supplier *</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-32">Date</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Village</th>
-                  <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Type</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[120px]">Material</th>
-                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-16">Qty</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Unit</th>
-                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-20">Rate</th>
-                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Amount ₹</th>
-                  <th className="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Pay Mode</th>
-                  <th className="px-3 py-3 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-24">Actions</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px]">Supplier *</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">Date</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Village</th>
+                  <th className="px-4 py-3.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Type</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[200px]">Material</th>
+                  <th className="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Qty</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Unit</th>
+                  <th className="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Rate</th>
+                  <th className="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Amount ₹</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Pay Mode</th>
+                  <th className="px-4 py-3.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -557,26 +557,26 @@ export default function NewTransactionPage() {
                       {/* Main Row */}
                       <tr className={`group transition-colors ${isPayment ? 'bg-emerald-50/30 hover:bg-emerald-50/60' : 'hover:bg-orange-50/20'}`}>
                         <td className="px-3 py-2.5 text-xs text-gray-400 font-mono">{idx + 1}</td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           <SupplierDropdown
                             value={entry.supplier_name}
                             onChange={(v) => updateEntry(entry.id, 'supplier_name', v)}
                             placeholder="Select supplier"
                           />
                         </td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           <DatePicker
                             value={entry.date}
                             onChange={(v) => updateEntry(entry.id, 'date', v)}
                           />
                         </td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           <select
                             value={firstItem?.village_name || ''}
                             onChange={(e) => {
                               if (firstItem) updateItem(entry.id, firstItem.id, 'village_name', e.target.value)
                             }}
-                            className="w-full px-2 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all"
+                            className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all"
                           >
                             <option value="">Village...</option>
                             {VILLAGES.map(v => (
@@ -584,11 +584,11 @@ export default function NewTransactionPage() {
                             ))}
                           </select>
                         </td>
-                        <td className="px-2.5 py-2 text-center">
+                        <td className="px-3 py-3 text-center">
                           <button
                             type="button"
                             onClick={() => updateEntry(entry.id, 'payment_status', isPayment ? 'unpaid' : 'paid')}
-                            className={`relative inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                            className={`relative inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
                               isPayment
                                 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 shadow-sm shadow-emerald-100'
                                 : 'bg-orange-100 text-orange-700 hover:bg-orange-200 shadow-sm shadow-orange-100'
@@ -597,9 +597,9 @@ export default function NewTransactionPage() {
                             {isPayment ? '💰 Payment' : '📦 Purchase'}
                           </button>
                         </td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           {isPayment ? (
-                            <span className="inline-flex items-center justify-center min-h-[38px] w-full text-xs text-gray-300 italic px-3">—</span>
+                            <span className="inline-flex items-center justify-center min-h-[44px] w-full text-sm text-gray-300 italic px-4">—</span>
                           ) : (
                             <input
                               type="text"
@@ -607,14 +607,14 @@ export default function NewTransactionPage() {
                               onChange={(e) => {
                                 if (firstItem) updateItem(entry.id, firstItem.id, 'material_name', e.target.value)
                               }}
-                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
-                              placeholder="e.g. Cement"
+                              className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              placeholder="e.g. Cement, Sand"
                             />
                           )}
                         </td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           {isPayment ? (
-                            <span className="inline-flex items-center justify-center min-h-[38px] w-full text-xs text-gray-300 italic px-3">—</span>
+                            <span className="inline-flex items-center justify-center min-h-[44px] w-full text-sm text-gray-300 italic px-4">—</span>
                           ) : (
                             <input
                               type="number"
@@ -623,14 +623,14 @@ export default function NewTransactionPage() {
                               onChange={(e) => {
                                 if (firstItem) updateItem(entry.id, firstItem.id, 'quantity', Number(e.target.value))
                               }}
-                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
                               placeholder="0"
                             />
                           )}
                         </td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           {isPayment ? (
-                            <span className="inline-flex items-center justify-center min-h-[38px] w-full text-xs text-gray-300 italic px-3">—</span>
+                            <span className="inline-flex items-center justify-center min-h-[44px] w-full text-sm text-gray-300 italic px-4">—</span>
                           ) : (
                             <SearchableSelect
                               value={firstItem?.unit || 'Nos'}
@@ -643,9 +643,9 @@ export default function NewTransactionPage() {
                             />
                           )}
                         </td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           {isPayment ? (
-                            <span className="inline-flex items-center justify-center min-h-[38px] w-full text-xs text-gray-300 italic px-3">—</span>
+                            <span className="inline-flex items-center justify-center min-h-[44px] w-full text-sm text-gray-300 italic px-4">—</span>
                           ) : (
                             <input
                               type="number"
@@ -654,19 +654,19 @@ export default function NewTransactionPage() {
                               onChange={(e) => {
                                 if (firstItem) updateItem(entry.id, firstItem.id, 'rate', Number(e.target.value))
                               }}
-                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
                               placeholder="0"
                             />
                           )}
                         </td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           {isPayment ? (
                             <input
                               type="number"
                               step="0.01"
                               value={entry.amount_paid || ''}
                               onChange={(e) => updateEntry(entry.id, 'amount_paid', Number(e.target.value))}
-                              className="w-full px-3 py-2.5 border border-emerald-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-emerald-50/50 transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border border-emerald-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-emerald-50/50 transition-all placeholder:text-gray-300"
                               placeholder="Amount"
                             />
                           ) : (
@@ -677,12 +677,12 @@ export default function NewTransactionPage() {
                               onChange={(e) => {
                                 if (firstItem) updateItem(entry.id, firstItem.id, 'amount', Number(e.target.value))
                               }}
-                              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all placeholder:text-gray-300"
                               placeholder="0"
                             />
                           )}
                         </td>
-                        <td className="px-2.5 py-2">
+                        <td className="px-3 py-3">
                           <SearchableSelect
                             value={entry.payment_mode}
                             onChange={(v) => updateEntry(entry.id, 'payment_mode', v)}
@@ -691,33 +691,33 @@ export default function NewTransactionPage() {
                             searchable={false}
                           />
                         </td>
-                        <td className="px-2.5 py-2">
-                          <div className="flex items-center justify-center gap-0.5">
+                        <td className="px-3 py-3">
+                          <div className="flex items-center justify-center gap-1.5">
                             {/* Save Button */}
                             <button
                               onClick={() => handleSaveRow(entry)}
                               disabled={isLoading}
-                              className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all disabled:opacity-50"
+                              className="p-2.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-xl transition-all disabled:opacity-50"
                               title="Save this row"
                             >
-                              <Save className="w-4 h-4" />
+                              <Save className="w-5 h-5" />
                             </button>
                             {/* Eye / Expand Button */}
                             <button
                               onClick={() => toggleExpand(entry.id)}
-                              className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all"
+                              className="p-2.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-all"
                               title={isExpanded ? 'Collapse details' : 'View / Edit details'}
                             >
-                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
                             {/* Bin / Delete Button */}
                             {entries.length > 1 && (
                               <button
                                 onClick={() => deleteRow(entry.id)}
-                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                                 title="Delete row"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-5 h-5" />
                               </button>
                             )}
                           </div>
@@ -727,32 +727,32 @@ export default function NewTransactionPage() {
                       {/* Expanded Detail Row */}
                       {isExpanded && (
                         <tr className="bg-gray-50/80">
-                          <td colSpan={12} className="px-8 py-5">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                              <div className="md:col-span-2 space-y-3">
+                          <td colSpan={12} className="px-10 py-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div className="md:col-span-2 space-y-4">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                  <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
                                     Items ({entry.items.length})
                                   </h4>
                                   {!isPayment && (
                                     <button
                                       onClick={() => addItem(entry.id)}
-                                      className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                                      className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-semibold bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors"
                                     >
-                                      <Plus className="w-3 h-3" /> Add Item
+                                      <Plus className="w-4 h-4" /> Add Item
                                     </button>
                                   )}
                                 </div>
                                 {!isPayment ? (
-                                  <div className="space-y-2">
+                                  <div className="space-y-3">
                                     {entry.items.map((item, ii) => (
-                                      <div key={item.id} className="flex items-center gap-2 bg-white rounded-xl p-3 border border-gray-200 shadow-sm">
-                                        <span className="text-xs text-gray-400 font-mono w-5 shrink-0">{ii + 1}</span>
+                                      <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                                        <span className="text-sm text-gray-400 font-mono w-6 shrink-0">{ii + 1}</span>
                                         {/* Village per item */}
                                         <select
                                           value={item.village_name}
                                           onChange={(e) => updateItem(entry.id, item.id, 'village_name', e.target.value)}
-                                          className="w-28 px-2 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-32 px-3 py-3 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         >
                                           <option value="">Village...</option>
                                           {VILLAGES.map(v => (
@@ -763,7 +763,7 @@ export default function NewTransactionPage() {
                                           type="text"
                                           value={item.material_name}
                                           onChange={(e) => updateItem(entry.id, item.id, 'material_name', e.target.value)}
-                                          className="flex-1 min-w-[100px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="flex-1 min-w-[120px] px-4 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                           placeholder="Material name"
                                         />
                                         <input
@@ -771,7 +771,7 @@ export default function NewTransactionPage() {
                                           step="0.001"
                                           value={item.quantity || ''}
                                           onChange={(e) => updateItem(entry.id, item.id, 'quantity', Number(e.target.value))}
-                                          className="w-16 px-2 py-2 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-20 px-3 py-3 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                           placeholder="Qty"
                                         />
                                         <SearchableSelect
@@ -786,7 +786,7 @@ export default function NewTransactionPage() {
                                           step="0.01"
                                           value={item.rate || ''}
                                           onChange={(e) => updateItem(entry.id, item.id, 'rate', Number(e.target.value))}
-                                          className="w-20 px-2 py-2 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-24 px-3 py-3 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                           placeholder="Rate"
                                         />
                                         <input
@@ -794,47 +794,47 @@ export default function NewTransactionPage() {
                                           step="0.01"
                                           value={item.amount || ''}
                                           onChange={(e) => updateItem(entry.id, item.id, 'amount', Number(e.target.value))}
-                                          className="w-20 px-2 py-2 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-24 px-3 py-3 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                           placeholder="Amt"
                                         />
                                         {entry.items.length > 1 && (
                                           <button
                                             onClick={() => removeItem(entry.id, item.id)}
-                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                           >
-                                            <X className="w-3.5 h-3.5" />
+                                            <X className="w-4 h-4" />
                                           </button>
                                         )}
                                       </div>
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
-                                    <p className="text-sm text-emerald-700">
+                                  <div className="bg-emerald-50 rounded-xl p-5 border border-emerald-200">
+                                    <p className="text-base text-emerald-700">
                                       <span className="font-bold">Payment entry</span> — No items needed.
                                     </p>
-                                    <p className="text-sm text-emerald-600 mt-1">
-                                      Amount: <span className="font-bold text-lg">{formatCurrency(entry.amount_paid || 0)}</span>
+                                    <p className="text-base text-emerald-600 mt-2">
+                                      Amount: <span className="font-bold text-xl">{formatCurrency(entry.amount_paid || 0)}</span>
                                     </p>
                                   </div>
                                 )}
                               </div>
-                              <div className="space-y-3">
+                              <div className="space-y-4">
                                 <div>
-                                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                  <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">
                                     Remarks
                                   </label>
                                   <textarea
                                     value={entry.remarks}
                                     onChange={(e) => updateEntry(entry.id, 'remarks', e.target.value)}
-                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                                    rows={3}
+                                    className="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                    rows={4}
                                     placeholder="Notes about this transaction..."
                                   />
                                 </div>
                                 <div className="text-right">
-                                  <span className="text-xs text-gray-400">Row Total: </span>
-                                  <span className="text-sm font-bold text-gray-800">{formatCurrency(total)}</span>
+                                  <span className="text-sm text-gray-400">Row Total: </span>
+                                  <span className="text-base font-bold text-gray-800">{formatCurrency(total)}</span>
                                 </div>
                               </div>
                             </div>
@@ -850,25 +850,25 @@ export default function NewTransactionPage() {
         </div>
 
         {/* Grand Total Bar */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4 text-sm text-gray-600">
-              <span className="inline-flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full font-medium">
+              <span className="inline-flex items-center gap-1.5 bg-gray-100 px-4 py-2 rounded-full font-medium">
                 <span className="font-bold text-gray-900">{entries.length}</span> Row{entries.length !== 1 ? 's' : ''}
               </span>
               {purchaseCount > 0 && (
-                <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-full font-medium">
+                <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 px-4 py-2 rounded-full font-medium">
                   📦 {purchaseCount} Purchase{purchaseCount !== 1 ? 's' : ''}
                 </span>
               )}
               {paymentCount > 0 && (
-                <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium">
+                <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-medium">
                   💰 {paymentCount} Payment{paymentCount !== 1 ? 's' : ''}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-xl font-bold text-gray-900">
-              <span className="text-sm font-medium text-gray-500">Grand Total:</span>
+            <div className="flex items-center gap-3 text-2xl font-bold text-gray-900">
+              <span className="text-base font-medium text-gray-500">Grand Total:</span>
               <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
             </div>
           </div>
@@ -878,26 +878,26 @@ export default function NewTransactionPage() {
         <div className="flex items-center justify-between">
           <button
             onClick={addRow}
-            className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
+            className="flex items-center gap-2 px-5 py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
           >
-            <Plus className="w-4 h-4" /> Add Another Row
+            <Plus className="w-5 h-5" /> Add Another Row
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => window.history.back()}
-              className="px-6 py-2.5 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-all text-sm font-medium bg-white"
+              className="px-8 py-3 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-all text-sm font-medium bg-white"
             >
               Cancel
             </button>
             <button
               onClick={handleSaveAll}
               disabled={isLoading || entries.length === 0}
-              className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 text-sm font-semibold shadow-sm shadow-blue-200 flex items-center gap-2"
+              className="px-10 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 text-base font-semibold shadow-md shadow-blue-200 flex items-center gap-2"
             >
               {isLoading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> Saving...</>
               ) : (
-                <><Save className="w-4 h-4" /> Save All ({entries.length})</>
+                <><Save className="w-5 h-5" /> Save All ({entries.length})</>
               )}
             </button>
           </div>
