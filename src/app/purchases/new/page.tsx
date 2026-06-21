@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { createPurchase } from '@/lib/api/purchases'
 import { addMaterialReceipt } from '@/lib/api/villages'
 import { toast } from 'sonner'
-import { Plus, Trash2, Upload, Loader2, Copy, FileSpreadsheet, Save, X, ChevronUp, Eye } from 'lucide-react'
+import { Plus, Trash2, Upload, Loader2, Copy, FileSpreadsheet, Save, X, ChevronUp, Eye, Maximize2 } from 'lucide-react'
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import DatePicker from '@/components/ui/DatePicker'
 import SupplierDropdown from '@/components/ui/SupplierDropdown'
@@ -68,7 +68,11 @@ export default function NewTransactionPage() {
   const [entries, setEntries] = useState<TransactionEntry[]>([emptyEntry()])
   const [isLoading, setIsLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [formSize, setFormSize] = useState<'normal' | 'large' | 'xl'>('large')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Responsive container widths based on form size selection
+  const sizeClass = formSize === 'normal' ? 'max-w-full 2xl:max-w-[1200px]' : formSize === 'large' ? 'max-w-full 2xl:max-w-[1800px]' : 'max-w-full 2xl:max-w-[2200px]'
 
   // Keyboard shortcut: Ctrl+Enter to save all
   useEffect(() => {
@@ -479,7 +483,7 @@ export default function NewTransactionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-full 2xl:max-w-[1800px] mx-auto px-6 lg:px-10 xl:px-14 py-6 space-y-6">
+      <div className={`${sizeClass} mx-auto px-6 lg:px-10 xl:px-14 py-6 space-y-6 transition-all duration-300`}>
         {/* Keyboard shortcut hint */}
         <div className="fixed bottom-4 right-4 z-50">
           <div className="bg-gray-900 text-white text-[11px] px-3 py-1.5 rounded-full shadow-lg font-medium opacity-60">
@@ -500,7 +504,20 @@ export default function NewTransactionPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Form Size Selector */}
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+              <Maximize2 className="w-4 h-4 text-gray-400" />
+              <select
+                value={formSize}
+                onChange={(e) => setFormSize(e.target.value as 'normal' | 'large' | 'xl')}
+                className="bg-transparent text-xs font-medium text-gray-600 focus:outline-none cursor-pointer"
+              >
+                <option value="normal">Normal</option>
+                <option value="large">Wide</option>
+                <option value="xl">Extra Wide</option>
+              </select>
+            </div>
             <input
               ref={fileInputRef}
               type="file"

@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { updatePurchase } from '@/lib/api/purchases'
 import { addMaterialReceipt } from '@/lib/api/villages'
 import { toast } from 'sonner'
-import { Plus, Trash2, Eye, Loader2, ChevronUp, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, Eye, Loader2, ChevronUp, ArrowLeft, Maximize2 } from 'lucide-react'
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import type { Purchase } from '@/types/database'
 import DatePicker from '@/components/ui/DatePicker'
@@ -60,6 +60,9 @@ export default function EditPurchasePage() {
   const [saving, setSaving] = useState(false)
   const [entries, setEntries] = useState<TransactionEntry[]>([])
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null)
+  const [formSize, setFormSize] = useState<'normal' | 'large' | 'xl'>('large')
+
+  const sizeClass = formSize === 'normal' ? 'max-w-full 2xl:max-w-[1200px]' : formSize === 'large' ? 'max-w-full 2xl:max-w-[1800px]' : 'max-w-full 2xl:max-w-[2200px]'
 
   useEffect(() => {
     loadPurchase()
@@ -256,7 +259,7 @@ export default function EditPurchasePage() {
   }
 
   return (
-    <div className="max-w-full 2xl:max-w-[1800px] mx-auto px-6 lg:px-10 xl:px-14 py-6 space-y-6">
+    <div className={`${sizeClass} mx-auto px-6 lg:px-10 xl:px-14 py-6 space-y-6 transition-all duration-300`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
         <div className="flex items-center gap-4">
@@ -268,14 +271,29 @@ export default function EditPurchasePage() {
             <p className="text-sm text-gray-500 mt-1">Update transaction details below</p>
           </div>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2 shadow-sm"
-        >
-          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-          {saving ? 'Saving...' : 'Save Changes'}
-        </button>
+        <div className="flex items-center gap-2.5">
+          {/* Form Size Selector */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+            <Maximize2 className="w-4 h-4 text-gray-400" />
+            <select
+              value={formSize}
+              onChange={(e) => setFormSize(e.target.value as 'normal' | 'large' | 'xl')}
+              className="bg-transparent text-xs font-medium text-gray-600 focus:outline-none cursor-pointer"
+            >
+              <option value="normal">Normal</option>
+              <option value="large">Wide</option>
+              <option value="xl">Extra Wide</option>
+            </select>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2 shadow-sm"
+          >
+            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
       </div>
 
       {/* Spreadsheet Table */}
