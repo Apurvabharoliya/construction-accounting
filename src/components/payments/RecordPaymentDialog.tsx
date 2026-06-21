@@ -180,7 +180,7 @@ export default function RecordPaymentDialog({
                         <CheckCircle2 className="w-3 h-3" /> Fully Paid
                       </span>
                     ) : (
-                      <span className="text-base font-bold text-orange-600">
+                      <span className="text-base font-bold text-red-600">
                         {formatCurrency(paymentResult.newBalanceDue)}
                       </span>
                     )}
@@ -248,7 +248,7 @@ export default function RecordPaymentDialog({
             <div className="flex items-center justify-between text-xs text-gray-500 pt-1 border-t border-gray-200">
               <span>Total: <span className="font-semibold text-gray-700">{formatCurrency(invoice.total_amount)}</span></span>
               <span>Paid: <span className="font-semibold text-green-600">{formatCurrency(invoice.amount_paid)}</span></span>
-              <span>Pending: <span className="font-semibold text-orange-600">{formatCurrency(invoice.balance_due)}</span></span>
+              <span>Pending: <span className="font-semibold text-red-600">{formatCurrency(invoice.balance_due)}</span></span>
             </div>
           </div>
 

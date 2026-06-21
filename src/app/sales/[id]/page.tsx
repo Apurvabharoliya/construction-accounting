@@ -239,7 +239,7 @@ export default function SaleDetailPage() {
                   {Number(sale.balance_due) > 0 && (
                     <div className="flex justify-between text-xs md:text-sm">
                       <span className="text-gray-600 font-medium">Balance Due</span>
-                      <span className="font-bold text-orange-600">{formatCurrency(Number(sale.balance_due))}</span>
+                      <span className="font-bold text-red-600">{formatCurrency(Number(sale.balance_due))}</span>
                     </div>
                   )}
                 </div>
@@ -284,7 +284,7 @@ export default function SaleDetailPage() {
               </h3>
               <div className="overflow-x-auto -mx-3 md:-mx-0">
                 <div className="inline-block min-w-full px-3 md:px-0">
-                  <table className="w-full">
+                  <table className="w-full responsive-table-card">
                     <thead>
                       <tr className="text-left border-b">
                         <th className="pb-2 pr-3 text-xs font-medium text-gray-500 whitespace-nowrap">Date</th>
@@ -296,9 +296,9 @@ export default function SaleDetailPage() {
                     <tbody>
                       {transactions.map((txn: any) => (
                         <tr key={txn.id} className="border-t hover:bg-gray-50/50">
-                          <td className="py-2 pr-3 text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
-                          <td className="py-2 pr-3 text-sm text-gray-800">{txn.description || '-'}</td>
-                          <td className="py-2 pr-3">
+                          <td className="py-2 pr-3 text-sm text-gray-600" data-label="Date">{formatDate(txn.transaction_date)}</td>
+                          <td className="py-2 pr-3 text-sm text-gray-800" data-label="Description">{txn.description || '-'}</td>
+                          <td className="py-2 pr-3" data-label="Type">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
                               txn.transaction_type === 'sale' ? 'bg-blue-50 text-blue-700' :
                               txn.transaction_type === 'receipt' ? 'bg-teal-50 text-teal-700' :
@@ -309,7 +309,7 @@ export default function SaleDetailPage() {
                               {txn.transaction_type === 'sale' ? 'Sale' : 'Payment'}
                             </span>
                           </td>
-                          <td className="py-2 text-sm font-medium text-right">
+                          <td className="py-2 text-sm font-medium text-right" data-label="Amount">
                             {txn.debit > 0 ? (
                               <span className="text-blue-600">{formatCurrency(txn.debit)}</span>
                             ) : (

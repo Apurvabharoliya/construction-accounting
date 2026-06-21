@@ -146,8 +146,8 @@
   }
 }
 
-/* Mobile responsive table: convert to cards on small screens */
-@media (max-width: 640px) {
+/* Mobile-first responsive table: convert to cards on small screens */
+@media (max-width: 767px) {
   .responsive-table-card {
     display: block !important;
   }
@@ -159,18 +159,77 @@
     display: block;
   }
   .responsive-table-card tr {
-    @apply border rounded-lg p-3 mb-3 bg-white shadow-sm;
+    @apply border rounded-xl p-4 mb-3 bg-white shadow-sm;
   }
   .responsive-table-card td {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0 !important;
+    padding: 8px 0 !important;
     border: none !important;
     @apply text-sm;
   }
   .responsive-table-card td::before {
     content: attr(data-label);
-    @apply text-xs text-gray-500 font-medium mr-2 flex-shrink-0;
+    @apply text-xs text-gray-500 font-medium mr-3 flex-shrink-0;
+    max-width: 40%;
+  }
+}
+
+/* Tablet-specific responsive table: slightly more compact than desktop */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-table-card td.data-label-md {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 !important;
+    border: none !important;
+  }
+  .responsive-table-card td.data-label-md::before {
+    content: attr(data-label);
+    @apply text-xs text-gray-500 font-medium mr-3 flex-shrink-0;
+  }
+}
+
+/* Better touch targets on mobile */
+@media (max-width: 767px) {
+  .resp-btn-touch {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Stack horizontal filter groups on small screens */
+@media (max-width: 767px) {
+  .resp-stack-mobile {
+    flex-direction: column !important;
+  }
+  .resp-stack-mobile > * {
+    width: 100% !important;
+  }
+}
+
+/* Fix tables that use -mx-* overflow patterns for mobile */
+@media (max-width: 767px) {
+  .resp-table-overflow {
+    margin-left: -1rem !important;
+    margin-right: -1rem !important;
+  }
+}
+
+/* Hide column on mobile */
+@media (max-width: 767px) {
+  .resp-hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Show column only on mobile */
+@media (max-width: 767px) {
+  .resp-show-mobile {
+    display: block !important;
   }
 }

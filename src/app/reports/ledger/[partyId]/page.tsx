@@ -203,9 +203,9 @@ export default function LedgerReportPage() {
             {transactions.filter(t => t.transaction_type === 'payment' || t.transaction_type === 'receipt').length} payments
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-orange-500">
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-red-500">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Pending Balance</p>
-          <p className={`text-xl font-bold mt-1 ${Math.abs(currentBalance) > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+          <p className={`text-xl font-bold mt-1 ${Math.abs(currentBalance) > 0 ? 'text-red-600' : 'text-gray-900'}`}>
             {formatCurrency(Math.abs(currentBalance))}
           </p>
           <p className="text-xs text-gray-400 mt-1">
@@ -265,7 +265,7 @@ export default function LedgerReportPage() {
                     <span className="text-sm text-gray-600">Total: <span className="font-semibold">{formatCurrency(inv.total_amount)}</span></span>
                     <span className="text-sm text-green-600">Paid: <span className="font-semibold">{formatCurrency(inv.amount_paid)}</span></span>
                     {inv.balance_due > 0 && (
-                      <span className="text-sm text-orange-600">Pending: <span className="font-semibold">{formatCurrency(inv.balance_due)}</span></span>
+                      <span className="text-sm text-red-600">Pending: <span className="font-semibold">{formatCurrency(inv.balance_due)}</span></span>
                     )}
                   </div>
                   <PaymentProgress paid={inv.amount_paid} total={inv.total_amount} />
@@ -283,7 +283,7 @@ export default function LedgerReportPage() {
                 {/* Expanded Transactions */}
                 {isExpanded && (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full responsive-table-card">
                       <thead>
                         <tr className="text-left bg-gray-50/80">
                           <th className="p-3 pl-5 text-xs font-medium text-gray-500">Date</th>
@@ -297,12 +297,12 @@ export default function LedgerReportPage() {
                       <tbody>
                         {group.transactions.map((txn: any, i: number) => (
                           <tr key={txn.id} className={`${i < group.transactions.length - 1 ? 'border-b border-gray-50' : ''}`}>
-                            <td className="p-3 pl-5 text-sm text-gray-600">
+                            <td className="p-3 pl-5 text-sm text-gray-600" data-label="Date">
                             {formatDate(txn.transaction_date)}
                             <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
                           </td>
-                            <td className="p-3 text-sm text-gray-800">{txn.description || '-'}</td>
-                            <td className="p-3">
+                            <td className="p-3 text-sm text-gray-800" data-label="Description">{txn.description || '-'}</td>
+                            <td className="p-3" data-label="Type">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
                                 txn.transaction_type === 'purchase' ? 'bg-orange-50 text-orange-700' :
                                 txn.transaction_type === 'payment' ? 'bg-green-50 text-green-700' :
@@ -317,25 +317,25 @@ export default function LedgerReportPage() {
                                 {txn.transaction_type}
                               </span>
                             </td>
-                            <td className="p-3 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
-                            <td className="p-3 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                            <td className="p-3 pr-5 text-sm font-medium text-right"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
+                            <td className="p-3 text-sm font-medium text-red-600 text-right" data-label="Debit">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                            <td className="p-3 text-sm font-medium text-green-600 text-right" data-label="Credit">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                            <td className="p-3 pr-5 text-sm font-medium text-right" data-label="Balance"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
                           </tr>
                         ))}
                         {/* Summary row for this invoice */}
                         <tr className="bg-gray-50/50 border-t-2 border-gray-100">
-                          <td colSpan={3} className="p-3 pl-5 text-sm font-semibold text-gray-700">Invoice Summary</td>
-                          <td className="p-3 text-sm font-bold text-red-600 text-right">
+                          <td colSpan={3} className="p-3 pl-5 text-sm font-semibold text-gray-700" data-label="">Invoice Summary</td>
+                          <td className="p-3 text-sm font-bold text-red-600 text-right" data-label="Total Debit">
                             {group.transactions.some(t => t.transaction_type === (isSupplier ? 'purchase' : 'sale')) 
                               ? formatCurrency(inv.total_amount) : '-'}
                           </td>
-                          <td className="p-3 text-sm font-bold text-green-600 text-right">
+                          <td className="p-3 text-sm font-bold text-green-600 text-right" data-label="Total Credit">
                             {group.transactions.some(t => t.transaction_type === (isSupplier ? 'payment' : 'receipt'))
                               ? formatCurrency(inv.amount_paid) : '-'}
                           </td>
-                          <td className="p-3 pr-5 text-sm font-bold text-right">
+                          <td className="p-3 pr-5 text-sm font-bold text-right" data-label="">
                             {inv.balance_due > 0 ? (
-                              <span className="text-orange-600">{formatCurrency(inv.balance_due)}</span>
+                              <span className="text-red-600">{formatCurrency(inv.balance_due)}</span>
                             ) : (
                               <span className="text-green-600">Settled</span>
                             )}
@@ -360,7 +360,7 @@ export default function LedgerReportPage() {
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full responsive-table-card">
                   <thead>
                     <tr className="text-left bg-gray-50/50">
                       <th className="p-3 pl-5 text-xs font-medium text-gray-500">Date</th>
@@ -374,19 +374,19 @@ export default function LedgerReportPage() {
                   <tbody>
                     {groupedTransactions['unlinked'].transactions.map((txn: any, i: number) => (
                       <tr key={txn.id} className={i < groupedTransactions['unlinked'].transactions.length - 1 ? 'border-b border-gray-50' : ''}>
-                        <td className="p-3 pl-5 text-sm text-gray-600">
+                        <td className="p-3 pl-5 text-sm text-gray-600" data-label="Date">
                           {formatDate(txn.transaction_date)}
                           <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
                         </td>
-                        <td className="p-3 text-sm text-gray-800">{txn.description || '-'}</td>
-                        <td className="p-3">
+                        <td className="p-3 text-sm text-gray-800" data-label="Description">{txn.description || '-'}</td>
+                        <td className="p-3" data-label="Type">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 capitalize">
                             {txn.transaction_type}
                           </span>
                         </td>
-                        <td className="p-3 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
-                        <td className="p-3 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                        <td className="p-3 pr-5 text-sm font-medium text-right"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
+                        <td className="p-3 text-sm font-medium text-red-600 text-right" data-label="Debit">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                        <td className="p-3 text-sm font-medium text-green-600 text-right" data-label="Credit">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                        <td className="p-3 pr-5 text-sm font-medium text-right" data-label="Balance"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -402,7 +402,7 @@ export default function LedgerReportPage() {
               Complete Transaction Log ({transactions.length} entries)
             </summary>
             <div className="overflow-x-auto border-t border-gray-100">
-              <table className="w-full">
+              <table className="w-full responsive-table-card">
                 <thead>
                   <tr className="text-left bg-gray-50/80">
                     <th className="p-3 pl-5 text-xs font-medium text-gray-500">Date</th>
@@ -416,12 +416,12 @@ export default function LedgerReportPage() {
                 <tbody>
                   {transactions.map((txn: any, i: number) => (
                     <tr key={txn.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} hover:bg-gray-100/50 transition-colors`}>
-                      <td className="p-3 pl-5 text-sm">
+                      <td className="p-3 pl-5 text-sm" data-label="Date">
                         {formatDate(txn.transaction_date)}
                         <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
                       </td>
-                      <td className="p-3 text-sm text-gray-800">{txn.description || '-'}</td>
-                      <td className="p-3">
+                      <td className="p-3 text-sm text-gray-800" data-label="Description">{txn.description || '-'}</td>
+                      <td className="p-3" data-label="Type">
                         <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${
                           txn.transaction_type === 'purchase' ? 'bg-orange-50 text-orange-700' :
                           txn.transaction_type === 'payment' ? 'bg-green-50 text-green-700' :
@@ -432,9 +432,9 @@ export default function LedgerReportPage() {
                           {txn.transaction_type}
                         </span>
                       </td>
-                      <td className="p-3 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
-                      <td className="p-3 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                      <td className="p-3 pr-5 text-sm font-medium text-right"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
+                      <td className="p-3 text-sm font-medium text-red-600 text-right" data-label="Debit">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                      <td className="p-3 text-sm font-medium text-green-600 text-right" data-label="Credit">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                      <td className="p-3 pr-5 text-sm font-medium text-right" data-label="Balance"><span className={txn.running_balance > 0 ? 'text-red-600' : txn.running_balance < 0 ? 'text-green-600' : 'text-gray-400'}>{txn.running_balance === 0 ? '—' : <>{formatCurrency(Math.abs(txn.running_balance))}<span className="text-xs ml-0.5 font-normal">{txn.running_balance > 0 ? 'Dr' : 'Cr'}</span></>}</span></td>
                     </tr>
                   ))}
                 </tbody>

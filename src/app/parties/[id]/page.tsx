@@ -344,7 +344,7 @@ export default function PartyDetailPage() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full responsive-table-card">
               <thead>
                 <tr className="bg-gray-50">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
@@ -375,10 +375,10 @@ export default function PartyDetailPage() {
                             : 'hover:bg-gray-50/50'
                       }`}
                     >
-                      <td className="px-4 py-3 text-xs text-gray-400 font-mono">{idx + 1}</td>
+                      <td className="px-4 py-3 text-xs text-gray-400 font-mono" data-label="#">{idx + 1}</td>
                       
                       {/* Description */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" data-label="Description">
                         {isInvoiceRow && row.invoice ? (
                           <Link href={row.link || '#'} className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700">
                             <FileText className="w-3.5 h-3.5 shrink-0" />
@@ -395,13 +395,13 @@ export default function PartyDetailPage() {
                       </td>
                       
                       {/* Date */}
-                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap" data-label="Date">
                         {formatDate(row.date)}
                         <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(row.createdAt || row.date)}</div>
                       </td>
                       
                       {/* Type */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" data-label="Type">
                         {isInvoiceRow && row.invoice ? (
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
                             row.invoice.type === 'purchase'
@@ -424,7 +424,7 @@ export default function PartyDetailPage() {
                       </td>
                       
                       {/* Debit */}
-                      <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap" data-label="Debit">
                         {row.debit > 0 ? (
                           <span className="text-red-600 font-semibold">{formatCurrency(row.debit)}</span>
                         ) : (
@@ -433,7 +433,7 @@ export default function PartyDetailPage() {
                       </td>
                       
                       {/* Credit */}
-                      <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap" data-label="Credit">
                         {row.credit > 0 ? (
                           <span className="text-green-600 font-semibold">{formatCurrency(row.credit)}</span>
                         ) : (
@@ -442,14 +442,14 @@ export default function PartyDetailPage() {
                       </td>
                       
                       {/* Running Balance */}
-                      <td className="px-4 py-3 text-sm font-semibold text-right whitespace-nowrap border-l-2 border-gray-200">
+                      <td className="px-4 py-3 text-sm font-semibold text-right whitespace-nowrap border-l-2 border-gray-200" data-label="Running Balance">
                         <span className={rowRunningBal > 0 ? 'text-red-600' : rowRunningBal < 0 ? 'text-green-600' : 'text-gray-400'}>
                           {formatCurrency(rowRunningBal)}
                         </span>
                       </td>
                       
                       {/* Actions */}
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center" data-label="">
                         <div className="flex items-center justify-center gap-1">
                           {isInvoiceRow && row.invoice && row.invoice.balance_due > 0 && (
                             <button
@@ -523,9 +523,9 @@ export default function PartyDetailPage() {
                   {formatCurrency(ledger.filter((t: any) => t.transaction_type === 'payment' || t.transaction_type === 'receipt').reduce((s: number, t: any) => s + Number(t.debit || t.credit), 0))}
                 </p>
               </div>
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-lg p-4 border border-orange-100">
-                <p className="text-xs font-medium text-orange-600 uppercase tracking-wider">Pending Balance</p>
-                <p className="text-lg font-bold text-orange-700 mt-1">
+              <div className="bg-gradient-to-br from-red-50 to-red-100/50 rounded-lg p-4 border border-red-100">
+                <p className="text-xs font-medium text-red-600 uppercase tracking-wider">Pending Balance</p>
+                <p className="text-lg font-bold text-red-700 mt-1">
                   {formatCurrency(Math.abs(currentBalance))}
                 </p>
               </div>
@@ -539,7 +539,7 @@ export default function PartyDetailPage() {
                       <h4 className="text-sm font-semibold text-gray-600">Other Transactions ({group.transactions.length})</h4>
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="w-full">
+                      <table className="w-full responsive-table-card">
                         <thead>
                           <tr className="text-left bg-gray-50/50">
                             <th className="p-2.5 pl-4 text-xs font-medium text-gray-500">Date</th>
@@ -553,15 +553,15 @@ export default function PartyDetailPage() {
                         <tbody className="divide-y divide-gray-50">
                           {group.transactions.map((txn: any) => (
                             <tr key={txn.id} className="hover:bg-gray-50/50">
-                            <td className="p-2.5 pl-4 text-sm text-gray-600">
+                            <td className="p-2.5 pl-4 text-sm text-gray-600" data-label="Date">
                               {formatDate(txn.transaction_date)}
                               <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
                             </td>
-                            <td className="p-2.5 text-sm text-gray-800">{txn.description || '-'}</td>
-                            <td className="p-2.5"><span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded capitalize">{txn.transaction_type}</span></td>
-                              <td className="p-2.5 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
-                              <td className="p-2.5 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                              <td className="p-2.5 pr-4 text-sm font-medium text-right">{formatCurrency(txn.running_balance)}</td>
+                            <td className="p-2.5 text-sm text-gray-800" data-label="Description">{txn.description || '-'}</td>
+                            <td className="p-2.5" data-label="Type"><span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded capitalize">{txn.transaction_type}</span></td>
+                              <td className="p-2.5 text-sm font-medium text-red-600 text-right" data-label="Debit">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                              <td className="p-2.5 text-sm font-medium text-green-600 text-right" data-label="Credit">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                              <td className="p-2.5 pr-4 text-sm font-medium text-right" data-label="Balance">{formatCurrency(txn.running_balance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -586,7 +586,7 @@ export default function PartyDetailPage() {
                   <span className="text-xs text-gray-500">Total: <span className="font-semibold text-gray-700">{formatCurrency(inv.total_amount)}</span></span>
                   <span className="text-xs text-green-600">Paid: <span className="font-semibold">{formatCurrency(inv.amount_paid)}</span></span>
                   {inv.balance_due > 0 && (
-                    <span className="text-xs text-orange-600 font-semibold">Pending: {formatCurrency(inv.balance_due)}</span>
+                    <span className="text-xs text-red-600 font-semibold">Pending: {formatCurrency(inv.balance_due)}</span>
                   )}
                   <StatusBadge status={inv.payment_status} type={inv.type} />
                   {inv.balance_due > 0 && (
@@ -602,7 +602,7 @@ export default function PartyDetailPage() {
 
                   {/* Invoice Transactions */}
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full responsive-table-card">
                       <thead>
                         <tr className="text-left bg-gray-50/50">
                           <th className="p-2.5 pl-4 text-xs font-medium text-gray-500">Date</th>
@@ -616,12 +616,12 @@ export default function PartyDetailPage() {
                       <tbody className="divide-y divide-gray-50">
                         {group.transactions.map((txn: any) => (
                           <tr key={txn.id} className="hover:bg-gray-50/50">
-                            <td className="p-2.5 pl-4 text-sm text-gray-600">
+                            <td className="p-2.5 pl-4 text-sm text-gray-600" data-label="Date">
                               {formatDate(txn.transaction_date)}
                               <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(txn.created_at)}</div>
                             </td>
-                            <td className="p-2.5 text-sm text-gray-800">{txn.description || '-'}</td>
-                            <td className="p-2.5">
+                            <td className="p-2.5 text-sm text-gray-800" data-label="Description">{txn.description || '-'}</td>
+                            <td className="p-2.5" data-label="Type">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
                                 txn.transaction_type === 'purchase' ? 'bg-orange-50 text-orange-700' :
                                 txn.transaction_type === 'payment' ? 'bg-green-50 text-green-700' :
@@ -636,9 +636,9 @@ export default function PartyDetailPage() {
                                 {txn.transaction_type}
                               </span>
                             </td>
-                            <td className="p-2.5 text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
-                            <td className="p-2.5 text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
-                            <td className="p-2.5 pr-4 text-sm font-medium text-right">{formatCurrency(txn.running_balance)}</td>
+                            <td className="p-2.5 text-sm font-medium text-red-600 text-right" data-label="Debit">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                            <td className="p-2.5 text-sm font-medium text-green-600 text-right" data-label="Credit">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                            <td className="p-2.5 pr-4 text-sm font-medium text-right" data-label="Balance">{formatCurrency(txn.running_balance)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -662,7 +662,7 @@ export default function PartyDetailPage() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full responsive-table-card">
               <thead>
                 <tr className="bg-gray-50">
                   <th className="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
@@ -675,8 +675,8 @@ export default function PartyDetailPage() {
               <tbody className="divide-y divide-gray-100">
                 {villageSupplies.map((s: any) => (
                   <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-3 text-sm text-gray-600">{formatDate(s.transaction_date)}</td>
-                    <td className="p-3">
+                    <td className="p-3 text-sm text-gray-600" data-label="Date">{formatDate(s.transaction_date)}</td>
+                    <td className="p-3" data-label="Village">
                       <Link
                         href={`/villages/${s.village_name.toLowerCase()}`}
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
@@ -685,9 +685,9 @@ export default function PartyDetailPage() {
                         {s.village_name}
                       </Link>
                     </td>
-                    <td className="p-3 text-sm font-medium text-gray-900">{s.material_name}</td>
-                    <td className="p-3 text-sm font-semibold text-green-600 text-right">+{s.quantity}</td>
-                    <td className="p-3 text-sm text-gray-500 max-w-[200px] truncate">{s.notes || <span className="text-gray-300">—</span>}</td>
+                    <td className="p-3 text-sm font-medium text-gray-900" data-label="Material">{s.material_name}</td>
+                    <td className="p-3 text-sm font-semibold text-green-600 text-right" data-label="Quantity">+{s.quantity}</td>
+                    <td className="p-3 text-sm text-gray-500 max-w-[200px] truncate" data-label="Notes">{s.notes || <span className="text-gray-300">—</span>}</td>
                   </tr>
                 ))}
               </tbody>

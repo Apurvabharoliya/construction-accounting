@@ -40,7 +40,7 @@ export async function getAllVillageSummaries(): Promise<{
       const [materialsRes, txnCountRes] = await Promise.all([
         supabase
           .from('village_materials')
-          .select('quantity_received, quantity_used, quantity_remaining')
+          .select('quantity_received, quantity_remaining')
           .eq('village_id', v.id),
         supabase
           .from('material_transactions')
@@ -53,7 +53,7 @@ export async function getAllVillageSummaries(): Promise<{
         village: v.name,
         totalMaterials: mats.length,
         totalReceived: mats.reduce((s, m) => s + Number(m.quantity_received), 0),
-        totalUsed: mats.reduce((s, m) => s + Number(m.quantity_used), 0),
+        totalUsed: mats.reduce((s, m) => s + (Number(m.quantity_received) - Number(m.quantity_remaining)), 0),
         totalRemaining: mats.reduce((s, m) => s + Number(m.quantity_remaining), 0),
         recentTransactions: txnCountRes.count || 0
       }
@@ -139,7 +139,8 @@ export async function addMaterialReceipt(params: {
 
     if (existing) {
       const newReceived = Number(existing.quantity_received) + params.quantity
-      const newRemaining = newReceived - Number(existing.quantity_used)
+      const usedQty = Number(existing.quantity_used) || 0
+      const newRemaining = newReceived - usedQty
       await supabase
         .from('village_materials')
         .update({
@@ -203,15 +204,23 @@ export async function recordMaterialUsage(params: {
       .single()
 
     if (existing) {
-      const newUsed = Number(existing.quantity_used) + params.quantity
+      // Calculate used quantity: if quantity_used column exists, use it; otherwise derive from received - remaining
+      const existingUsed = existing.quantity_used !== undefined
+        ? Number(existing.quantity_used)
+        : Number(existing.quantity_received) - Number(existing.quantity_remaining)
+      const newUsed = existingUsed + params.quantity
       const newRemaining = Number(existing.quantity_received) - newUsed
+      const updateData: Record<string, any> = {
+        quantity_remaining: Math.max(0, newRemaining),
+        updated_at: new Date().toISOString()
+      }
+      // Only include quantity_used if the column exists in the table
+      if (existing.quantity_used !== undefined) {
+        updateData.quantity_used = newUsed
+      }
       await supabase
         .from('village_materials')
-        .update({
-          quantity_used: newUsed,
-          quantity_remaining: Math.max(0, newRemaining),
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', existing.id)
     }
   }

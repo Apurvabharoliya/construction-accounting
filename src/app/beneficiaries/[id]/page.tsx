@@ -128,7 +128,7 @@ export default function BeneficiaryDetailPage() {
           </div>
           <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
             <span className="text-gray-600">Outstanding Amount</span>
-            <span className="font-bold text-orange-600">{formatCurrency(beneficiary.total_amount_due || 0)}</span>
+            <span className="font-bold text-red-600">{formatCurrency(beneficiary.total_amount_due || 0)}</span>
           </div>
           <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
             <span className="text-gray-600">Subsidy Status</span>

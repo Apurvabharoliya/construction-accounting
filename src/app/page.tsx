@@ -138,8 +138,8 @@ export default function Dashboard() {
       title: 'Outstanding',
       value: formatCurrency(stats.outstandingAmount),
       icon: CreditCard,
-      iconColor: 'text-orange-600',
-      iconBg: 'bg-gradient-to-br from-orange-100 to-amber-200',
+      iconColor: 'text-red-600',
+      iconBg: 'bg-gradient-to-br from-red-100 to-red-200',
       href: '/reports/outstanding',
       delay: 300
     }

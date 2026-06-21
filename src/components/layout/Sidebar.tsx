@@ -15,7 +15,7 @@ import {
   Menu,
   X,
 } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 function ConstructionLogo() {
@@ -41,6 +41,9 @@ const menuItems = [
 ]
 
 const STORAGE_KEY = 'sidebar-collapsed'
+const EDGE_THRESHOLD = 40       // px from left edge to trigger open
+const SWIPE_THRESHOLD = 80      // px of travel to complete action
+const MAX_DRAG = 300            // max drag distance for visual feedback
 
 function getIsDesktop(): boolean {
   if (typeof window === 'undefined') return false
@@ -101,6 +104,21 @@ export default function Sidebar() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  // Swipe gesture state — drag progress in pixels
+  const [dragX, setDragX] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const dragXRef = useRef(0)
+  const isDraggingRef = useRef(false)
+  const mobileOpenRef = useRef(false)
+
+  // Keep refs in sync with state
+  useEffect(() => { dragXRef.current = dragX }, [dragX])
+  useEffect(() => { isDraggingRef.current = isDragging }, [isDragging])
+  useEffect(() => { mobileOpenRef.current = mobileOpen }, [mobileOpen])
+
   // Close mobile sidebar on route change
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
@@ -109,6 +127,103 @@ export default function Sidebar() {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
+
+  // --- Swipe-to-open (from left edge) & swipe-to-close (on drawer) ---
+  useEffect(() => {
+    if (!isMobile) {
+      setIsDragging(false)
+      setDragX(0)
+      return
+    }
+
+    function onTouchStart(e: TouchEvent) {
+      const touch = e.touches[0]
+      touchStartX.current = touch.clientX
+      touchStartY.current = touch.clientY
+
+      // Skip if user tapped a button (e.g. hamburger menu or close button)
+      if ((e.target as HTMLElement).closest('button')) return
+
+      // Only start gesture if we're near the left edge (sidebar closed) or on the drawer (sidebar open)
+      const isNearLeftEdge = touch.clientX < EDGE_THRESHOLD
+      const isOnDrawer = drawerRef.current?.contains(e.target as Node)
+
+      if (mobileOpenRef.current && isOnDrawer) {
+        // Starting drag on the open drawer — allow swipe-left-to-close
+        setIsDragging(true)
+        setDragX(0)
+        dragXRef.current = 0
+      } else if (!mobileOpenRef.current && isNearLeftEdge) {
+        // Starting drag from left edge — allow swipe-right-to-open
+        setIsDragging(true)
+        setDragX(0)
+        dragXRef.current = 0
+      }
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (!isDraggingRef.current) return
+
+      const touch = e.touches[0]
+      const deltaX = touch.clientX - touchStartX.current
+      const deltaY = touch.clientY - touchStartY.current
+
+      // If the user is scrolling vertically more than horizontally, cancel the drag
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 20) {
+        setIsDragging(false)
+        setDragX(0)
+        return
+      }
+
+      // Only prevent default when there's meaningful horizontal drag
+      // Allow vertical scrolling when drawer is fully open and stationary
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        e.preventDefault()
+      }
+
+      let newDragX: number
+      if (mobileOpenRef.current) {
+        // Drawer is open — track swipe-left (negative delta)
+        newDragX = Math.max(-MAX_DRAG, Math.min(0, deltaX))
+      } else {
+        // Drawer is closed — track swipe-right (positive delta)
+        newDragX = Math.max(0, Math.min(MAX_DRAG, deltaX - EDGE_THRESHOLD))
+      }
+      setDragX(newDragX)
+      dragXRef.current = newDragX
+    }
+
+    function onTouchEnd() {
+      if (!isDraggingRef.current) return
+
+      if (mobileOpenRef.current) {
+        // Swipe left to close
+        if (dragXRef.current < -SWIPE_THRESHOLD) {
+          setMobileOpen(false)
+        }
+      } else {
+        // Swipe right to open
+        if (dragXRef.current > SWIPE_THRESHOLD) {
+          setMobileOpen(true)
+        }
+      }
+
+      setIsDragging(false)
+      setDragX(0)
+      dragXRef.current = 0
+    }
+
+    // Attach to document to catch edge swipes anywhere
+    document.addEventListener('touchstart', onTouchStart, { passive: true })
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
+    document.addEventListener('touchend', onTouchEnd)
+
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [isMobile])
 
   const toggleCollapse = useCallback(() => setCollapsed(prev => prev === null ? false : !prev), [])
 
@@ -261,20 +376,40 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Mobile Sidebar Overlay */}
-      {mobileOpen && (
+      {/* Mobile Sidebar Overlay — fades with drag progress */}
+      {(mobileOpen || isDragging) && (
         <div 
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 backdrop-blur-sm md:hidden transition-opacity duration-200"
+          style={{
+            backgroundColor: `rgba(0,0,0,${isDragging
+              ? mobileOpen
+                ? 0.5 * (1 - Math.abs(dragX) / MAX_DRAG)   // closing: fade out
+                : 0.5 * (Math.abs(dragX) / MAX_DRAG)       // opening: fade in
+              : 0.5})`,
+            pointerEvents: mobileOpen ? 'auto' : 'none',
+          }}
           onClick={() => setMobileOpen(false)}
           aria-hidden="true"
         />
       )}
 
       {/* Mobile Sidebar Drawer */}
-      <div className={cn(
-        "fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 md:hidden max-w-[85vw]",
-        mobileOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+      <div
+        ref={drawerRef}
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 md:hidden max-w-[85vw]",
+          isDragging ? 'transition-none' : 'transition-transform duration-200'
+        )}
+        style={{
+          transform: mobileOpen && !isDragging
+            ? 'translateX(0px)'
+            : !mobileOpen && !isDragging
+              ? 'translateX(-100%)'
+              : isDragging && !mobileOpen
+                ? `translateX(calc(-100% + ${dragX}px))`
+                : `translateX(${dragX}px)`,
+        }}
+      >
         {sidebarContent}
       </div>
     </>

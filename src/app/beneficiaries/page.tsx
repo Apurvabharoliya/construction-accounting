@@ -135,15 +135,15 @@ export default function BeneficiariesPage() {
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Finishing">
                         <span className="font-medium">{formatCurrency(Number(b.finishing) || 0)}</span>
                       </td>
-                      <td className="p-4" data-label="">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <Link href={`/beneficiaries/${b.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
+                      <td className="p-4" data-label="Actions">
+                        <div className="flex items-center gap-2 sm:gap-3 justify-end">
+                          <Link href={`/beneficiaries/${b.id}`} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
                             <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
                           </Link>
-                          <Link href={`/beneficiaries/${b.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
+                          <Link href={`/beneficiaries/${b.id}/edit`} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
                             <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
                           </Link>
-                          <button onClick={() => handleDelete(b.id, b.party?.name)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
+                          <button onClick={() => handleDelete(b.id, b.party?.name)} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> Delete</span>
                           </button>
                         </div>

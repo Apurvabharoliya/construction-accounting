@@ -175,7 +175,7 @@ export default function PartiesPage() {
                   const mainBalance = (party.opening_balance || 0) + (balanceMap[party.id] || 0)
                   return (
                     <tr key={party.id} className="border-t hover:bg-gray-50 transition-colors">
-                      <td className="p-4">
+                      <td className="p-4" data-label="Name">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-gray-900">{party.name}</p>
                           {beneficiaryPartyIds.has(party.id) && (
@@ -187,7 +187,7 @@ export default function PartiesPage() {
                           )}
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" data-label="Type">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${partyTypeColors[party.party_type] || 'bg-gray-100 text-gray-800'}`}>
                           {party.party_type.charAt(0).toUpperCase() + party.party_type.slice(1)}
                         </span>
@@ -198,12 +198,13 @@ export default function PartiesPage() {
                       <td className="p-4 text-sm text-gray-500 max-w-xs truncate hidden md:table-cell">
                         {party.notes || <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" data-label="Balance">
                         <div className="relative group">
                           <span className={`font-medium cursor-help ${(mainBalance || 0) > 0 ? 'text-green-600' : (mainBalance || 0) < 0 ? 'text-red-600' : ''}`}>
                             {formatCurrency(mainBalance || 0)}
                           </span>
-                          <div className="absolute bottom-full left-0 mb-2 w-56 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          {/* Tooltip: visible on hover (desktop) and on tap (mobile via :active/:focus-within) */}
+                          <div className="absolute bottom-full left-0 sm:mb-2 w-56 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none z-50 sm:pointer-events-none sm:group-hover:pointer-events-auto">
                             <div className="bg-gray-900 text-white text-xs rounded-lg shadow-lg p-3 space-y-1.5">
                               <p className="font-semibold text-gray-300 text-[11px] uppercase tracking-wider">Balance Breakdown</p>
                               <div className="flex justify-between">
@@ -227,15 +228,15 @@ export default function PartiesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <Link href={`/parties/${party.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors">
+                      <td className="p-4" data-label="Actions">
+                        <div className="flex items-center gap-2 sm:gap-3 justify-end">
+                          <Link href={`/parties/${party.id}`} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors">
                             <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
                           </Link>
-                          <Link href={`/parties/${party.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors">
+                          <Link href={`/parties/${party.id}/edit`} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors">
                             <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
                           </Link>
-                          <button onClick={() => handleDelete(party.id, party.name)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors">
+                          <button onClick={() => handleDelete(party.id, party.name)} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors">
                             <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Delete</span>
                           </button>
                         </div>

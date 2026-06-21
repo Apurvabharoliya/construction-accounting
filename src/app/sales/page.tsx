@@ -129,8 +129,8 @@ export default function SalesPage() {
                         {s.payment_status.charAt(0).toUpperCase() + s.payment_status.slice(1)}
                       </span>
                     </td>
-                    <td className="p-4" data-label="">
-                      <div className="flex items-center gap-2 sm:gap-3">
+                    <td className="p-4" data-label="Actions">
+                      <div className="flex items-center gap-2 sm:gap-3 justify-end">
                         {Number(s.balance_due) > 0 && (
                           <button
                             onClick={() => {
@@ -154,19 +154,19 @@ export default function SalesPage() {
                                 link: `/sales/${s.id}`
                               })
                             }}
-                            className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-green-600 hover:text-green-700 rounded-lg sm:rounded-none hover:bg-green-50 sm:hover:bg-transparent transition-colors"
+                            className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-green-600 hover:text-green-700 rounded-lg sm:rounded-none hover:bg-green-50 sm:hover:bg-transparent transition-colors"
                             title="Record Payment"
                           >
                             <Banknote className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> Pay</span>
                           </button>
                         )}
-                        <Link href={`/sales/${s.id}`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
+                        <Link href={`/sales/${s.id}`} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-blue-600 hover:text-blue-700 rounded-lg sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent transition-colors" title="View">
                           <Eye className="w-4 h-4" /><span className="hidden sm:inline text-sm font-medium"> View</span>
                         </Link>
-                        <Link href={`/sales/${s.id}/edit`} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
+                        <Link href={`/sales/${s.id}/edit`} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-gray-600 hover:text-gray-700 rounded-lg sm:rounded-none hover:bg-gray-50 sm:hover:bg-transparent transition-colors" title="Edit">
                           <Edit3 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Edit</span>
                         </Link>
-                        <button onClick={() => handleDelete(s.id, s.sale_number)} className="p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
+                        <button onClick={() => handleDelete(s.id, s.sale_number)} className="resp-btn-touch p-1.5 sm:p-0 sm:flex sm:items-center sm:gap-1 text-red-600 hover:text-red-700 rounded-lg sm:rounded-none hover:bg-red-50 sm:hover:bg-transparent transition-colors" title="Delete">
                           <Trash2 className="w-4 h-4" /><span className="hidden sm:inline text-sm"> Delete</span>
                         </button>
                       </div>

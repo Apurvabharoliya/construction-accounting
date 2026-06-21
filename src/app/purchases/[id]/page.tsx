@@ -153,7 +153,7 @@ export default function PurchaseDetailPage() {
           <div className="flex justify-between"><span className="text-gray-600">SGST</span><span className="font-medium">{formatCurrency(Number(purchase.sgst_amount))}</span></div>
           <div className="flex justify-between border-t pt-3"><span className="text-lg font-semibold">Total</span><span className="text-lg font-semibold">{formatCurrency(Number(purchase.total_amount))}</span></div>
           <div className="flex justify-between"><span className="text-gray-600">Paid</span><span className="font-medium text-green-600">{formatCurrency(Number(purchase.amount_paid))}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Balance Due</span><span className="font-bold text-orange-600">{formatCurrency(Number(purchase.balance_due))}</span></div>
+          <div className="flex justify-between"><span className="text-gray-600">Balance Due</span><span className="font-bold text-red-600">{formatCurrency(Number(purchase.balance_due))}</span></div>
         </div>
       </div>
 
@@ -201,7 +201,7 @@ export default function PurchaseDetailPage() {
           </h3>
           <div className="overflow-x-auto -mx-4 md:-mx-0">
             <div className="inline-block min-w-full px-4 md:px-0">
-              <table className="w-full">
+              <table className="w-full responsive-table-card">
                 <thead>
                   <tr className="text-left border-b">
                     <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Date</th>
@@ -214,9 +214,9 @@ export default function PurchaseDetailPage() {
                 <tbody>
                   {transactions.map((txn: any) => (
                     <tr key={txn.id} className="border-t hover:bg-gray-50/50">
-                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm text-gray-600">{formatDate(txn.transaction_date)}</td>
-                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm text-gray-800">{txn.description || '-'}</td>
-                      <td className="py-2 md:py-3 pr-3">
+                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm text-gray-600" data-label="Date">{formatDate(txn.transaction_date)}</td>
+                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm text-gray-800" data-label="Description">{txn.description || '-'}</td>
+                      <td className="py-2 md:py-3 pr-3" data-label="Type">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
                           txn.transaction_type === 'purchase' ? 'bg-orange-50 text-orange-700' :
                           txn.transaction_type === 'payment' ? 'bg-green-50 text-green-700' :
@@ -227,8 +227,8 @@ export default function PurchaseDetailPage() {
                           {txn.transaction_type === 'purchase' ? 'Purchase' : 'Payment'}
                         </span>
                       </td>
-                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm font-medium text-red-600 text-right">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
-                      <td className="py-2 md:py-3 text-xs md:text-sm font-medium text-green-600 text-right">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
+                      <td className="py-2 md:py-3 pr-3 text-xs md:text-sm font-medium text-red-600 text-right" data-label="Debit">{txn.debit > 0 ? formatCurrency(txn.debit) : '-'}</td>
+                      <td className="py-2 md:py-3 text-xs md:text-sm font-medium text-green-600 text-right" data-label="Credit">{txn.credit > 0 ? formatCurrency(txn.credit) : '-'}</td>
                     </tr>
                   ))}
                 </tbody>

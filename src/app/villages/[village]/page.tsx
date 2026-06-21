@@ -235,7 +235,7 @@ export default function VillageDetailPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full responsive-table-card">
               <thead>
                 <tr className="bg-gray-50">
                   <th className="p-4 text-left text-sm font-medium text-gray-500">Material</th>
@@ -252,7 +252,7 @@ export default function VillageDetailPage() {
 
                   return (
                     <tr key={material} className="border-t hover:bg-gray-50 transition-colors">
-                      <td className="p-4">
+                      <td className="p-4" data-label="Material">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${
                             remaining > 0 ? 'bg-blue-50' : 'bg-gray-50'
@@ -262,13 +262,13 @@ export default function VillageDetailPage() {
                           <span className="font-medium text-gray-900">{material}</span>
                         </div>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" data-label="Received">
                         <span className="font-semibold text-green-600">{received.toFixed(0)}</span>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" data-label="Remaining">
                         <span className="font-bold text-lg">{remaining.toFixed(0)}</span>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" data-label="">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
