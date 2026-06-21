@@ -19,6 +19,7 @@ interface TransactionItem {
   id: string
   date: string
   material_name: string
+  village_name: string
   quantity: number
   unit: string
   rate: number
@@ -29,7 +30,6 @@ interface TransactionEntry {
   id: string
   supplier_name: string
   supplier_invoice_number: string
-  village_name: string
   payment_mode: string
   payment_status: 'unpaid' | 'paid'
   amount_paid: number
@@ -42,6 +42,7 @@ function emptyItem(): TransactionItem {
     id: genId(),
     date: new Date().toISOString().split('T')[0],
     material_name: '',
+    village_name: '',
     quantity: 0,
     unit: 'Nos',
     rate: 0,
@@ -54,7 +55,6 @@ function emptyEntry(): TransactionEntry {
     id: genId(),
     supplier_name: '',
     supplier_invoice_number: '',
-    village_name: '',
     payment_mode: '',
     payment_status: 'unpaid',
     amount_paid: 0,
@@ -186,10 +186,13 @@ export default function NewTransactionPage() {
         if (!isPayment && materialCol >= 0) {
           const material = getVal(row, materialCol)
           if (material) {
+            // Use per-item village if available, otherwise fall back to entry-level village
+            const perItemVillage = getVal(row, villageCol) || ''
             items.push({
               id: genId(),
               date: parseDate(getVal(row, dateCol)),
               material_name: material,
+              village_name: perItemVillage,
               quantity: qty,
               unit: getVal(row, unitCol) || 'Nos',
               rate,
@@ -202,7 +205,6 @@ export default function NewTransactionPage() {
           id: genId(),
           supplier_name: getVal(row, supplierCol),
           supplier_invoice_number: getVal(row, invoiceCol),
-          village_name: getVal(row, villageCol),
           payment_mode: '',
           payment_status: (isPayment ? 'paid' : 'unpaid') as 'paid' | 'unpaid',
           amount_paid: isPayment ? amount : 0,
@@ -278,6 +280,7 @@ export default function NewTransactionPage() {
         const itemsWithGst = validItems.map(item => ({
           material_name: item.material_name,
           hsn_code: undefined,
+          village_name: item.village_name || undefined,
           quantity: item.quantity,
           unit: item.unit,
           rate: item.rate,
@@ -299,7 +302,6 @@ export default function NewTransactionPage() {
           supplier_id: supplierId,
           invoice_date: invoiceDate,
           supplier_invoice_number: entry.supplier_invoice_number || undefined,
-          village_name: entry.village_name || undefined,
           subtotal: totalAmount,
           gst_rate: 0,
           cgst_amount: 0,
@@ -313,33 +315,35 @@ export default function NewTransactionPage() {
           remarks: entry.remarks || undefined
         }, itemsWithGst)
 
-        if (entry.village_name) {
-          let villageStockSuccess = 0
-          let villageStockFail = 0
-          for (const item of validItems) {
-            if (item.material_name.trim() && item.quantity > 0) {
-              try {
-                await addMaterialReceipt({
-                  village_name: entry.village_name,
-                  material_name: item.material_name,
-                  quantity: item.quantity,
-                  contractor_name: entry.supplier_name,
-                  reference_purchase_id: purchaseData.id,
-                  notes: `Purchase ${purchaseData.purchase_number}`,
-                  transaction_date: item.date
-                })
-                villageStockSuccess++
-              } catch (err) {
-                villageStockFail++
-                console.error(`Failed to update village stock for ${item.material_name}:`, err)
-              }
+        // Update village stock per item - each item can go to a different village
+        let villageStockSuccess = 0
+        let villageStockFail = 0
+        const villageFailures: string[] = []
+        for (const item of validItems) {
+          const targetVillage = item.village_name
+          if (targetVillage && item.material_name.trim() && item.quantity > 0) {
+            try {
+              await addMaterialReceipt({
+                village_name: targetVillage,
+                material_name: item.material_name,
+                quantity: item.quantity,
+                contractor_name: entry.supplier_name,
+                reference_purchase_id: purchaseData.id,
+                notes: `Purchase ${purchaseData.purchase_number}`,
+                transaction_date: item.date
+              })
+              villageStockSuccess++
+            } catch (err) {
+              villageStockFail++
+              villageFailures.push(item.material_name)
+              console.error(`Failed to update village stock for ${item.material_name} in ${targetVillage}:`, err)
             }
           }
-          if (villageStockFail > 0) {
-            toast.error(`Failed to update village stock for ${villageStockFail} item(s) in ${entry.village_name}`)
-          } else if (villageStockSuccess > 0) {
-            toast.success(`${entry.village_name} stock updated: +${villageStockSuccess} material(s)`)
-          }
+        }
+        if (villageStockFail > 0) {
+          toast.error(`Failed to update village stock for ${villageStockFail} item(s): ${villageFailures.join(', ')}`)
+        } else if (villageStockSuccess > 0) {
+          toast.success(`Village stock updated for ${villageStockSuccess} material(s)`)
         }
 
         successCount++
@@ -487,16 +491,7 @@ export default function NewTransactionPage() {
                 {/* Card Body — Material items with dates */}
                 <div className="px-5 py-4">
                   {/* Supplier meta fields */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Village</label>
-                      <SearchableSelect
-                        value={entry.village_name}
-                        onChange={(v) => updateEntry(entry.id, 'village_name', v)}
-                        options={villageOptions}
-                        placeholder="Select village"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div>
                       <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Invoice No.</label>
                       <input
@@ -536,24 +531,31 @@ export default function NewTransactionPage() {
                     {!isPayment ? (
                       <div className="space-y-3">
                         {/* Column headers */}
-                        <div className="hidden sm:grid grid-cols-[1fr_120px_80px_110px_90px_90px_36px] gap-2 px-2">
-                          {['Date', 'Material *', 'Qty', 'Unit', 'Rate', 'Amount', ''].map(h => (
+                        <div className="hidden sm:grid grid-cols-[110px_1fr_100px_80px_90px_90px_80px_36px] gap-2 px-2">
+                          {['Village', 'Material *', 'Date', 'Qty', 'Unit', 'Rate', 'Amount', ''].map(h => (
                             <span key={h} className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{h}</span>
                           ))}
                         </div>
+                        <div className="hidden sm:block text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-2 mb-1">Each item can be assigned to a different village</div>
 
                         {entry.items.map((item) => (
                           <div
                             key={item.id}
-                            className="grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_110px_90px_90px_36px] gap-2 sm:gap-2 bg-white rounded-xl p-3 border border-gray-200 shadow-sm hover:border-gray-300 transition-all"
+                            className="grid grid-cols-1 sm:grid-cols-[110px_1fr_100px_80px_90px_90px_80px_36px] gap-2 sm:gap-2 bg-white rounded-xl p-3 border border-gray-200 shadow-sm hover:border-gray-300 transition-all"
                           >
-                            {/* Date */}
+                            {/* Village */}
                             <div>
-                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Date</label>
-                              <DatePicker
-                                value={item.date}
-                                onChange={(v) => updateItem(entry.id, item.id, 'date', v)}
-                              />
+                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Village</label>
+                              <select
+                                value={item.village_name}
+                                onChange={(e) => updateItem(entry.id, item.id, 'village_name', e.target.value)}
+                                className="w-full h-9 rounded-lg border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                              >
+                                <option value="">Village...</option>
+                                {VILLAGES.map(v => (
+                                  <option key={v} value={v}>{v}</option>
+                                ))}
+                              </select>
                             </div>
                             {/* Material name */}
                             <div>
@@ -564,6 +566,14 @@ export default function NewTransactionPage() {
                                 onChange={(e) => updateItem(entry.id, item.id, 'material_name', e.target.value)}
                                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-300"
                                 placeholder="e.g. Cement"
+                              />
+                            </div>
+                            {/* Date */}
+                            <div>
+                              <label className="sm:hidden text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Date</label>
+                              <DatePicker
+                                value={item.date}
+                                onChange={(v) => updateItem(entry.id, item.id, 'date', v)}
                               />
                             </div>
                             {/* Qty */}

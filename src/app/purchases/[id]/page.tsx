@@ -131,6 +131,7 @@ export default function PurchaseDetailPage() {
               <thead>
                 <tr className="text-left border-b">
                   <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Material</th>
+                  <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap hidden sm:table-cell">Village</th>
                   <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap hidden sm:table-cell">HSN</th>
                   <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap">Qty</th>
                   <th className="pb-3 pr-3 text-xs md:text-sm font-medium text-gray-500 whitespace-nowrap hidden sm:table-cell">Unit</th>
@@ -143,6 +144,15 @@ export default function PurchaseDetailPage() {
                 {purchase.items?.map((item: any) => (
                   <tr key={item.id} className="border-t">
                     <td className="py-2 md:py-3 pr-3 text-xs md:text-sm" data-label="Material">{item.material_name}</td>
+                    <td className="py-2 md:py-3 pr-3 text-xs md:text-sm hidden sm:table-cell" data-label="Village">
+                      {item.village_name ? (
+                        <Link href={`/villages/${item.village_name.toLowerCase()}`} className="text-blue-600 hover:text-blue-700">
+                          {item.village_name}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
                     <td className="py-2 md:py-3 pr-3 text-xs md:text-sm hidden sm:table-cell" data-label="HSN">{item.hsn_code || '-'}</td>
                     <td className="py-2 md:py-3 pr-3 text-xs md:text-sm" data-label="Qty">{item.quantity}</td>
                     <td className="py-2 md:py-3 pr-3 text-xs md:text-sm hidden sm:table-cell" data-label="Unit">{item.unit}</td>

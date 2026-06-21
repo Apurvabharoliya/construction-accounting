@@ -47,6 +47,7 @@ export interface PurchaseItem {
   purchase_id: string
   material_name: string
   hsn_code?: string
+  village_name?: string
   quantity: number
   unit: string
   rate: number
