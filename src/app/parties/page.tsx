@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Party } from '@/types/database'
-import { Search, Plus, Phone, Eye, Edit3, Trash2, HandHeart } from 'lucide-react'
+import { Search, Plus, Phone, Eye, Edit3, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/gst'
 import { deleteParty } from '@/lib/api/parties'
@@ -11,13 +11,11 @@ import { toast } from 'sonner'
 
 const partyTypeColors: Record<string, string> = {
   supplier: 'bg-blue-100 text-blue-800',
-  beneficiary: 'bg-orange-100 text-orange-800'
 }
 
 export default function PartiesPage() {
   const [parties, setParties] = useState<Party[]>([])
   const [balanceMap, setBalanceMap] = useState<Record<string, number>>({})
-  const [beneficiaryPartyIds, setBeneficiaryPartyIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -29,17 +27,7 @@ export default function PartiesPage() {
   async function fetchParties() {
     setLoading(true)
     try {
-      const { data: beneficiaries } = await supabase
-        .from('beneficiaries')
-        .select('party_id')
-      const benSet = new Set<string>((beneficiaries || []).map(b => b.party_id))
-      setBeneficiaryPartyIds(benSet)
-
-      let query = supabase.from('parties').select('*').order('created_at', { ascending: false })
-
-      if (filterType === 'supplier' || filterType === 'beneficiary') {
-        query = query.eq('party_type', filterType)
-      }
+      let query = supabase.from('parties').select('*').eq('party_type', 'supplier').order('created_at', { ascending: false })
 
       if (searchQuery) {
         query = query.or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,gstin.ilike.%${searchQuery}%`)
@@ -118,7 +106,6 @@ export default function PartiesPage() {
             {[
               { value: 'all', label: 'All' },
               { value: 'supplier', label: 'Suppliers' },
-              { value: 'beneficiary', label: 'Beneficiaries' },
               { value: 'paid', label: 'Settled' },
               { value: 'unpaid', label: 'Outstanding' }
             ].map(({ value, label }) => (
@@ -178,13 +165,7 @@ export default function PartiesPage() {
                       <td className="p-4" data-label="Name">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-gray-900">{party.name}</p>
-                          {beneficiaryPartyIds.has(party.id) && (
-                            <Link href={`/beneficiaries?search=${encodeURIComponent(party.name)}`} title="Also a beneficiary">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                                <HandHeart className="w-3 h-3" /> Beneficiary
-                              </span>
-                            </Link>
-                          )}
+                          
                         </div>
                       </td>
                       <td className="p-4" data-label="Type">
