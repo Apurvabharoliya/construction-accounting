@@ -11,7 +11,7 @@ import { Plus, Trash2, Eye, Loader2, ChevronUp, ArrowLeft, Maximize2 } from 'luc
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import type { Purchase } from '@/types/database'
 import DatePicker from '@/components/ui/DatePicker'
-import SupplierDropdown from '@/components/ui/SupplierDropdown'
+
 import { VILLAGES } from '@/lib/village-constants'
 import { genId, calcEntryTotal } from '@/lib/transaction-utils'
 import Link from 'next/link'
@@ -328,10 +328,12 @@ export default function EditPurchasePage() {
                     <tr className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${isExpanded ? 'bg-blue-50/50' : ''}`}>
                       <td className="px-4 py-3 text-gray-500 font-medium w-10">{entryIdx + 1}</td>
                       <td className="px-4 py-3">
-                        <SupplierDropdown
+                        <input
+                          type="text"
                           value={entry.supplier_name}
-                          onChange={(val) => updateEntry(entry.id, 'supplier_name', val)}
-                          placeholder="Search supplier..."
+                          onChange={(e) => updateEntry(entry.id, 'supplier_name', e.target.value)}
+                          className="w-full px-4 py-3.5 border-0 bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-0 focus:bg-gray-50/50 transition-colors"
+                          placeholder="Type supplier name..."
                         />
                       </td>
                       <td className="px-4 py-3">

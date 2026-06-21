@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { Plus, Trash2, Upload, Loader2, Copy, FileSpreadsheet, Save, X, ChevronUp, Eye, Maximize2 } from 'lucide-react'
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import DatePicker from '@/components/ui/DatePicker'
-import SupplierDropdown from '@/components/ui/SupplierDropdown'
+
 import SearchableSelect from '@/components/ui/SearchableSelect'
 import { VILLAGES } from '@/lib/village-constants'
 import { parseExcelFile } from '@/lib/import'
@@ -575,10 +575,12 @@ export default function NewTransactionPage() {
                       <tr className={`group transition-colors ${isPayment ? 'bg-emerald-50/30 hover:bg-emerald-50/60' : 'hover:bg-orange-50/20'}`}>
                         <td className="px-3 py-2.5 text-xs text-gray-400 font-mono">{idx + 1}</td>
                         <td className="px-3 py-3">
-                          <SupplierDropdown
+                          <input
+                            type="text"
                             value={entry.supplier_name}
-                            onChange={(v) => updateEntry(entry.id, 'supplier_name', v)}
-                            placeholder="Select supplier"
+                            onChange={(e) => updateEntry(entry.id, 'supplier_name', e.target.value)}
+                            className="w-full px-4 py-3.5 border-0 bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-0 focus:bg-gray-50/50 transition-colors"
+                            placeholder="Type supplier name..."
                           />
                         </td>
                         <td className="px-3 py-3">
