@@ -90,7 +90,7 @@ export default function DatePicker({
   }, [openPicker])
 
   return (
-    <div className={`relative ${focused ? 'ring-2 ring-blue-500 rounded-lg' : ''}`}>
+    <div className="relative">
       {/* Visible text input showing dd/mm/yyyy */}
       <input
         ref={textInputRef}
@@ -104,9 +104,7 @@ export default function DatePicker({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
-        className={`w-full px-3 py-2.5 border rounded-lg text-sm cursor-pointer bg-white transition-all ${
-          focused ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-gray-300'
-        } disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+        className={`w-full px-0 py-2.5 border-0 rounded-none text-sm cursor-pointer bg-transparent transition-all focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
         autoComplete="off"
         readOnly={false}
         inputMode="numeric"

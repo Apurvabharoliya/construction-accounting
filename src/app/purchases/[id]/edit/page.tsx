@@ -11,7 +11,7 @@ import { Plus, Trash2, Eye, Loader2, ChevronUp, ArrowLeft, Maximize2 } from 'luc
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import type { Purchase } from '@/types/database'
 import DatePicker from '@/components/ui/DatePicker'
-
+import SupplierDropdown from '@/components/ui/SupplierDropdown'
 import { VILLAGES } from '@/lib/village-constants'
 import { genId, calcEntryTotal } from '@/lib/transaction-utils'
 import Link from 'next/link'
@@ -294,14 +294,12 @@ export default function EditPurchasePage() {
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
-      </div>
-
-      {/* Spreadsheet Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      </div>        {/* Spreadsheet Table */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-gray-200">
+              <tr className="bg-gray-50">
                 <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
                 <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px]">Supplier</th>
                 <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">Date</th>
@@ -325,15 +323,13 @@ export default function EditPurchasePage() {
                 return (
                   <React.Fragment key={entry.id}>
                     {/* Main Row */}
-                    <tr className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${isExpanded ? 'bg-blue-50/50' : ''}`}>
+                    <tr className={`hover:bg-gray-50 transition-colors ${isExpanded ? 'bg-gray-50/50' : ''}`}>
                       <td className="px-4 py-3 text-gray-500 font-medium w-10">{entryIdx + 1}</td>
                       <td className="px-4 py-3">
-                        <input
-                          type="text"
+                        <SupplierDropdown
                           value={entry.supplier_name}
-                          onChange={(e) => updateEntry(entry.id, 'supplier_name', e.target.value)}
-                          className="w-full px-4 py-3.5 border-0 bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-0 focus:bg-gray-50/50 transition-colors"
-                          placeholder="Type supplier name..."
+                          onChange={(val) => updateEntry(entry.id, 'supplier_name', val)}
+                          placeholder="Search supplier..."
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -346,7 +342,7 @@ export default function EditPurchasePage() {
                         <select
                           value={entry.village_name}
                           onChange={(e) => updateEntry(entry.id, 'village_name', e.target.value)}
-                          className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                          className="w-full px-3 py-3 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Select...</option>
                           {VILLAGES.map(v => (
@@ -374,7 +370,7 @@ export default function EditPurchasePage() {
                             type="text"
                             value={entry.items[0]?.material_name || ''}
                             onChange={(e) => updateItem(entry.id, entry.items[0]?.id, 'material_name', e.target.value)}
-                            className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-4 py-3.5 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500"
                             placeholder="e.g. Sand, Cement"
                           />
                         )}
@@ -387,7 +383,7 @@ export default function EditPurchasePage() {
                             type="number"
                             value={entry.items[0]?.quantity || ''}
                             onChange={(e) => updateItem(entry.id, entry.items[0]?.id, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-4 py-3.5 border-0 bg-transparent text-sm text-right focus:ring-2 focus:ring-blue-500"
                             placeholder="0"
                             min="0"
                             step="0.01"
@@ -401,7 +397,7 @@ export default function EditPurchasePage() {
                           <select
                             value={entry.items[0]?.unit || 'Nos'}
                             onChange={(e) => updateItem(entry.id, entry.items[0]?.id, 'unit', e.target.value)}
-                            className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                            className="w-full px-3 py-3 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500"
                           >
                             {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                           </select>
@@ -415,7 +411,7 @@ export default function EditPurchasePage() {
                             type="number"
                             value={entry.items[0]?.rate || ''}
                             onChange={(e) => updateItem(entry.id, entry.items[0]?.id, 'rate', parseFloat(e.target.value) || 0)}
-                            className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-4 py-3.5 border-0 bg-transparent text-sm text-right focus:ring-2 focus:ring-blue-500"
                             placeholder="0"
                             min="0"
                             step="0.01"
@@ -428,7 +424,7 @@ export default function EditPurchasePage() {
                             type="number"
                             value={entry.amount_paid || ''}
                             onChange={(e) => updateEntry(entry.id, 'amount_paid', parseFloat(e.target.value) || 0)}
-                            className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-4 py-3.5 border-0 bg-transparent text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500"
                             placeholder="0"
                             min="0"
                             step="0.01"
@@ -441,7 +437,7 @@ export default function EditPurchasePage() {
                         <select
                           value={entry.payment_mode}
                           onChange={(e) => updateEntry(entry.id, 'payment_mode', e.target.value)}
-                          className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                          className="w-full px-3 py-3 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Mode</option>
                           {PAYMENT_MODES.map(m => <option key={m} value={m}>{m}</option>)}
@@ -458,13 +454,12 @@ export default function EditPurchasePage() {
                       </td>
                     </tr>
 
-                    {/* Expanded Detail Row */}
-                    {isExpanded && (
-                      <tr className="bg-slate-50 border-b border-gray-200">
+                    {/* Expanded Detail Row */}                      {isExpanded && (
+                      <tr className="bg-gray-50/50">
                         <td colSpan={12} className="px-8 py-6">
-                          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                          <div className="bg-white rounded-xl p-5 shadow-sm">
                             <div className="flex items-center justify-between mb-4">
-                              <h4 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Line Items</h4>
+                              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Line Items</h4>
                               {!isPayment && (
                                 <button
                                   onClick={() => addItem(entry.id)}
@@ -477,7 +472,7 @@ export default function EditPurchasePage() {
                             {!isPayment ? (
                               <table className="w-full text-xs">
                                 <thead>
-                                  <tr className="border-b border-gray-200">
+                                  <tr>
                                     <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">Village</th>
                                     <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">Material</th>
                                     <th className="px-3 py-2.5 text-right text-gray-500 font-semibold">Qty</th>
@@ -489,12 +484,12 @@ export default function EditPurchasePage() {
                                 </thead>
                                 <tbody>
                                   {entry.items.map((item, idx) => (
-                                    <tr key={item.id} className="border-b border-gray-100">
+                                    <tr key={item.id}>
                                       <td className="px-3 py-2.5">
                                         <select
                                           value={item.village_name}
                                           onChange={(e) => updateItem(entry.id, item.id, 'village_name', e.target.value)}
-                                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                                          className="w-full px-3 py-2.5 border-0 bg-transparent text-sm focus:ring-1 focus:ring-blue-500"
                                         >
                                           <option value="">Village...</option>
                                           {VILLAGES.map(v => (
@@ -507,7 +502,7 @@ export default function EditPurchasePage() {
                                           type="text"
                                           value={item.material_name}
                                           onChange={(e) => updateItem(entry.id, item.id, 'material_name', e.target.value)}
-                                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500"
+                                          className="w-full px-3 py-2.5 border-0 bg-transparent text-sm focus:ring-1 focus:ring-blue-500"
                                           placeholder="Material name"
                                         />
                                       </td>
@@ -516,7 +511,7 @@ export default function EditPurchasePage() {
                                           type="number"
                                           value={item.quantity || ''}
                                           onChange={(e) => updateItem(entry.id, item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-1 focus:ring-blue-500"
+                                          className="w-full px-3 py-2.5 border-0 bg-transparent text-sm text-right focus:ring-1 focus:ring-blue-500"
                                           min="0"
                                           step="0.01"
                                         />
@@ -525,7 +520,7 @@ export default function EditPurchasePage() {
                                         <select
                                           value={item.unit}
                                           onChange={(e) => updateItem(entry.id, item.id, 'unit', e.target.value)}
-                                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                                          className="w-full px-3 py-2.5 border-0 bg-transparent text-sm focus:ring-1 focus:ring-blue-500"
                                         >
                                           {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                                         </select>
@@ -535,7 +530,7 @@ export default function EditPurchasePage() {
                                           type="number"
                                           value={item.rate || ''}
                                           onChange={(e) => updateItem(entry.id, item.id, 'rate', parseFloat(e.target.value) || 0)}
-                                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-1 focus:ring-blue-500"
+                                          className="w-full px-3 py-2.5 border-0 bg-transparent text-sm text-right focus:ring-1 focus:ring-blue-500"
                                           min="0"
                                           step="0.01"
                                         />
@@ -556,7 +551,7 @@ export default function EditPurchasePage() {
                                   ))}
                                 </tbody>
                                 <tfoot>
-                                  <tr className="font-semibold text-gray-900 border-t-2 border-gray-300">
+                                  <tr className="font-semibold text-gray-900">
                                     <td colSpan={5} className="px-3 py-2.5 text-right">Total:</td>
                                     <td className="px-3 py-2.5 text-right">{formatCurrency(total)}</td>
                                     <td></td>
@@ -564,7 +559,7 @@ export default function EditPurchasePage() {
                                 </tfoot>
                               </table>
                             ) : (
-                              <div className="bg-emerald-50 rounded-xl p-5 border border-emerald-200">
+                              <div className="bg-emerald-50/50 rounded-xl p-5">
                                 <p className="text-base text-emerald-700">
                                   <span className="font-bold">Payment entry</span> — No items needed.
                                 </p>
@@ -586,7 +581,7 @@ export default function EditPurchasePage() {
 
         {/* Grand Total Footer */}
         {entries.length > 0 && (
-          <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 border-t border-gray-200 flex justify-end">
+          <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 flex justify-end">
             <div className="flex items-center gap-5">
               <span className="text-sm font-medium text-gray-600">Grand Total:</span>
               <span className="text-xl font-bold text-blue-600">
@@ -599,12 +594,12 @@ export default function EditPurchasePage() {
 
       {/* Remarks */}
       {entries.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-5">
           <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Remarks</label>
           <textarea
             value={entries[0].remarks}
             onChange={(e) => updateEntry(entries[0].id, 'remarks', e.target.value)}
-            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-3.5 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 resize-none"
             rows={3}
             placeholder="Notes about this transaction..."
           />

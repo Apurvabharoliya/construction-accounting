@@ -177,10 +177,9 @@ export default function SupplierDropdown({
         type="button"
         onClick={() => setOpen(!open)}
         onKeyDown={handleKeyDown}
-        className={`w-full flex items-center justify-between px-3 py-2.5 border rounded-lg text-sm text-left bg-white transition-all duration-150
-          ${error ? 'border-red-300 focus:ring-2 focus:ring-red-500' : ''}
-          ${open ? 'border-blue-400 ring-2 ring-blue-100 shadow-sm' : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'}
-          ${!selectedLabel ? 'text-gray-400' : 'text-gray-900'}`}
+        className={`w-full flex items-center justify-between px-0 py-2.5 border-0 rounded-none text-sm text-left bg-transparent transition-all duration-150
+          ${error ? 'focus:ring-2 focus:ring-red-500' : ''}
+          ${!selectedLabel ? 'text-gray-300' : 'text-gray-900 font-medium'}`}
       >
         <span className="truncate font-medium">{selectedLabel || placeholder}</span>
         <div className="flex items-center gap-1 shrink-0 ml-2">

@@ -113,10 +113,9 @@ export default function SearchableSelect({
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
         onKeyDown={handleKeyDown}
-        className={`w-full flex items-center justify-between px-3 py-2.5 border rounded-lg text-sm text-left bg-white transition-all duration-150
-          ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:border-blue-300 hover:shadow-sm'}
-          ${open ? 'border-blue-400 ring-2 ring-blue-100 shadow-sm' : 'border-gray-200'}
-          ${!label ? 'text-gray-400' : 'text-gray-900'}`}
+        className={`w-full flex items-center justify-between px-0 py-2.5 border-0 rounded-none text-sm text-left bg-transparent transition-all duration-150
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          ${!label ? 'text-gray-400' : 'text-gray-900 font-medium'}`}
       >
         <span className="truncate font-medium">{label || placeholder}</span>
         <div className="flex items-center gap-1 shrink-0 ml-2">

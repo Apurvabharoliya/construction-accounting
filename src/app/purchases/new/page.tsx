@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { Plus, Trash2, Upload, Loader2, Copy, FileSpreadsheet, Save, X, ChevronUp, Eye, Maximize2 } from 'lucide-react'
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
 import DatePicker from '@/components/ui/DatePicker'
-
+import SupplierDropdown from '@/components/ui/SupplierDropdown'
 import SearchableSelect from '@/components/ui/SearchableSelect'
 import { VILLAGES } from '@/lib/village-constants'
 import { parseExcelFile } from '@/lib/import'
@@ -543,11 +543,11 @@ export default function NewTransactionPage() {
         </div>
 
         {/* Spreadsheet Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr className="bg-gray-50">
                   <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px]">Supplier *</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">Date</th>
@@ -562,7 +562,7 @@ export default function NewTransactionPage() {
                   <th className="px-4 py-3.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {entries.map((entry, idx) => {
                   const isPayment = entry.payment_status === 'paid'
                   const total = calcEntryTotal(entry)
@@ -572,15 +572,13 @@ export default function NewTransactionPage() {
                   return (
                     <React.Fragment key={entry.id}>
                       {/* Main Row */}
-                      <tr className={`group transition-colors ${isPayment ? 'bg-emerald-50/30 hover:bg-emerald-50/60' : 'hover:bg-orange-50/20'}`}>
+                      <tr className={`group transition-colors ${isPayment ? 'bg-emerald-50/30 hover:bg-emerald-50/60' : 'hover:bg-gray-50'}`}>
                         <td className="px-3 py-2.5 text-xs text-gray-400 font-mono">{idx + 1}</td>
                         <td className="px-3 py-3">
-                          <input
-                            type="text"
+                          <SupplierDropdown
                             value={entry.supplier_name}
-                            onChange={(e) => updateEntry(entry.id, 'supplier_name', e.target.value)}
-                            className="w-full px-4 py-3.5 border-0 bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-0 focus:bg-gray-50/50 transition-colors"
-                            placeholder="Type supplier name..."
+                            onChange={(v) => updateEntry(entry.id, 'supplier_name', v)}
+                            placeholder="Select supplier"
                           />
                         </td>
                         <td className="px-3 py-3">
@@ -595,7 +593,7 @@ export default function NewTransactionPage() {
                             onChange={(e) => {
                               if (firstItem) updateItem(entry.id, firstItem.id, 'village_name', e.target.value)
                             }}
-                            className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all"
+                            className="w-full px-3 py-3 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 transition-all"
                           >
                             <option value="">Village...</option>
                             {VILLAGES.map(v => (
@@ -626,7 +624,7 @@ export default function NewTransactionPage() {
                               onChange={(e) => {
                                 if (firstItem) updateItem(entry.id, firstItem.id, 'material_name', e.target.value)
                               }}
-                              className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
                               placeholder="e.g. Cement, Sand"
                             />
                           )}
@@ -642,7 +640,7 @@ export default function NewTransactionPage() {
                               onChange={(e) => {
                                 if (firstItem) updateItem(entry.id, firstItem.id, 'quantity', Number(e.target.value))
                               }}
-                              className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border-0 bg-transparent text-sm text-right focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
                               placeholder="0"
                             />
                           )}
@@ -673,7 +671,7 @@ export default function NewTransactionPage() {
                               onChange={(e) => {
                                 if (firstItem) updateItem(entry.id, firstItem.id, 'rate', Number(e.target.value))
                               }}
-                              className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border-0 bg-transparent text-sm text-right focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
                               placeholder="0"
                             />
                           )}
@@ -685,7 +683,7 @@ export default function NewTransactionPage() {
                               step="0.01"
                               value={entry.amount_paid || ''}
                               onChange={(e) => updateEntry(entry.id, 'amount_paid', Number(e.target.value))}
-                              className="w-full px-4 py-3.5 border border-emerald-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-emerald-50/50 transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border-0 bg-emerald-50/50 text-sm text-right font-semibold focus:ring-2 focus:ring-emerald-500 transition-all placeholder:text-gray-300"
                               placeholder="Amount"
                             />
                           ) : (
@@ -696,7 +694,7 @@ export default function NewTransactionPage() {
                               onChange={(e) => {
                                 if (firstItem) updateItem(entry.id, firstItem.id, 'amount', Number(e.target.value))
                               }}
-                              className="w-full px-4 py-3.5 border border-gray-200 rounded-lg text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all placeholder:text-gray-300"
+                              className="w-full px-4 py-3.5 border-0 bg-transparent text-sm text-right font-semibold focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
                               placeholder="0"
                             />
                           )}
@@ -745,7 +743,7 @@ export default function NewTransactionPage() {
 
                       {/* Expanded Detail Row */}
                       {isExpanded && (
-                        <tr className="bg-gray-50/80">
+                        <tr className="bg-gray-50/50">
                           <td colSpan={12} className="px-10 py-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                               <div className="md:col-span-2 space-y-4">
@@ -765,13 +763,13 @@ export default function NewTransactionPage() {
                                 {!isPayment ? (
                                   <div className="space-y-3">
                                     {entry.items.map((item, ii) => (
-                                      <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                                      <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm">
                                         <span className="text-sm text-gray-400 font-mono w-6 shrink-0">{ii + 1}</span>
                                         {/* Village per item */}
                                         <select
                                           value={item.village_name}
                                           onChange={(e) => updateItem(entry.id, item.id, 'village_name', e.target.value)}
-                                          className="w-32 px-3 py-3 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-32 px-3 py-3 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500"
                                         >
                                           <option value="">Village...</option>
                                           {VILLAGES.map(v => (
@@ -782,7 +780,7 @@ export default function NewTransactionPage() {
                                           type="text"
                                           value={item.material_name}
                                           onChange={(e) => updateItem(entry.id, item.id, 'material_name', e.target.value)}
-                                          className="flex-1 min-w-[120px] px-4 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="flex-1 min-w-[120px] px-4 py-3 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500"
                                           placeholder="Material name"
                                         />
                                         <input
@@ -790,7 +788,7 @@ export default function NewTransactionPage() {
                                           step="0.001"
                                           value={item.quantity || ''}
                                           onChange={(e) => updateItem(entry.id, item.id, 'quantity', Number(e.target.value))}
-                                          className="w-20 px-3 py-3 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-20 px-3 py-3 border-0 bg-transparent text-sm text-right focus:ring-2 focus:ring-blue-500"
                                           placeholder="Qty"
                                         />
                                         <SearchableSelect
@@ -805,7 +803,7 @@ export default function NewTransactionPage() {
                                           step="0.01"
                                           value={item.rate || ''}
                                           onChange={(e) => updateItem(entry.id, item.id, 'rate', Number(e.target.value))}
-                                          className="w-24 px-3 py-3 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-24 px-3 py-3 border-0 bg-transparent text-sm text-right focus:ring-2 focus:ring-blue-500"
                                           placeholder="Rate"
                                         />
                                         <input
@@ -828,7 +826,7 @@ export default function NewTransactionPage() {
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="bg-emerald-50 rounded-xl p-5 border border-emerald-200">
+                                  <div className="bg-emerald-50/50 rounded-xl p-5">
                                     <p className="text-base text-emerald-700">
                                       <span className="font-bold">Payment entry</span> — No items needed.
                                     </p>
@@ -846,7 +844,7 @@ export default function NewTransactionPage() {
                                   <textarea
                                     value={entry.remarks}
                                     onChange={(e) => updateEntry(entry.id, 'remarks', e.target.value)}
-                                    className="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                    className="w-full px-4 py-3.5 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 resize-none"
                                     rows={4}
                                     placeholder="Notes about this transaction..."
                                   />
