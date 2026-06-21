@@ -233,3 +233,40 @@ export async function recordMaterialUsage(params: {
 
   return txn
 }
+
+export async function deleteVillageMaterial(materialId: string) {
+  // Get the material record first
+  const { data: material, error: fetchError } = await supabase
+    .from('village_materials')
+    .select('*')
+    .eq('id', materialId)
+    .single()
+
+  if (fetchError) throw fetchError
+  if (!material) throw new Error('Material not found')
+
+  // Delete related material transactions for this material at this village
+  const { data: village } = await supabase
+    .from('villages')
+    .select('name')
+    .eq('id', material.village_id)
+    .single()
+
+  if (village) {
+    await supabase
+      .from('material_transactions')
+      .delete()
+      .eq('village_name', village.name)
+      .eq('material_name', material.material_name)
+  }
+
+  // Delete the village_materials record
+  const { error: deleteError } = await supabase
+    .from('village_materials')
+    .delete()
+    .eq('id', materialId)
+
+  if (deleteError) throw deleteError
+
+  return { success: true }
+}

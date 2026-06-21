@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getVillageMaterials, getMaterialTransactions, addMaterialReceipt, recordMaterialUsage } from '@/lib/api/villages'
+import { getVillageMaterials, getMaterialTransactions, addMaterialReceipt, recordMaterialUsage, deleteVillageMaterial } from '@/lib/api/villages'
 import { VILLAGES, MATERIALS, getContractorsForMaterial, hasOtherOption } from '@/lib/village-constants'
 import type { VillageMaterialStock, MaterialTransaction } from '@/lib/village-constants'
 import { formatDate, formatDateTime } from '@/lib/date'
-import { ArrowLeft, Plus, MinusCircle, TrendingUp, TrendingDown, Package, Truck, Wrench, Clock, History, Search, X, Check } from 'lucide-react'
+import { ArrowLeft, Plus, MinusCircle, TrendingUp, TrendingDown, Package, Truck, Wrench, Clock, History, Search, X, Check, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -290,6 +290,24 @@ export default function VillageDetailPage() {
                           >
                             <MinusCircle className="w-4 h-4" />
                           </button>
+                          {stock?.id && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Delete ${material} from ${villageName}? This will also remove all related transaction history.`)) return
+                                try {
+                                  await deleteVillageMaterial(stock.id)
+                                  toast.success(`${material} deleted from ${villageName}`)
+                                  loadData()
+                                } catch (error: any) {
+                                  toast.error(error.message || 'Failed to delete material')
+                                }
+                              }}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete Material"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

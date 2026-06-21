@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Search, Eye, Edit3, Trash2, Save, X, Loader2, IndianRupee } from 'lucide-react'
+import { Plus, Search, Eye, Edit3, Trash2, Save, X, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { deleteBeneficiary } from '@/lib/api/beneficiaries'
 import { toast } from 'sonner'
@@ -16,6 +16,18 @@ export default function BeneficiariesPage() {
   useEffect(() => {
     fetchBeneficiaries()
   }, [searchQuery])
+
+  // Refetch data when window regains focus (ensures page is in sync with background saves)
+  const fetchBeneficiariesRef = useRef(fetchBeneficiaries)
+  fetchBeneficiariesRef.current = fetchBeneficiaries
+
+  useEffect(() => {
+    function handleFocus() {
+      fetchBeneficiariesRef.current()
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
 
   async function fetchBeneficiaries() {
     setLoading(true)
@@ -162,12 +174,12 @@ export default function BeneficiariesPage() {
                 <tr className="text-left bg-gray-50">
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">App No</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Name</th>
+                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Village</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Plinth</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Lintel</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Roof</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap hidden md:table-cell">Finishing</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap text-right">Total Due</th>
-                  <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap text-right">Received</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap text-right">Balance</th>
                   <th className="p-4 text-sm font-medium text-gray-500 whitespace-nowrap">Actions</th>
                 </tr>
@@ -175,8 +187,12 @@ export default function BeneficiariesPage() {
               <tbody>
                 {beneficiaries.map((b: any) => {
                   const amountDue = Number(b.total_amount_due) || 0
-                  const amountPaid = Number(b.total_amount_received) || 0
-                  const balance = amountDue - amountPaid
+                  const stagePlinth = Number(b.plinth) || 0
+                  const stageLintel = Number(b.lintel) || 0
+                  const stageRoof = Number(b.roof) || 0
+                  const stageFinishing = Number(b.finishing) || 0
+                  const totalStages = stagePlinth + stageLintel + stageRoof + stageFinishing
+                  const balance = amountDue - totalStages
                   return (
                     <tr key={b.id} className="border-t hover:bg-gray-50">
                       <td className="p-4 text-sm" data-label="App No">
@@ -196,6 +212,9 @@ export default function BeneficiariesPage() {
                           </Link>
                         )}
                       </td>
+                      <td className="p-4 text-sm hidden md:table-cell" data-label="Village">
+                        <span className="text-gray-600">{b.party?.address || '-'}</span>
+                      </td>
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Plinth">
                         {editingId === b.id ? (
                           <input
@@ -206,7 +225,7 @@ export default function BeneficiariesPage() {
                             className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
                           />
                         ) : (
-                          <span className="font-medium">{formatCurrency(Number(b.plinth) || 0)}</span>
+                          <span className="font-medium">{stagePlinth > 0 ? formatCurrency(stagePlinth) : '-'}</span>
                         )}
                       </td>
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Lintel">
@@ -219,7 +238,7 @@ export default function BeneficiariesPage() {
                             className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
                           />
                         ) : (
-                          <span className="font-medium">{formatCurrency(Number(b.lintel) || 0)}</span>
+                          <span className="font-medium">{stageLintel > 0 ? formatCurrency(stageLintel) : '-'}</span>
                         )}
                       </td>
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Roof">
@@ -232,7 +251,7 @@ export default function BeneficiariesPage() {
                             className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
                           />
                         ) : (
-                          <span className="font-medium">{formatCurrency(Number(b.roof) || 0)}</span>
+                          <span className="font-medium">{stageRoof > 0 ? formatCurrency(stageRoof) : '-'}</span>
                         )}
                       </td>
                       <td className="p-4 text-sm hidden md:table-cell" data-label="Finishing">
@@ -245,14 +264,11 @@ export default function BeneficiariesPage() {
                             className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
                           />
                         ) : (
-                          <span className="font-medium">{formatCurrency(Number(b.finishing) || 0)}</span>
+                          <span className="font-medium">{stageFinishing > 0 ? formatCurrency(stageFinishing) : '-'}</span>
                         )}
                       </td>
                       <td className="p-4 text-sm text-right font-semibold" data-label="Total Due">
                         {formatCurrency(amountDue)}
-                      </td>
-                      <td className="p-4 text-sm text-right font-semibold text-green-600" data-label="Received">
-                        {formatCurrency(amountPaid)}
                       </td>
                       <td className="p-4 text-sm text-right font-bold" data-label="Balance">
                         <span className={balance > 0 ? 'text-red-600' : balance < 0 ? 'text-green-600' : 'text-gray-500'}>

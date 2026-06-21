@@ -200,7 +200,7 @@ export default function PartiesPage() {
                       </td>
                       <td className="p-4" data-label="Balance">
                         <div className="relative group">
-                          <span className={`font-medium cursor-help ${(mainBalance || 0) > 0 ? 'text-green-600' : (mainBalance || 0) < 0 ? 'text-red-600' : ''}`}>
+                          <span className={`font-medium cursor-help ${(mainBalance || 0) > 0 ? 'text-red-600' : (mainBalance || 0) < 0 ? 'text-green-600' : ''}`}>
                             {formatCurrency(mainBalance || 0)}
                           </span>
                           {/* Tooltip: visible on hover (desktop) and on tap (mobile via :active/:focus-within) */}
@@ -219,7 +219,7 @@ export default function PartiesPage() {
                               </div>
                               <div className="border-t border-gray-700 pt-1.5 flex justify-between font-semibold">
                                 <span>Total</span>
-                                <span className={mainBalance > 0 ? 'text-green-400' : mainBalance < 0 ? 'text-red-400' : ''}>
+                                <span className={mainBalance > 0 ? 'text-red-400' : mainBalance < 0 ? 'text-green-400' : ''}>
                                   {formatCurrency(mainBalance || 0)}
                                 </span>
                               </div>
