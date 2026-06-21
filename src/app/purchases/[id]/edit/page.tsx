@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import React from 'react'
 import { supabase } from '@/lib/supabase'
 import { updatePurchase } from '@/lib/api/purchases'
-import { addMaterialReceipt } from '@/lib/api/villages'
 import { toast } from 'sonner'
 import { Plus, Trash2, Eye, Loader2, ChevronUp, ArrowLeft } from 'lucide-react'
 import { formatCurrency, UNITS, PAYMENT_MODES } from '@/lib/gst'
@@ -140,26 +139,10 @@ export default function EditPurchasePage() {
 
       await updatePurchase(purchaseId, updateData)
 
-      if (entry.payment_type === 'Purchase' && entry.village_name && entry.items.some(i => i.material_name && i.quantity > 0)) {
-        for (const item of entry.items) {
-          if (item.material_name && item.quantity > 0) {
-            try {
-              await addMaterialReceipt({
-                village_name: entry.village_name,
-                material_name: item.material_name,
-                quantity: item.quantity,
-                contractor_name: entry.supplier_name,
-                notes: `Updated via purchase edit - ${entry.supplier_name}`,
-                transaction_date: entry.invoice_date || new Date().toISOString().split('T')[0],
-              })
-            } catch (e) {
-              console.error('Failed to update village stock:', e)
-            }
-          }
-        }
-      }
-
       toast.success('Purchase updated successfully!')
+
+      // Note: Village stock is NOT updated during edits to prevent double-counting.
+      // Stock adjustments should be made directly on the village page.
       router.push('/purchases')
     } catch (error: any) {
       toast.error('Failed to update purchase: ' + error.message)

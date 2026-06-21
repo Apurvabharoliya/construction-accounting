@@ -123,43 +123,46 @@ export async function addMaterialReceipt(params: {
   if (txnError) throw txnError
 
   // Update village_materials stock
-  const { data: village } = await supabase
+  const { data: village, error: villageError } = await supabase
     .from('villages')
     .select('id')
     .eq('name', params.village_name)
     .single()
 
-  if (village) {
-    const { data: existing } = await supabase
-      .from('village_materials')
-      .select('*')
-      .eq('village_id', village.id)
-      .eq('material_name', params.material_name)
-      .single()
+  if (villageError || !village) {
+    console.error('Village not found:', params.village_name, villageError)
+    throw new Error(`Village "${params.village_name}" not found in database. Make sure the village name matches what's in the database.`)
+  }
 
-    if (existing) {
-      const newReceived = Number(existing.quantity_received) + params.quantity
-      const usedQty = Number(existing.quantity_used) || 0
-      const newRemaining = newReceived - usedQty
-      await supabase
-        .from('village_materials')
-        .update({
-          quantity_received: newReceived,
-          quantity_remaining: newRemaining,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('village_materials')
-        .insert([{
-          village_id: village.id,
-          material_name: params.material_name,
-          quantity_received: params.quantity,
-          quantity_used: 0,
-          quantity_remaining: params.quantity
-        }])
-    }
+  const { data: existing } = await supabase
+    .from('village_materials')
+    .select('*')
+    .eq('village_id', village.id)
+    .eq('material_name', params.material_name)
+    .single()
+
+  if (existing) {
+    const newReceived = Number(existing.quantity_received) + params.quantity
+    const usedQty = Number(existing.quantity_used) || 0
+    const newRemaining = newReceived - usedQty
+    await supabase
+      .from('village_materials')
+      .update({
+        quantity_received: newReceived,
+        quantity_remaining: newRemaining,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existing.id)
+  } else {
+    await supabase
+      .from('village_materials')
+      .insert([{
+        village_id: village.id,
+        material_name: params.material_name,
+        quantity_received: params.quantity,
+        quantity_used: 0,
+        quantity_remaining: params.quantity
+      }])
   }
 
   return txn
@@ -189,40 +192,43 @@ export async function recordMaterialUsage(params: {
   if (txnError) throw txnError
 
   // Update village_materials stock
-  const { data: village } = await supabase
+  const { data: village, error: villageError } = await supabase
     .from('villages')
     .select('id')
     .eq('name', params.village_name)
     .single()
 
-  if (village) {
-    const { data: existing } = await supabase
-      .from('village_materials')
-      .select('*')
-      .eq('village_id', village.id)
-      .eq('material_name', params.material_name)
-      .single()
+  if (villageError || !village) {
+    console.error('Village not found:', params.village_name, villageError)
+    throw new Error(`Village "${params.village_name}" not found in database. Make sure the village name matches what's in the database.`)
+  }
 
-    if (existing) {
-      // Calculate used quantity: if quantity_used column exists, use it; otherwise derive from received - remaining
-      const existingUsed = existing.quantity_used !== undefined
-        ? Number(existing.quantity_used)
-        : Number(existing.quantity_received) - Number(existing.quantity_remaining)
-      const newUsed = existingUsed + params.quantity
-      const newRemaining = Number(existing.quantity_received) - newUsed
-      const updateData: Record<string, any> = {
-        quantity_remaining: Math.max(0, newRemaining),
-        updated_at: new Date().toISOString()
-      }
-      // Only include quantity_used if the column exists in the table
-      if (existing.quantity_used !== undefined) {
-        updateData.quantity_used = newUsed
-      }
-      await supabase
-        .from('village_materials')
-        .update(updateData)
-        .eq('id', existing.id)
+  const { data: existing } = await supabase
+    .from('village_materials')
+    .select('*')
+    .eq('village_id', village.id)
+    .eq('material_name', params.material_name)
+    .single()
+
+  if (existing) {
+    // Calculate used quantity: if quantity_used column exists, use it; otherwise derive from received - remaining
+    const existingUsed = existing.quantity_used !== undefined
+      ? Number(existing.quantity_used)
+      : Number(existing.quantity_received) - Number(existing.quantity_remaining)
+    const newUsed = existingUsed + params.quantity
+    const newRemaining = Number(existing.quantity_received) - newUsed
+    const updateData: Record<string, any> = {
+      quantity_remaining: Math.max(0, newRemaining),
+      updated_at: new Date().toISOString()
     }
+    // Only include quantity_used if the column exists in the table
+    if (existing.quantity_used !== undefined) {
+      updateData.quantity_used = newUsed
+    }
+    await supabase
+      .from('village_materials')
+      .update(updateData)
+      .eq('id', existing.id)
   }
 
   return txn

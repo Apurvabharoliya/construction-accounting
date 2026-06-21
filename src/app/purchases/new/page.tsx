@@ -299,6 +299,7 @@ export default function NewTransactionPage() {
           supplier_id: supplierId,
           invoice_date: invoiceDate,
           supplier_invoice_number: entry.supplier_invoice_number || undefined,
+          village_name: entry.village_name || undefined,
           subtotal: totalAmount,
           gst_rate: 0,
           cgst_amount: 0,
@@ -313,6 +314,8 @@ export default function NewTransactionPage() {
         }, itemsWithGst)
 
         if (entry.village_name) {
+          let villageStockSuccess = 0
+          let villageStockFail = 0
           for (const item of validItems) {
             if (item.material_name.trim() && item.quantity > 0) {
               try {
@@ -325,10 +328,17 @@ export default function NewTransactionPage() {
                   notes: `Purchase ${purchaseData.purchase_number}`,
                   transaction_date: item.date
                 })
+                villageStockSuccess++
               } catch (err) {
-                console.error(`Failed to update village stock:`, err)
+                villageStockFail++
+                console.error(`Failed to update village stock for ${item.material_name}:`, err)
               }
             }
+          }
+          if (villageStockFail > 0) {
+            toast.error(`Failed to update village stock for ${villageStockFail} item(s) in ${entry.village_name}`)
+          } else if (villageStockSuccess > 0) {
+            toast.success(`${entry.village_name} stock updated: +${villageStockSuccess} material(s)`)
           }
         }
 

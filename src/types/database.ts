@@ -26,6 +26,7 @@ export interface Purchase {
   supplier_id: string
   invoice_date: string
   supplier_invoice_number?: string
+  village_name?: string
   subtotal: number
   gst_rate: number
   cgst_amount: number

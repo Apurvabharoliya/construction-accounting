@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/gst'
 import { formatDate, formatDateTime } from '@/lib/date'
-import { ArrowLeft, Edit3, Trash2, Banknote, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, Edit3, Trash2, Banknote, ShoppingCart, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { deletePurchase } from '@/lib/api/purchases'
 import { toast } from 'sonner'
@@ -109,6 +109,18 @@ export default function PurchaseDetailPage() {
             {purchase.payment_status === 'paid' ? 'Payment' : 'Purchase'}
           </span>
         </div>
+        {purchase.village_name && (
+          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+            <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Village</h3>
+            <Link
+              href={`/villages/${purchase.village_name.toLowerCase()}`}
+              className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              <MapPin className="w-4 h-4" />
+              {purchase.village_name}
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
@@ -144,6 +156,8 @@ export default function PurchaseDetailPage() {
           </div>
         </div>
       </div>
+
+
 
       <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
         <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Summary</h3>
