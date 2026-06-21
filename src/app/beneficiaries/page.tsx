@@ -57,11 +57,11 @@ export default function BeneficiariesPage() {
     setEditingId(b.id)
     setEditForm({
       name: b.party?.name || '',
-      plinth: Number(b.plinth) || 0,
-      lintel: Number(b.lintel) || 0,
-      roof: Number(b.roof) || 0,
-      finishing: Number(b.finishing) || 0,
-      amount_due: Number(b.total_amount_due) || 0,
+      plinth: Number(b.plinth) || '',
+      lintel: Number(b.lintel) || '',
+      roof: Number(b.roof) || '',
+      finishing: Number(b.finishing) || '',
+      amount_due: Number(b.total_amount_due) || '',
     })
   }
 
@@ -221,7 +221,7 @@ export default function BeneficiariesPage() {
                             type="number"
                             step="0.01"
                             value={editForm.plinth}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, plinth: Number(e.target.value) }))}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, plinth: e.target.value === '' ? '' : Number(e.target.value) }))}
                             className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
                           />
                         ) : (
@@ -234,7 +234,7 @@ export default function BeneficiariesPage() {
                             type="number"
                             step="0.01"
                             value={editForm.lintel}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, lintel: Number(e.target.value) }))}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, lintel: e.target.value === '' ? '' : Number(e.target.value) }))}
                             className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
                           />
                         ) : (
@@ -247,7 +247,7 @@ export default function BeneficiariesPage() {
                             type="number"
                             step="0.01"
                             value={editForm.roof}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, roof: Number(e.target.value) }))}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, roof: e.target.value === '' ? '' : Number(e.target.value) }))}
                             className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
                           />
                         ) : (
@@ -260,7 +260,7 @@ export default function BeneficiariesPage() {
                             type="number"
                             step="0.01"
                             value={editForm.finishing}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, finishing: Number(e.target.value) }))}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, finishing: e.target.value === '' ? '' : Number(e.target.value) }))}
                             className="w-24 px-2 py-2 border border-blue-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-blue-50/30"
                           />
                         ) : (
