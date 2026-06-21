@@ -259,9 +259,10 @@ export default function EditPurchasePage() {
   }
 
   return (
-    <div className={`${sizeClass} mx-auto px-6 lg:px-10 xl:px-14 py-6 space-y-6 transition-all duration-300`}>
+    <div className={`${sizeClass} mx-auto px-6 lg:px-10 xl:px-14 py-6 transition-all duration-300`}>
+      <div className="bg-white rounded-2xl shadow-sm">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 pt-6 pb-4">
         <div className="flex items-center gap-4">
           <Link href="/purchases" className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors">
             <ArrowLeft className="h-6 w-6 text-gray-600" />
@@ -293,10 +294,9 @@ export default function EditPurchasePage() {
             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
-        </div>
-      </div>        {/* Spreadsheet Table */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        </div>        </div>
+        {/* Spreadsheet Table — no overflow clipping so dropdown panels aren't cut off */}
+        <div>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50">
@@ -581,30 +581,30 @@ export default function EditPurchasePage() {
 
         {/* Grand Total Footer */}
         {entries.length > 0 && (
-          <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 flex justify-end">
+          <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
             <div className="flex items-center gap-5">
-              <span className="text-sm font-medium text-gray-600">Grand Total:</span>
+              <span className="text-sm font-medium text-gray-500">Grand Total:</span>
               <span className="text-xl font-bold text-blue-600">
                 {formatCurrency(entries.reduce((sum, e) => sum + calcEntryTotal(e), 0))}
               </span>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Remarks */}
-      {entries.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-5">
-          <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Remarks</label>
-          <textarea
-            value={entries[0].remarks}
-            onChange={(e) => updateEntry(entries[0].id, 'remarks', e.target.value)}
-            className="w-full px-4 py-3.5 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 resize-none"
-            rows={3}
-            placeholder="Notes about this transaction..."
-          />
-        </div>
-      )}
+        {/* Remarks */}
+        {entries.length > 0 && (
+          <div className="px-6 pb-6 pt-2">
+            <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Remarks</label>
+            <textarea
+              value={entries[0].remarks}
+              onChange={(e) => updateEntry(entries[0].id, 'remarks', e.target.value)}
+              className="w-full px-4 py-3.5 border-0 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 resize-none"
+              rows={3}
+              placeholder="Notes about this transaction..."
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -483,7 +483,7 @@ export default function NewTransactionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className={`${sizeClass} mx-auto px-6 lg:px-10 xl:px-14 py-6 space-y-6 transition-all duration-300`}>
+      <div className={`${sizeClass} mx-auto px-6 lg:px-10 xl:px-14 py-6 transition-all duration-300`}>
         {/* Keyboard shortcut hint */}
         <div className="fixed bottom-4 right-4 z-50">
           <div className="bg-gray-900 text-white text-[11px] px-3 py-1.5 rounded-full shadow-lg font-medium opacity-60">
@@ -491,60 +491,61 @@ export default function NewTransactionPage() {
           </div>
         </div>
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-sm shrink-0">
-              <FileSpreadsheet className="w-6 h-6 text-white" />
+        {/* Single seamless form — no boxed sections */}
+        <div className="bg-white rounded-2xl shadow-sm">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 pt-6 pb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-sm shrink-0">
+                <FileSpreadsheet className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">New Purchases</h1>
+                <p className="text-gray-500 text-sm mt-1">
+                  Each row = one supplier entry. Fill in the columns like a spreadsheet.
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">New Purchases</h1>
-              <p className="text-gray-500 text-sm mt-1">
-                Each row = one supplier entry. Fill in the columns like a spreadsheet.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5">
-            {/* Form Size Selector */}
-            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-              <Maximize2 className="w-4 h-4 text-gray-400" />
-              <select
-                value={formSize}
-                onChange={(e) => setFormSize(e.target.value as 'normal' | 'large' | 'xl')}
-                className="bg-transparent text-xs font-medium text-gray-600 focus:outline-none cursor-pointer"
+            <div className="flex items-center gap-2.5">
+              {/* Form Size Selector */}
+              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                <Maximize2 className="w-4 h-4 text-gray-400" />
+                <select
+                  value={formSize}
+                  onChange={(e) => setFormSize(e.target.value as 'normal' | 'large' | 'xl')}
+                  className="bg-transparent text-xs font-medium text-gray-600 focus:outline-none cursor-pointer"
+                >
+                  <option value="normal">Normal</option>
+                  <option value="large">Wide</option>
+                  <option value="xl">Extra Wide</option>
+                </select>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.ods"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f) }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium shadow-sm"
               >
-                <option value="normal">Normal</option>
-                <option value="large">Wide</option>
-                <option value="xl">Extra Wide</option>
-              </select>
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Upload Excel
+              </button>
+              <button
+                onClick={addRow}
+                className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all text-sm font-medium shadow-sm shadow-blue-200"
+              >
+                <Plus className="w-4 h-4" /> Add Row
+              </button>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv,.ods"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f) }}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium shadow-sm"
-            >
-              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              Upload Excel
-            </button>
-            <button
-              onClick={addRow}
-              className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all text-sm font-medium shadow-sm shadow-blue-200"
-            >
-              <Plus className="w-4 h-4" /> Add Row
-            </button>
           </div>
-        </div>
 
-        {/* Spreadsheet Table */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Spreadsheet Table — no overflow clipping so dropdown panels aren't cut off */}
+          <div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50">
@@ -863,62 +864,62 @@ export default function NewTransactionPage() {
                 })}
               </tbody>
             </table>
+          {/* Grand Total Bar */}
+          <div className="px-6 py-4 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <span className="inline-flex items-center gap-1.5 bg-gray-100 px-4 py-2 rounded-full font-medium">
+                  <span className="font-bold text-gray-900">{entries.length}</span> Row{entries.length !== 1 ? 's' : ''}
+                </span>
+                {purchaseCount > 0 && (
+                  <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 px-4 py-2 rounded-full font-medium">
+                    📦 {purchaseCount} Purchase{purchaseCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {paymentCount > 0 && (
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-medium">
+                    💰 {paymentCount} Payment{paymentCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-2xl font-bold text-gray-900">
+                <span className="text-base font-medium text-gray-500">Grand Total:</span>
+                <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Grand Total Bar */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <span className="inline-flex items-center gap-1.5 bg-gray-100 px-4 py-2 rounded-full font-medium">
-                <span className="font-bold text-gray-900">{entries.length}</span> Row{entries.length !== 1 ? 's' : ''}
-              </span>
-              {purchaseCount > 0 && (
-                <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 px-4 py-2 rounded-full font-medium">
-                  📦 {purchaseCount} Purchase{purchaseCount !== 1 ? 's' : ''}
-                </span>
-              )}
-              {paymentCount > 0 && (
-                <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-medium">
-                  💰 {paymentCount} Payment{paymentCount !== 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3 text-2xl font-bold text-gray-900">
-              <span className="text-base font-medium text-gray-500">Grand Total:</span>
-              <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
-            </div>
-          </div>
+        </div>
         </div>
 
         {/* Submit Bar */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={addRow}
-            className="flex items-center gap-2 px-5 py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
-          >
-            <Plus className="w-5 h-5" /> Add Another Row
-          </button>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between px-6 pb-6 pt-2">
             <button
-              onClick={() => window.history.back()}
-              className="px-8 py-3 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-all text-sm font-medium bg-white"
+              onClick={addRow}
+              className="flex items-center gap-2 px-5 py-3 border-2 border-dashed border-gray-200 text-gray-400 rounded-xl hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
             >
-              Cancel
+              <Plus className="w-5 h-5" /> Add Another Row
             </button>
-            <button
-              onClick={handleSaveAll}
-              disabled={isLoading || entries.length === 0}
-              className="px-10 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 text-base font-semibold shadow-md shadow-blue-200 flex items-center gap-2"
-            >
-              {isLoading ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Saving...</>
-              ) : (
-                <><Save className="w-5 h-5" /> Save All ({entries.length})</>
-              )}
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => window.history.back()}
+                className="px-8 py-3 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-all text-sm font-medium bg-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAll}
+                disabled={isLoading || entries.length === 0}
+                className="px-10 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 text-base font-semibold shadow-md shadow-blue-200 flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Saving...</>
+                ) : (
+                  <><Save className="w-5 h-5" /> Save All ({entries.length})</>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
       </div>
     </div>
   )
