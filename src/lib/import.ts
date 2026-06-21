@@ -499,7 +499,7 @@ async function importPurchases(rows: Record<string, string>[], columnMap: Map<st
 
         const qty = parseFloat(getField(row, columnMap, 'quantity') || '1') || 1
         const rate = parseFloat(getField(row, columnMap, 'rate') || '0') || 0
-        const gstRate = parseFloat(getField(row, columnMap, 'gst') || '18') || 0
+        const gstRate = parseFloat(getField(row, columnMap, 'gst') || '0') || 0
         const unit = getField(row, columnMap, 'unit') || 'Nos'
         const hsnCode = getField(row, columnMap, 'hsn')
         const explicitAmount = parseFloat(getField(row, columnMap, 'amount') || '0') || 0
@@ -692,7 +692,7 @@ async function importSales(rows: Record<string, string>[], columnMap: Map<string
 
         const qty = parseFloat(getField(row, columnMap, 'quantity') || '1') || 1
         const rate = parseFloat(getField(row, columnMap, 'rate') || '0') || 0
-        const gstRate = parseFloat(getField(row, columnMap, 'gst') || '18') || 0
+        const gstRate = parseFloat(getField(row, columnMap, 'gst') || '0') || 0
         const unit = getField(row, columnMap, 'unit') || 'Nos'
         const hsnCode = getField(row, columnMap, 'hsn')
         const sacCode = getField(row, columnMap, 'sac')

@@ -78,7 +78,7 @@ export function formatCurrency(amount: number): string {
 
 
 export const GST_RATES = [
-  { value: 0, label: '0% (Nil Rated)' },
+  { value: 0, label: '0%' },
   { value: 0.25, label: '0.25% (Diamond)' },
   { value: 3, label: '3% (Gold)' },
   { value: 5, label: '5%' },

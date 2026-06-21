@@ -49,7 +49,7 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -59,28 +59,28 @@
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: oklch(0.96 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: oklch(0.96 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.92 0 0);
+  --input: oklch(0.92 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: oklch(0.21 0.04 260);
+  --sidebar-foreground: oklch(0.85 0 0);
+  --sidebar-primary: oklch(0.72 0.19 50);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.28 0.05 260);
+  --sidebar-accent-foreground: oklch(0.85 0 0);
+  --sidebar-border: oklch(0.3 0.05 260);
+  --sidebar-ring: oklch(0.72 0.19 50);
 }
 
 .dark {
@@ -102,12 +102,12 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -132,21 +132,117 @@
   html {
     @apply font-sans;
   }
-  /* Better touch targets on mobile */
   button, a, select, input, textarea {
     @apply touch-manipulation;
   }
-  /* Prevent zoom on input focus on iOS */
   input, select, textarea {
     font-size: 16px;
   }
-  /* Smooth momentum scrolling */
   .overflow-x-auto, .overflow-y-auto {
     -webkit-overflow-scrolling: touch;
   }
+  ::selection {
+    background-color: oklch(0.72 0.19 50 / 0.3);
+    color: inherit;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.8 0 0 / 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.7 0 0 / 0.4);
+  }
+  *:focus-visible {
+    @apply ring-2 ring-amber-500/40 ring-offset-2 ring-offset-white;
+  }
 }
 
-/* Mobile-first responsive table: convert to cards on small screens */
+/* ===== Keyframes (pure CSS, not Tailwind) ===== */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes dot-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ===== Utility classes (no @apply) ===== */
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out both;
+}
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.3s ease-out both;
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out both;
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.animate-count-up {
+  animation: count-up 0.5s ease-out both;
+}
+.animate-dot-pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg,
+    oklch(0.95 0 0) 25%,
+    oklch(0.92 0 0) 50%,
+    oklch(0.95 0 0) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+.construction-bg {
+  background-image:
+    radial-gradient(ellipse at 0% 0%, oklch(0.72 0.19 50 / 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, oklch(0.6 0.12 200 / 0.03) 0%, transparent 50%);
+}
+
+/* Animation delays */
+.delay-0 { animation-delay: 0ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* ===== Responsive table ===== */
 @media (max-width: 767px) {
   .responsive-table-card {
     display: block !important;
@@ -159,7 +255,12 @@
     display: block;
   }
   .responsive-table-card tr {
-    @apply border rounded-xl p-4 mb-3 bg-white shadow-sm;
+    border: 1px solid oklch(0.92 0.02 80);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background-color: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
   .responsive-table-card td {
     display: flex;
@@ -167,16 +268,19 @@
     align-items: center;
     padding: 8px 0 !important;
     border: none !important;
-    @apply text-sm;
+    font-size: 0.875rem;
   }
   .responsive-table-card td::before {
     content: attr(data-label);
-    @apply text-xs text-gray-500 font-medium mr-3 flex-shrink-0;
+    font-size: 0.75rem;
+    color: oklch(0.556 0 0);
+    font-weight: 500;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
     max-width: 40%;
   }
 }
 
-/* Tablet-specific responsive table: slightly more compact than desktop */
 @media (min-width: 768px) and (max-width: 1023px) {
   .responsive-table-card td.data-label-md {
     display: flex;
@@ -187,11 +291,14 @@
   }
   .responsive-table-card td.data-label-md::before {
     content: attr(data-label);
-    @apply text-xs text-gray-500 font-medium mr-3 flex-shrink-0;
+    font-size: 0.75rem;
+    color: oklch(0.556 0 0);
+    font-weight: 500;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
   }
 }
 
-/* Better touch targets on mobile */
 @media (max-width: 767px) {
   .resp-btn-touch {
     min-height: 44px;
@@ -200,35 +307,19 @@
     align-items: center;
     justify-content: center;
   }
-}
-
-/* Stack horizontal filter groups on small screens */
-@media (max-width: 767px) {
   .resp-stack-mobile {
     flex-direction: column !important;
   }
   .resp-stack-mobile > * {
     width: 100% !important;
   }
-}
-
-/* Fix tables that use -mx-* overflow patterns for mobile */
-@media (max-width: 767px) {
   .resp-table-overflow {
     margin-left: -1rem !important;
     margin-right: -1rem !important;
   }
-}
-
-/* Hide column on mobile */
-@media (max-width: 767px) {
   .resp-hide-mobile {
     display: none !important;
   }
-}
-
-/* Show column only on mobile */
-@media (max-width: 767px) {
   .resp-show-mobile {
     display: block !important;
   }
